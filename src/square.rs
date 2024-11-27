@@ -5,7 +5,7 @@ use core::fmt;
 use std::mem::transmute;
 use std::ops::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct Square(pub u8);
 
 impl Square {
@@ -122,6 +122,6 @@ impl Shl<i32> for Square {
 
     #[inline(always)]
     fn shl(self, rhs: i32) -> Square {
-        Square((self.0).wrapping_shl(rhs as u32))
+        Square(self.0 << rhs)
     }
 }

@@ -26,11 +26,39 @@ fn main() {
     Bitboard::BLACK_SQUARES.print();
     Bitboard::WHITE_SQUARES.print();
 
-    let mut bb = Bitboard(0);
-    bb.set_sq(Square::A4.0);
-
     for square in ALL_SQUARES {
         square.print();
         square.to_bb().print();
     }
+
+    let mut bb = Bitboard(0);
+    dbg!(bb.is_empty());
+    
+    dbg!(bb.is_set_sq(Square::A4));
+    bb.set_sq(Square::A4);
+    bb.set_sq(Square::B5);
+    dbg!(bb.is_set_sq(Square::A4));
+
+    dbg!(bb.is_empty());
+
+    bb.print();
+
+    bb.pop_sq(Square::A8);
+    bb.pop_sq(Square::A4);
+
+    bb.print();
+
+    dbg!(bb.is_not_empty());
+    bb.pop_sq(Square::B5);
+    dbg!(bb.is_not_empty());
+
+    let bb2 = Bitboard(2425);
+    let bb3 = Bitboard(222);
+    let sq = Square(2);
+
+    (bb2 | bb3).print();
+    (bb2 | bb3).print();
+    bb2.print();
+    sq.to_bb().print();
+    (bb2 | sq.to_bb()).print();
 }
