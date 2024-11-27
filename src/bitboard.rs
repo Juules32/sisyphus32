@@ -1,33 +1,34 @@
 use core::fmt;
-use std::ops::Shl;
+use std::ops::*;
 
 use crate::square::Square;
 
+#[derive(Clone, Copy)]
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
     #[inline(always)]
-    pub fn set_sq(&mut self, sq: u8) {
-        self.0 |= 1 << sq;
+    pub fn set_sq(&mut self, sq: Square) {
+        self.0 |= 1 << sq.0;
     }
 
     #[inline(always)]
-    pub fn pop_sq(&mut self, sq: u8) {
-        self.0 &= !(1 << sq);
+    pub fn pop_sq(&mut self, sq: Square) {
+        self.0 &= !(1 << sq.0);
     }
 
     #[inline(always)]
-    pub fn is_set_sq(self, sq: u8) -> bool {
-        self.0 & 1 << sq != 0
+    pub fn is_set_sq(&self, sq: Square) -> bool {
+        self.0 & 1 << sq.0 != 0
     }
 
     #[inline(always)]
-    pub fn is_empty(self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.0 == 0
     }
 
     #[inline(always)]
-    pub fn is_not_empty(self) -> bool {
+    pub fn is_not_empty(&self) -> bool {
         self.0 != 0
     }
 
@@ -63,7 +64,6 @@ impl Bitboard {
 impl fmt::Display for Bitboard {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = String::new();
-
         for i in 0..8 {
             s += &format!("  {}  ", 8 - i);
             for j in 0..8 {
@@ -72,20 +72,29 @@ impl fmt::Display for Bitboard {
             }
             s += "\n";
         }
-
         s += "\n    a b c d e f g h\n";
-
         s += &format!("\nBitboard: {}\n", self.0);
-
         f.pad(&s)
     }
 }
 
-impl Shl<Square> for Bitboard {
-    type Output = Bitboard;
+macro_rules! impl_binary_ops_for_types {
+    ($trait:ident, $method:ident, $op:tt, $rhs:ty) => {
+        impl $trait<$rhs> for Bitboard {
+            type Output = Bitboard;
 
-    #[inline(always)]
-    fn shl(self, rhs: Square) -> Bitboard {
-        Bitboard((self.0).wrapping_shl(rhs.0 as u32))
-    }
+            #[inline(always)]
+            fn $method(self, rhs: $rhs) -> Bitboard {
+                Bitboard(self.0 $op rhs.0 as u64)
+            }
+        }
+    };
 }
+
+impl_binary_ops_for_types!(Shl, shl, <<, Square);
+impl_binary_ops_for_types!(BitAnd, bitand, &, Bitboard);
+impl_binary_ops_for_types!(BitAnd, bitand, &, Square);
+impl_binary_ops_for_types!(BitOr, bitor, |, Bitboard);
+impl_binary_ops_for_types!(BitOr, bitor, |, Square);
+impl_binary_ops_for_types!(BitXor, bitxor, ^, Bitboard);
+impl_binary_ops_for_types!(BitXor, bitxor, ^, Square);

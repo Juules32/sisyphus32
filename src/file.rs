@@ -1,6 +1,6 @@
 use core::fmt;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 #[repr(u8)]
 #[allow(dead_code)]
 pub enum File {
