@@ -16,13 +16,6 @@ pub enum Rank {
 
 impl fmt::Display for Rank {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.pad(&(8 - self.value()).to_string())
+        f.pad(&(8 - *self as u8).to_string())
     }
 }
-
-impl Rank {
-    pub fn value(self) -> u8 {
-        self as u8
-    }
-}
-

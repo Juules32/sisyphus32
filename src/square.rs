@@ -3,7 +3,6 @@ use crate::file::File;
 use crate::rank::Rank;
 use core::fmt;
 use std::mem::transmute;
-use std::ops::*;
 
 #[derive(Clone, Copy)]
 pub struct Square(pub u8);
@@ -94,18 +93,6 @@ impl Square {
     pub const NO_SQ: Square = Square(64);
 }
 
-impl Square {
-    pub fn print(&self) {
-        println!("{}", &self);
-    }
-}
-
-impl fmt::Display for Square {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.pad(&(self.file().to_string() + &self.rank().to_string()))
-    }
-}
-
 pub const ALL_SQUARES: [Square; 64] = [
     Square::A8, Square::B8, Square::C8, Square::D8, Square::E8, Square::F8, Square::G8, Square::H8,
     Square::A7, Square::B7, Square::C7, Square::D7, Square::E7, Square::F7, Square::G7, Square::H7,
@@ -117,11 +104,8 @@ pub const ALL_SQUARES: [Square; 64] = [
     Square::A1, Square::B1, Square::C1, Square::D1, Square::E1, Square::F1, Square::G1, Square::H1,
 ];
 
-impl Shl<i32> for Square {
-    type Output = Square;
-
-    #[inline(always)]
-    fn shl(self, rhs: i32) -> Square {
-        Square(self.0 << rhs)
+impl fmt::Display for Square {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.pad(&(self.file().to_string() + &self.rank().to_string()))
     }
 }

@@ -16,13 +16,7 @@ pub enum File {
 
 impl fmt::Display for File {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let f_char = ('a' as u8 + self.value()) as char;
+        let f_char = ('a' as u8 + *self as u8) as char;
         f.pad(&f_char.to_string())
-    }
-}
-
-impl File {
-    pub fn value(self) -> u8 {
-        self as u8
     }
 }
