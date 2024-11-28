@@ -2,7 +2,6 @@ use core::fmt;
 
 use crate::{bitboard::Bitboard, piece::PieceType, square::Square};
 
-#[derive(Clone)]
 pub struct BoardState {
     pub bbs: [Bitboard; 12],
     pub wo: Bitboard,
@@ -59,6 +58,7 @@ impl BoardState {
         }
     }
 
+    #[inline(always)]
     pub fn set_piece(&mut self, piece: PieceType, sq: Square) {
         self.bbs[piece].set_sq(sq);
     }
@@ -77,7 +77,7 @@ impl Default for BoardState {
 
 impl fmt::Display for BoardState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut s = String::new();
+        let mut s = String::from("\n");
         for rank in 0..8 {
             s += &format!("  {}  ", 8 - rank);
             for file in 0..8 {

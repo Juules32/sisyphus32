@@ -98,7 +98,7 @@ impl_bb_op_for_type!(BitXor, bitxor, ^, Square);
 
 impl fmt::Display for Bitboard {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut s = String::new();
+        let mut s = String::from("\n");
         for i in 0..8 {
             s += &format!("  {}  ", 8 - i);
             for j in 0..8 {
