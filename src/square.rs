@@ -3,8 +3,9 @@ use crate::file::File;
 use crate::rank::Rank;
 use core::fmt;
 use std::mem::transmute;
+use std::ops::Index;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Square(pub u8);
 
 impl Square {
@@ -21,6 +22,16 @@ impl Square {
     #[inline(always)]
     pub fn file(self) -> File {
         unsafe { transmute::<u8, File>(self.0 & 0b0000_0111) }
+    }
+
+    #[inline(always)]
+    pub fn above(self) -> Square {
+        Square(self.0 - 8)
+    }
+    
+    #[inline(always)]
+    pub fn below(self) -> Square {
+        Square(self.0 + 8)
     }
 }
 
@@ -91,7 +102,7 @@ impl Square {
     pub const G1: Square = Square(62);
     pub const H1: Square = Square(63);
     pub const NO_SQ: Square = Square(64);
-    
+
     pub const ALL_SQUARES: [Square; 64] = [
         Square::A8, Square::B8, Square::C8, Square::D8, Square::E8, Square::F8, Square::G8, Square::H8,
         Square::A7, Square::B7, Square::C7, Square::D7, Square::E7, Square::F7, Square::G7, Square::H7,
@@ -104,8 +115,21 @@ impl Square {
     ];
 }
 
+impl Index<Square> for [u8; 64] {
+    type Output = u8;
+
+    fn index(&self, index: Square) -> &Self::Output {
+        &self[index.0 as usize]
+    }
+}
+
 impl fmt::Display for Square {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.pad(&(self.file().to_string() + &self.rank().to_string()))
+        if *self == Square::NO_SQ {
+            f.pad("No Square")
+        }
+        else {
+            write!(f, "{}{}", self.file(), self.rank())
+        }
     }
 }
