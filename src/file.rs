@@ -4,14 +4,14 @@ use core::fmt;
 #[repr(u8)]
 #[allow(dead_code)]
 pub enum File {
-    FH = 0,
-    FG = 1,
-    FF = 2,
-    FE = 3,
-    FD = 4,
-    FC = 5,
-    FB = 6,
-    FA = 7,
+    FA = 0,
+    FB = 1,
+    FC = 2,
+    FD = 3,
+    FE = 4,
+    FF = 5,
+    FG = 6,
+    FH = 7,
 }
 
 impl fmt::Display for File {

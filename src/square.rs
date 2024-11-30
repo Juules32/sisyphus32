@@ -33,6 +33,16 @@ impl Square {
     pub fn below(self) -> Square {
         Square(self.0 + 8)
     }
+
+    #[inline(always)]
+    pub fn left(self) -> Square {
+        Square(self.0 - 1)
+    }
+
+    #[inline(always)]
+    pub fn right(self) -> Square {
+        Square(self.0 + 1)
+    }
 }
 
 #[allow(dead_code)]
