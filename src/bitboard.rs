@@ -30,10 +30,22 @@ impl Bitboard {
     pub fn is_not_empty(&self) -> bool {
         self.0 != 0
     }
+
+    #[inline(always)]
+    pub fn shift_upwards(&self, amount: usize) -> Bitboard {
+        Bitboard(self.0 >> amount)
+    }
+
+    #[inline(always)]
+    pub fn shift_downwards(&self, amount: usize) -> Bitboard {
+        Bitboard(self.0 << amount)
+    }
 }
 
 #[allow(dead_code)]
 impl Bitboard {
+    pub const NULL: Bitboard = Bitboard(0x0);
+
     pub const FILE_A: Bitboard = Bitboard(0x101010101010101);
     pub const FILE_B: Bitboard = Bitboard(0x202020202020202);
     pub const FILE_C: Bitboard = Bitboard(0x404040404040404);
@@ -51,6 +63,11 @@ impl Bitboard {
     pub const RANK_3: Bitboard = Bitboard(0xFF0000000000);
     pub const RANK_2: Bitboard = Bitboard(0xFF000000000000);
     pub const RANK_1: Bitboard = Bitboard(0xFF00000000000000);
+
+    pub const NOT_A: Bitboard = Bitboard(0xFEFEFEFEFEFEFEFE);
+    pub const NOT_AB: Bitboard = Bitboard(0xFCFCFCFCFCFCFCFC);
+    pub const NOT_H: Bitboard = Bitboard(0x7F7F7F7F7F7F7F7F);
+    pub const NOT_GH: Bitboard = Bitboard(0x3F3F3F3F3F3F3F3F);
 
     pub const WHITE_SQUARES: Bitboard = Bitboard(0xAA55AA55AA55AA55);
     pub const BLACK_SQUARES: Bitboard = Bitboard(0x55AA55AA55AA55AA);
@@ -86,6 +103,12 @@ macro_rules! impl_bb_op_for_type {
             }
         }
     };
+}
+
+impl BitOrAssign for Bitboard {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.0 |= rhs.0;
+    }
 }
 
 impl_bb_op_for_type!(Shl, shl, <<, Square);

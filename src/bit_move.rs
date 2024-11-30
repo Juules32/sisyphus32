@@ -55,6 +55,7 @@ impl fmt::Display for MoveFlag {
 }
 
 impl BitMove {
+    pub const NULL: BitMove = BitMove { data: 0 };
 
     #[inline(always)]
     pub fn source(&self) -> Square {
@@ -101,7 +102,8 @@ impl fmt::Display for BitMove {
   Source Square: {}
   Target Square: {}
   Piece Type:    {}
+  Capture:       {}
   Move Flag:     {}
-        ", self.data, self.source(), self.target(), self.piece(), self.flag())
+        ", self.data, self.source(), self.target(), self.piece(), self.capture(), self.flag())
     }
 }

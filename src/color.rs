@@ -1,4 +1,5 @@
 use core::fmt;
+use std::ops::{Index, IndexMut};
 
 #[derive(PartialEq)]
 pub struct Color {
@@ -26,6 +27,20 @@ impl Color {
             Color::BLACK => Color::WHITE,
             _ => Color::NULL
         }
+    }
+}
+
+impl<T, const N: usize> Index<Color> for [T; N] {
+    type Output = T;
+
+    fn index(&self, index: Color) -> &Self::Output {
+        &self[index.data as usize]
+    }
+}
+
+impl<T, const N: usize> IndexMut<Color> for [T; N] {
+    fn index_mut(&mut self, index: Color) -> &mut Self::Output {
+        &mut self[index.data as usize]
     }
 }
 

@@ -3,7 +3,7 @@ use crate::file::File;
 use crate::rank::Rank;
 use core::fmt;
 use std::mem::transmute;
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Square(pub u8);
@@ -115,11 +115,17 @@ impl Square {
     ];
 }
 
-impl Index<Square> for [u8; 64] {
-    type Output = u8;
+impl<T, const N: usize> Index<Square> for [T; N] {
+    type Output = T;
 
     fn index(&self, index: Square) -> &Self::Output {
         &self[index.0 as usize]
+    }
+}
+
+impl<T, const N: usize> IndexMut<Square> for [T; N] {
+    fn index_mut(&mut self, index: Square) -> &mut Self::Output {
+        &mut self[index.0 as usize]
     }
 }
 

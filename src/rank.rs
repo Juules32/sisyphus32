@@ -1,6 +1,6 @@
 use core::fmt;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 #[repr(u8)]
 #[allow(dead_code)]
 pub enum Rank {
