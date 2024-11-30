@@ -2,7 +2,7 @@ use core::fmt;
 use std::ops::*;
 use crate::square::Square;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
@@ -40,12 +40,23 @@ impl Bitboard {
     pub fn shift_downwards(&self, amount: usize) -> Bitboard {
         Bitboard(self.0 << amount)
     }
+
+    #[inline(always)]
+    pub fn count_bits(self) -> u8 {
+        let mut bitboard_data = self.0;
+        let mut count = 0;
+
+        while bitboard_data != 0 {
+            bitboard_data &= bitboard_data - 1;
+            count += 1;
+        }
+
+        count
+    }
 }
 
 #[allow(dead_code)]
 impl Bitboard {
-    pub const NULL: Bitboard = Bitboard(0x0);
-
     pub const FILE_A: Bitboard = Bitboard(0x101010101010101);
     pub const FILE_B: Bitboard = Bitboard(0x202020202020202);
     pub const FILE_C: Bitboard = Bitboard(0x404040404040404);
@@ -75,6 +86,7 @@ impl Bitboard {
     pub const WHITE_PIECES: Bitboard = Bitboard(0xFFFF000000000000);
     pub const BLACK_PIECES: Bitboard = Bitboard(0xFFFF);
     pub const ALL_PIECES: Bitboard = Bitboard(0xFFFF00000000FFFF);
+    pub const EDGES: Bitboard = Bitboard(0xFF818181818181FF);
     pub const EMPTY: Bitboard = Bitboard(0x0);
 
     pub const BP: Bitboard = Bitboard::RANK_7;
