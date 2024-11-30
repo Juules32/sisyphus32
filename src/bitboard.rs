@@ -53,6 +53,12 @@ impl Bitboard {
 
         count
     }
+
+    #[inline(always)]
+    pub fn to_sq(self) -> Square {
+        debug_assert_eq!(self.count_bits(), 1);
+        Square(self.0.trailing_zeros() as u8)
+    }
 }
 
 #[allow(dead_code)]
@@ -104,32 +110,46 @@ impl Bitboard {
     pub const WK: Bitboard = Bitboard(0x1000000000000000);
 }
 
-macro_rules! impl_bb_op_for_type {
-    ($trait:ident, $method:ident, $op:tt, $rhs:ty) => {
-        impl $trait<$rhs> for Bitboard {
+macro_rules! impl_bb_op {
+    ($trait:ident, $method:ident, $op:tt) => {
+        impl $trait<Bitboard> for Bitboard {
             type Output = Bitboard;
 
             #[inline(always)]
-            fn $method(self, rhs: $rhs) -> Bitboard {
+            fn $method(self, rhs: Bitboard) -> Bitboard {
                 Bitboard(self.0 $op rhs.0 as u64)
             }
         }
     };
 }
 
-impl BitOrAssign for Bitboard {
-    fn bitor_assign(&mut self, rhs: Self) {
-        self.0 |= rhs.0;
+macro_rules! impl_bb_assign {
+    ($trait:ident, $method:ident, $op:tt) => {
+        impl $trait<Bitboard> for Bitboard {
+
+            #[inline(always)]
+            fn $method(&mut self, rhs: Self) {
+                self.0 $op rhs.0
+            }
+        }
+    };
+}
+
+impl Not for Bitboard {
+    type Output = Bitboard;
+
+    fn not(self) -> Self::Output {
+        Bitboard(!self.0)
     }
 }
 
-impl_bb_op_for_type!(Shl, shl, <<, Square);
-impl_bb_op_for_type!(BitAnd, bitand, &, Bitboard);
-impl_bb_op_for_type!(BitAnd, bitand, &, Square);
-impl_bb_op_for_type!(BitOr, bitor, |, Bitboard);
-impl_bb_op_for_type!(BitOr, bitor, |, Square);
-impl_bb_op_for_type!(BitXor, bitxor, ^, Bitboard);
-impl_bb_op_for_type!(BitXor, bitxor, ^, Square);
+impl_bb_op!(BitAnd, bitand, &);
+impl_bb_op!(BitOr, bitor, |);
+impl_bb_op!(BitXor, bitxor, ^);
+
+impl_bb_assign!(BitAndAssign, bitand_assign, &=);
+impl_bb_assign!(BitOrAssign, bitor_assign, |=);
+impl_bb_assign!(BitXorAssign, bitxor_assign, ^=);
 
 impl fmt::Display for Bitboard {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

@@ -11,7 +11,7 @@ pub struct Square(pub u8);
 impl Square {
     #[inline(always)]
     pub fn to_bb(self) -> Bitboard {
-        Bitboard(1) << self
+        Bitboard(1 << self.0)
     }
 
     #[inline(always)]

@@ -54,8 +54,8 @@ pub mod move_init {
             BISHOP_MASKS[square] = get_bishop_mask(square);
             ROOK_MASKS[square] = get_rook_mask(square);
 
-            debug_assert!(BISHOP_MASKS[square].count_bits() == BISHOP_RELEVANT_BITS[square]);
-            debug_assert!(ROOK_MASKS[square].count_bits() == ROOK_RELEVANT_BITS[square]);
+            debug_assert_eq!(BISHOP_MASKS[square].count_bits(), BISHOP_RELEVANT_BITS[square]);
+            debug_assert_eq!(ROOK_MASKS[square].count_bits(), ROOK_RELEVANT_BITS[square]);
         }
     }
 
