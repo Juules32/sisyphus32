@@ -15,20 +15,14 @@ use std::io::stdin;
 
 use move_gen::move_init;
 
-use bit_move::{BitMove, MoveFlag};
 use bitboard::Bitboard;
-use board_state::BoardState;
-use color::Color;
 use file::File;
 use rank::Rank;
-use move_list::MoveList;
-use piece::PieceType;
 use square::Square;
-
 
 fn main() {
     unsafe { move_init::init() };
-
+    pl!(!!!!Bitboard::NOT_A);
     pl!(Square::A3.file());
     pl!(File::FA);
 
@@ -37,7 +31,7 @@ fn main() {
 
     for square in Square::ALL_SQUARES {
         pl!(unsafe { move_init::BISHOP_MASKS[square] });
-        let mut s = String::new();
-        stdin().read_line(&mut s).expect("Did not get correct input");
     }
+
+    pl!(Bitboard::WK.to_sq().to_bb());
 }

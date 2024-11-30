@@ -78,7 +78,7 @@ impl BoardState {
     pub fn make_move(&mut self, bit_move: BitMove) {
         let (source, target, piece, capture, flag) = bit_move.decode();
 
-        debug_assert!(piece.color() == self.side);
+        debug_assert_eq!(piece.color(), self.side);
         debug_assert!(capture.color() == Color::NULL || capture.color() == self.side.opposite());
         debug_assert!(self.bbs[piece].is_set_sq(source));
         debug_assert!(capture == PieceType::None || self.bbs[capture].is_set_sq(target));

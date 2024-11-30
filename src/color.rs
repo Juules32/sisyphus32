@@ -1,7 +1,7 @@
 use core::fmt;
 use std::ops::{Index, IndexMut};
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub struct Color {
     data: u8
 }
