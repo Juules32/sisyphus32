@@ -55,9 +55,22 @@ impl Bitboard {
     }
 
     #[inline(always)]
+    pub fn get_lsb(self) -> Square {
+        debug_assert_ne!(self.count_bits(), 0);
+        Square(self.0.trailing_zeros() as u8)
+    }
+
+    #[inline(always)]
+    pub fn pop_lsb(&mut self) -> Square {
+        let lsb = self.get_lsb();
+        self.pop_sq(lsb);
+        lsb
+    }
+
+    #[inline(always)]
     pub fn to_sq(self) -> Square {
         debug_assert_eq!(self.count_bits(), 1);
-        Square(self.0.trailing_zeros() as u8)
+        self.get_lsb()
     }
 }
 

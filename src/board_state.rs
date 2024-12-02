@@ -151,7 +151,7 @@ impl fmt::Display for BoardState {
                 let sq = Square(rank * 8 + file);
                 for piece_type in PieceType::ALL_PIECES {
                     if Bitboard::is_set_sq(&self.bbs[piece_type], sq) {
-                        s += &format!("{} ", piece_type.to_string());
+                        s += &format!("{} ", piece_type);
                         is_occupied = true;
                     }
                 }

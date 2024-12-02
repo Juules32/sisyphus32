@@ -10,28 +10,23 @@ mod castling_rights;
 mod color;
 mod move_list;
 mod move_gen;
+mod magic_bitboards;
 
-use std::io::stdin;
-
-use move_gen::move_init;
-
-use bitboard::Bitboard;
+use bit_move::{BitMove, MoveFlag};
+use board_state::BoardState;
 use file::File;
-use rank::Rank;
+use magic_bitboards::MagicBitboardGenerator;
+use move_gen::move_init;
+use bitboard::Bitboard;
+use piece::PieceType;
 use square::Square;
 
 fn main() {
     unsafe { move_init::init() };
-    pl!(!!!!Bitboard::NOT_A);
-    pl!(Square::A3.file());
-    pl!(File::FA);
 
-    pl!(Square::A3.rank());
-    pl!(Rank::R3);
+    pl!(move_init::get_bishop_moves_on_the_fly(Square::A4, Square::D7.to_bb()));
 
-    for square in Square::ALL_SQUARES {
-        pl!(unsafe { move_init::BISHOP_MASKS[square] });
-    }
+    let mut mbg = MagicBitboardGenerator{ seed: 1804289383 };
 
-    pl!(Bitboard::WK.to_sq().to_bb());
+    mbg.print_magic_bitboards();
 }

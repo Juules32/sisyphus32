@@ -126,7 +126,6 @@ pub mod move_init {
         let square_bb = square.to_bb();
         let square_file = square.file();
 
-
         if square_file != File::FA {
             bb_mask |= square_bb.shift_upwards(17);
             bb_mask |= square_bb.shift_downwards(15);
@@ -179,8 +178,8 @@ pub mod move_init {
 
         let mut seeker = square_bb;
         while 
-            seeker & Bitboard::RANK_8 == Bitboard::EMPTY &&
-            seeker & Bitboard::FILE_A == Bitboard::EMPTY
+            (seeker & Bitboard::RANK_8).is_empty() &&
+            (seeker & Bitboard::FILE_A).is_empty()
         {
             bb_mask |= seeker;
             seeker = seeker.shift_upwards(9);
@@ -188,8 +187,8 @@ pub mod move_init {
 
         seeker = square_bb;
         while
-            seeker & Bitboard::RANK_8 == Bitboard::EMPTY &&
-            seeker & Bitboard::FILE_H == Bitboard::EMPTY
+            (seeker & Bitboard::RANK_8).is_empty() &&
+            (seeker & Bitboard::FILE_H).is_empty()
         {
             bb_mask |= seeker;
             seeker = seeker.shift_upwards(7);
@@ -197,8 +196,8 @@ pub mod move_init {
 
         seeker = square_bb;
         while
-            seeker & Bitboard::RANK_1 == Bitboard::EMPTY &&
-            seeker & Bitboard::FILE_A == Bitboard::EMPTY
+            (seeker & Bitboard::RANK_1).is_empty() &&
+            (seeker & Bitboard::FILE_A).is_empty()
         {
             bb_mask |= seeker;
             seeker = seeker.shift_downwards(7);
@@ -206,15 +205,14 @@ pub mod move_init {
 
         seeker = square_bb;
         while
-            seeker & Bitboard::RANK_1 == Bitboard::EMPTY &&
-            seeker & Bitboard::FILE_H == Bitboard::EMPTY
+            (seeker & Bitboard::RANK_1).is_empty() &&
+            (seeker & Bitboard::FILE_H).is_empty()
         {
             bb_mask |= seeker;
             seeker = seeker.shift_downwards(9);
         }
 
         bb_mask.pop_sq(square);
-
 
         bb_mask
     }
@@ -224,25 +222,25 @@ pub mod move_init {
         let square_bb = square.to_bb();
 
         let mut seeker = square_bb;
-        while seeker & Bitboard::RANK_8 == Bitboard::EMPTY {
+        while (seeker & Bitboard::RANK_8).is_empty() {
             bb_mask |= seeker;
             seeker = seeker.shift_upwards(8);
         }
 
         seeker = square_bb;
-        while seeker & Bitboard::RANK_1 == Bitboard::EMPTY {
+        while (seeker & Bitboard::RANK_1).is_empty() {
             bb_mask |= seeker;
             seeker = seeker.shift_downwards(8);
         }
 
         seeker = square_bb;
-        while seeker & Bitboard::FILE_A == Bitboard::EMPTY {
+        while (seeker & Bitboard::FILE_A).is_empty() {
             bb_mask |= seeker;
             seeker = seeker.shift_upwards(1);
         }
 
         seeker = square_bb;
-        while seeker & Bitboard::FILE_H == Bitboard::EMPTY {
+        while (seeker & Bitboard::FILE_H).is_empty() {
             bb_mask |= seeker;
             seeker = seeker.shift_downwards(1);
         }
@@ -250,5 +248,97 @@ pub mod move_init {
         bb_mask.pop_sq(square);
 
         bb_mask
+    }
+
+    pub fn get_bishop_moves_on_the_fly(square: Square, blockers: Bitboard) -> Bitboard {
+        let mut bb_mask = Bitboard::EMPTY;
+        let square_bb = square.to_bb();
+
+        let mut seeker = square_bb;
+        while 
+            (seeker & Bitboard::RANK_8).is_empty() &&
+            (seeker & Bitboard::FILE_A).is_empty() &&
+            (seeker & blockers).is_empty()
+        {
+            seeker = seeker.shift_upwards(9);
+            bb_mask |= seeker;
+        }
+
+        seeker = square_bb;
+        while
+            (seeker & Bitboard::RANK_8).is_empty() &&
+            (seeker & Bitboard::FILE_H).is_empty() &&
+            (seeker & blockers).is_empty()
+        {
+            seeker = seeker.shift_upwards(7);
+            bb_mask |= seeker;
+        }
+
+        seeker = square_bb;
+        while
+            (seeker & Bitboard::RANK_1).is_empty() &&
+            (seeker & Bitboard::FILE_A).is_empty() &&
+            (seeker & blockers).is_empty()
+        {
+            seeker = seeker.shift_downwards(7);
+            bb_mask |= seeker;
+        }
+
+        seeker = square_bb;
+        while
+            (seeker & Bitboard::RANK_1).is_empty() &&
+            (seeker & Bitboard::FILE_H).is_empty() &&
+            (seeker & blockers).is_empty()
+        {
+            seeker = seeker.shift_downwards(9);
+            bb_mask |= seeker;
+        }
+
+        bb_mask
+    }
+
+    pub fn get_rook_moves_on_the_fly(square: Square, blockers: Bitboard) -> Bitboard {
+        let mut bb_mask = Bitboard::EMPTY;
+        let square_bb = square.to_bb();
+
+        let mut seeker = square_bb;
+        while (seeker & Bitboard::RANK_8).is_empty() && (seeker & blockers).is_empty() {
+            seeker = seeker.shift_upwards(8);
+            bb_mask |= seeker;
+        }
+
+        seeker = square_bb;
+        while (seeker & Bitboard::RANK_1).is_empty() && (seeker & blockers).is_empty() {
+            seeker = seeker.shift_downwards(8);
+            bb_mask |= seeker;
+        }
+
+        seeker = square_bb;
+        while (seeker & Bitboard::FILE_A).is_empty() && (seeker & blockers).is_empty() {
+            seeker = seeker.shift_upwards(1);
+            bb_mask |= seeker;
+        }
+
+        seeker = square_bb;
+        while (seeker & Bitboard::FILE_H).is_empty() && (seeker & blockers).is_empty() {
+            seeker = seeker.shift_downwards(1);
+            bb_mask |= seeker;
+        }
+
+        bb_mask
+    }
+
+    // Generates the relevant occupancy bitboard for a slider piece from an index,
+    // the number of relevant bits, and the relevant mask.
+    pub fn generate_occupancy_permutation(occupancy_index: u32, num_bits: u8, mut mask: Bitboard) -> Bitboard {
+        let mut occupancy = Bitboard::EMPTY;
+        for i in 0..num_bits {
+            let square = mask.pop_lsb();
+            if occupancy_index & (1 << i) != 0 {
+                occupancy.set_sq(square);
+            }
+        }
+
+        occupancy
     }
 }
