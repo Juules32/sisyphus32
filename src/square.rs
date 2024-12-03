@@ -72,6 +72,7 @@ pub enum Square {
     F1 = 61,
     G1 = 62,
     H1 = 63,
+    #[allow(clippy::enum_variant_names)]
     NoSquare = 64,
 }
 
