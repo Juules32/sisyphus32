@@ -23,7 +23,7 @@ use piece::PieceType;
 use square::Square;
 
 fn main() {
-    unsafe { move_init::init() };
+    move_init::init();
 
     pl!(move_init::generate_bishop_moves_on_the_fly(Square::A4, Square::D7.to_bb()));
 
