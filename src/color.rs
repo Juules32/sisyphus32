@@ -1,32 +1,23 @@
 use core::fmt;
 use std::ops::{Index, IndexMut};
 
-#[derive(PartialEq, Debug)]
-pub struct Color {
-    data: u8
-}
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub struct Color(u8);
 
 impl Color {
-    pub const NULL: Color = Color{ data: 0b0 };
-    pub const WHITE: Color = Color{ data: 0b01 };
-    pub const BLACK: Color = Color{ data: 0b11 };
+    pub const WHITE: Color = Color(0b0);
+    pub const BLACK: Color = Color(0b1);
 
     #[inline(always)]
     pub fn switch(&mut self) {
-        self.data ^= 0b10;
-
+        self.0 ^= 0b1;
         debug_assert!(*self == Color::WHITE || *self == Color::BLACK);
     }
 
     #[inline(always)]
     pub fn opposite(&self) -> Color {
         debug_assert!(*self == Color::WHITE || *self == Color::BLACK);
-
-        match *self {
-            Color::WHITE => Color::BLACK,
-            Color::BLACK => Color::WHITE,
-            _ => Color::NULL
-        }
+        Color(self.0 ^ 0b1)
     }
 }
 
@@ -34,20 +25,19 @@ impl<T, const N: usize> Index<Color> for [T; N] {
     type Output = T;
 
     fn index(&self, index: Color) -> &Self::Output {
-        &self[index.data as usize]
+        &self[index.0 as usize]
     }
 }
 
 impl<T, const N: usize> IndexMut<Color> for [T; N] {
     fn index_mut(&mut self, index: Color) -> &mut Self::Output {
-        &mut self[index.data as usize]
+        &mut self[index.0 as usize]
     }
 }
 
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.pad(match *self {
-            Color::NULL => "NULL",
             Color::WHITE => "White",
             Color::BLACK => "Black",
             _ => panic!("Unknown side value!")

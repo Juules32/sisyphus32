@@ -1,4 +1,4 @@
-use crate::{bitboard::Bitboard, move_gen::move_init, piece::PieceType, square::Square};
+use crate::{bitboard::Bitboard, move_init, piece::PieceType, square::Square};
 
 pub struct MagicBitboardGenerator {
     pub seed: u32
@@ -36,10 +36,10 @@ impl MagicBitboardGenerator {
             occupancies[i] = move_init::generate_occupancy_permutation(i as u32, num_relevant_bits, mask);
             
             if is_bishop {
-                moves[i] = move_init::get_bishop_moves_on_the_fly(square, occupancies[i]);
+                moves[i] = move_init::generate_bishop_moves_on_the_fly(square, occupancies[i]);
             }
             else {
-                moves[i] = move_init::get_rook_moves_on_the_fly(square, occupancies[i]);
+                moves[i] = move_init::generate_rook_moves_on_the_fly(square, occupancies[i]);
             }
         }
 
