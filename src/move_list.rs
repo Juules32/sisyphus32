@@ -5,7 +5,7 @@ use std::ops::{Index, IndexMut};
 pub const MAX_MOVES: usize = 255;
 
 pub struct MoveList {
-    array: [BitMove; MAX_MOVES],
+    pub array: [BitMove; MAX_MOVES],
     size: usize
 }
 
