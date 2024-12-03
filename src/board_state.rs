@@ -57,8 +57,8 @@ impl BoardState {
             wo: Bitboard::WHITE_PIECES,
             bo: Bitboard::BLACK_PIECES,
             ao: Bitboard::ALL_PIECES,
-            side: Color::WHITE,
-            en_passant_sq: Square::NO_SQ,
+            side: Color::White,
+            en_passant_sq: Square::NoSquare,
             castling_rights: CastlingRights::DEFAULT,
         }
     }
@@ -78,7 +78,7 @@ impl BoardState {
         let (source, target, piece, capture, flag) = bit_move.decode();
 
         debug_assert_eq!(piece.color(), self.side);
-        debug_assert_eq!(capture.color(), self.side.opposite());
+        debug_assert!(capture == PieceType::None || capture.color() == self.side.opposite());
         debug_assert!(self.bbs[piece].is_set_sq(source));
         debug_assert!(capture == PieceType::None || self.bbs[capture].is_set_sq(target));
 
@@ -89,18 +89,14 @@ impl BoardState {
             self.remove_piece(capture, target);
         }
 
+        self.en_passant_sq = Square::NoSquare;
+
         match flag {
             MoveFlag::Null => (),
             MoveFlag::WDoublePawn => self.en_passant_sq = target.below(),
             MoveFlag::BDoublePawn => self.en_passant_sq = target.above(),
-            MoveFlag::WEnPassant => {
-                self.remove_piece(PieceType::BP, target.below());
-                self.en_passant_sq = Square::NO_SQ;
-            },
-            MoveFlag::BEnPassant => {
-                self.remove_piece(PieceType::WP, target.above());
-                self.en_passant_sq = Square::NO_SQ;
-            },
+            MoveFlag::WEnPassant => self.remove_piece(PieceType::BP, target.below()),
+            MoveFlag::BEnPassant => self.remove_piece(PieceType::WP, target.above()),
             MoveFlag::WKCastle => {
                 self.remove_piece(PieceType::WR, Square::H1);
                 self.set_piece(PieceType::WR, Square::F1);
@@ -133,8 +129,8 @@ impl Default for BoardState {
             wo: Bitboard::EMPTY,
             bo: Bitboard::EMPTY,
             ao: Bitboard::EMPTY,
-            side: Color::WHITE,
-            en_passant_sq: Square::NO_SQ,
+            side: Color::White,
+            en_passant_sq: Square::NoSquare,
             castling_rights: CastlingRights::NONE,
         }
     }
@@ -143,11 +139,11 @@ impl Default for BoardState {
 impl fmt::Display for BoardState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = String::from("\n");
-        for rank in 0..8 {
+        for rank in 0..8_u8 {
             s += &format!("  {}  ", 8 - rank);
-            for file in 0..8 {
+            for file in 0..8_u8 {
                 let mut is_occupied = false;
-                let sq = Square(rank * 8 + file);
+                let sq = Square::from(rank * 8 + file);
                 for piece_type in PieceType::ALL_PIECES {
                     if Bitboard::is_set_sq(&self.bbs[piece_type], sq) {
                         s += &format!("{} ", piece_type);

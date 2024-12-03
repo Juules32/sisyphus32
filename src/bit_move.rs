@@ -10,9 +10,7 @@ const CAPTURE_MASK: u32 = 0b0000_1111_0000_0000_0000_0000;
 const FLAG_MASK: u32 =    0b1111_0000_0000_0000_0000_0000;
 
 #[derive(Clone, Copy)]
-pub struct BitMove {
-    data: u32
-}
+pub struct BitMove(u32);
 
 #[repr(u8)]
 #[derive(Clone, Copy)]
@@ -55,38 +53,36 @@ impl fmt::Display for MoveFlag {
 }
 
 impl BitMove {
-    pub const NULL: BitMove = BitMove { data: 0 };
+    pub const NULL: BitMove = BitMove(0);
 
     #[inline(always)]
     pub fn source(&self) -> Square {
-        Square((self.data & SOURCE_MASK) as u8)
+        unsafe { transmute::<u8, Square>((self.0 & SOURCE_MASK) as u8) }
     }
 
     #[inline(always)]
     pub fn target(&self) -> Square {
-        Square(((self.data & TARGET_MASK) >> 6) as u8)
+        unsafe { transmute::<u8, Square>(((self.0 & TARGET_MASK) >> 6) as u8) }
     }
 
     #[inline(always)]
     pub fn piece(&self) -> PieceType {
-        unsafe { transmute::<u8, PieceType>(((self.data & PIECE_MASK) >> 12) as u8) }
+        unsafe { transmute::<u8, PieceType>(((self.0 & PIECE_MASK) >> 12) as u8) }
     }
 
     #[inline(always)]
     pub fn capture(&self) -> PieceType {
-        unsafe { transmute::<u8, PieceType>(((self.data & CAPTURE_MASK) >> 16) as u8) }
+        unsafe { transmute::<u8, PieceType>(((self.0 & CAPTURE_MASK) >> 16) as u8) }
     }
 
     #[inline(always)]
     pub fn flag(&self) -> MoveFlag {
-        unsafe { transmute::<u8, MoveFlag>(((self.data & FLAG_MASK) >> 20) as u8) }
+        unsafe { transmute::<u8, MoveFlag>(((self.0 & FLAG_MASK) >> 20) as u8) }
     }
 
     #[inline(always)]
     pub fn encode(source: Square, target: Square, piece: PieceType, capture: PieceType, flag: MoveFlag) -> BitMove {
-        BitMove {
-            data: source.0 as u32 | (target.0 as u32) << 6 | (piece as u32) << 12 | (capture as u32) << 16 | (flag as u32) << 20
-        }
+        BitMove(source as u32 | (target as u32) << 6 | (piece as u32) << 12 | (capture as u32) << 16 | (flag as u32) << 20)
     }
 
     #[inline(always)]
@@ -104,6 +100,6 @@ impl fmt::Display for BitMove {
   Piece Type:    {}
   Capture:       {}
   Move Flag:     {}
-        ", self.data, self.source(), self.target(), self.piece(), self.capture(), self.flag())
+        ", self.0, self.source(), self.target(), self.piece(), self.capture(), self.flag())
     }
 }

@@ -13,42 +13,40 @@ const INDEX_2_CASTLING_RIGHTS: [u8; 64] = [
     0b1101, 0b1111, 0b1111, 0b1111, 0b1100, 0b1111, 0b1111, 0b1110
 ];
 
-pub struct CastlingRights {
-    data: u8
-}
+pub struct CastlingRights(u8);
 
 impl CastlingRights {
-    pub const DEFAULT: CastlingRights = CastlingRights{ data: 0b1111 };
-    pub const NONE: CastlingRights = CastlingRights{ data: 0b0000 };
+    pub const DEFAULT: CastlingRights = CastlingRights(0b1111);
+    pub const NONE: CastlingRights = CastlingRights(0b0000);
 
-    const WK: CastlingRights = CastlingRights{ data: 0b0001 };
-    const WQ: CastlingRights = CastlingRights{ data: 0b0010 };
-    const BK: CastlingRights = CastlingRights{ data: 0b0100 };
-    const BQ: CastlingRights = CastlingRights{ data: 0b1000 };
+    const WK: CastlingRights = CastlingRights(0b0001);
+    const WQ: CastlingRights = CastlingRights(0b0010);
+    const BK: CastlingRights = CastlingRights(0b0100);
+    const BQ: CastlingRights = CastlingRights(0b1000);
 
     #[inline(always)]
     pub fn update(&mut self, source: Square, target: Square) {
-        self.data &= INDEX_2_CASTLING_RIGHTS[source] & INDEX_2_CASTLING_RIGHTS[target];
+        self.0 &= INDEX_2_CASTLING_RIGHTS[source] & INDEX_2_CASTLING_RIGHTS[target];
     }
 
     #[inline(always)]
     pub fn wk(&self) -> bool {
-        self.data & CastlingRights::WK.data != 0
+        self.0 & CastlingRights::WK.0 != 0
     }
 
     #[inline(always)]
     pub fn wq(&self) -> bool {
-        self.data & CastlingRights::WQ.data != 0
+        self.0 & CastlingRights::WQ.0 != 0
     }
 
     #[inline(always)]
     pub fn bk(&self) -> bool {
-        self.data & CastlingRights::BK.data != 0
+        self.0 & CastlingRights::BK.0 != 0
     }
 
     #[inline(always)]
     pub fn bq(&self) -> bool {
-        self.data & CastlingRights::BQ.data != 0
+        self.0 & CastlingRights::BQ.0 != 0
     }
 }
 

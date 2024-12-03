@@ -58,10 +58,10 @@ impl PieceType {
     #[inline(always)]
     pub fn color(self) -> Color {
         if PieceType::WHITE_PIECES.contains(&self) {
-            Color::WHITE
+            Color::White
         }
         else if PieceType::BLACK_PIECES.contains(&self) {
-            Color::BLACK
+            Color::Black
         }
         else {
             panic!("Illegal color found!")

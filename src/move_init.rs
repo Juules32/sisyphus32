@@ -174,10 +174,10 @@ pub fn init() {
 
 unsafe fn init_masks() {
     for square in Square::ALL_SQUARES {
-        PAWN_QUIET_MASKS[Color::WHITE][square] = generate_pawn_quiet_mask(Color::WHITE, square);
-        PAWN_CAPTURE_MASKS[Color::WHITE][square] = generate_pawn_capture_mask(Color::WHITE, square);
-        PAWN_QUIET_MASKS[Color::BLACK][square] = generate_pawn_quiet_mask(Color::BLACK, square);
-        PAWN_CAPTURE_MASKS[Color::BLACK][square] = generate_pawn_capture_mask(Color::BLACK, square);
+        PAWN_QUIET_MASKS[Color::White][square] = generate_pawn_quiet_mask(Color::White, square);
+        PAWN_CAPTURE_MASKS[Color::White][square] = generate_pawn_capture_mask(Color::White, square);
+        PAWN_QUIET_MASKS[Color::Black][square] = generate_pawn_quiet_mask(Color::Black, square);
+        PAWN_CAPTURE_MASKS[Color::Black][square] = generate_pawn_capture_mask(Color::Black, square);
         KNIGHT_MASKS[square] = generate_knight_mask(square);
         KING_MASKS[square] = generate_king_mask(square);
         BISHOP_MASKS[square] = generate_bishop_mask(square);
@@ -219,21 +219,20 @@ fn generate_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
     let square_rank = square.rank();
     
     match color {
-        Color::WHITE => {
+        Color::White => {
             bb_mask |= square_bb.shift_upwards(8);
 
             if square_rank == Rank::R2 {
                 bb_mask |= square_bb.shift_upwards(16);
             }
         },
-        Color::BLACK => {
+        Color::Black => {
             bb_mask |= square_bb.shift_downwards(8);
 
             if square_rank == Rank::R7 {
                 bb_mask |= square_bb.shift_downwards(16);
             }
-        },
-        _ => panic!("Illegal color used!")
+        }
     };
 
     bb_mask
@@ -245,7 +244,7 @@ fn generate_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
     let square_file = square.file();
 
     match color {
-        Color::WHITE => {
+        Color::White => {
             if square_file != File::FA {
                 bb_mask |= square_bb.shift_upwards(9);
             }
@@ -254,7 +253,7 @@ fn generate_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
                 bb_mask |= square_bb.shift_upwards(7);
             }
         },
-        Color::BLACK => {
+        Color::Black => {
             if square_file != File::FA {
                 bb_mask |= square_bb.shift_downwards(7);
             }
@@ -262,8 +261,7 @@ fn generate_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
             if square_file != File::FH {
                 bb_mask |= square_bb.shift_downwards(9);
             }
-        },
-        _ => panic!("Illegal color used!")
+        }
     };
 
     bb_mask

@@ -53,42 +53,86 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
     let mut move_list = MoveList::default();
     
     let side = board_state.side;
-
-    let [pawn, knight, bishop, rook, queen, king] = match side {
-        Color::WHITE => PieceType::WHITE_PIECES,
-        Color::BLACK => PieceType::BLACK_PIECES,
-        _ => panic!("Illegal color found")
+    let en_passant_sq = board_state.en_passant_sq;
+    let inv_all_occupancies = !board_state.ao;
+    
+    let ([pawn, knight, bishop, rook, queen, king], enemy_pieces) = match side {
+        Color::White => (PieceType::WHITE_PIECES, PieceType::BLACK_PIECES),
+        Color::Black => (PieceType::BLACK_PIECES, PieceType::WHITE_PIECES)
     };
 
-    let enemy_pieces = match side {
-        Color::WHITE => PieceType::BLACK_PIECES,
-        Color::BLACK => PieceType::WHITE_PIECES,
-        _ => panic!("Illegal color found")
-    };
-
-    let inv_own_occupancies = match side {
-        Color::WHITE => !board_state.wo,
-        Color::BLACK => !board_state.bo,
-        _ => panic!("Illegal color found")
+    let (inv_own_occupancies, enemy_occupancies) = match side {
+        Color::White => (!board_state.wo, board_state.bo),
+        Color::Black => (!board_state.bo, board_state.wo)
     };
     
-    let enemy_occupancies = match side {
-        Color::WHITE => board_state.bo,
-        Color::BLACK => board_state.wo,
-        _ => panic!("Illegal color found")
+    let (pawn_promotion_rank, pawn_starting_rank, en_passant_rank, pawn_double_push_rank) = match side {
+        Color::White => (Rank::R7, Rank::R2, Rank::R5, Rank::R4),
+        Color::Black => (Rank::R2, Rank::R7, Rank::R4, Rank::R5)
+    };
+    
+    let (double_pawn_flag, en_passant_flag) = match side {
+        Color::White => (MoveFlag::WDoublePawn, MoveFlag::WEnPassant),
+        Color::Black => (MoveFlag::BDoublePawn, MoveFlag::BEnPassant)
     };
 
-    let pawn_promotion_rank = match side {
-        Color::WHITE => Rank::R7,
-        Color::BLACK => Rank::R2,
-        _ => panic!("Illegal color found")
-    };
+    {
+        /*------------------------------*\ 
+                    Pawn moves
+        \*------------------------------*/
+        let mut pawn_bb = board_state.bbs[pawn];
+        while pawn_bb.is_not_empty() {
+            let source = pawn_bb.pop_lsb();
+            let source_rank = source.rank();
 
-    let pawn_starting_rank = match side {
-        Color::WHITE => Rank::R2,
-        Color::BLACK => Rank::R7,
-        _ => panic!("Illegal color found")
-    };
+            // Captures
+            let mut capture_mask = get_pawn_capture_mask(side, source) & enemy_occupancies;
+            while capture_mask.is_not_empty() {
+                let target = capture_mask.pop_lsb();
+                let target_piece = get_target_piece(board_state, enemy_pieces, target);
+
+                if source_rank == pawn_promotion_rank {
+                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoN));
+                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoB));
+                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoR));
+                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoQ));
+                }
+                else {
+                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::Null));
+                }
+            }
+
+            // Quiet moves
+            let mut quiet_mask = get_pawn_quiet_mask(side, source) & inv_all_occupancies;
+            while quiet_mask.is_not_empty() {
+                let target = quiet_mask.pop_lsb();
+                
+                if source_rank == pawn_starting_rank && target.rank() == pawn_double_push_rank {
+                    move_list.add(BitMove::encode(source, target, pawn, PieceType::None, double_pawn_flag));
+                }
+                else if source_rank == pawn_promotion_rank {
+                    move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoN));
+                    move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoB));
+                    move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoR));
+                    move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoQ));
+                }
+                else {
+                    move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::Null));
+                }
+            }
+            
+            // En-passant (could maybe be combined with captures?)
+            if en_passant_sq != Square::NoSquare && source_rank == en_passant_rank {
+                let mut en_passant_mask = get_pawn_capture_mask(side, source);
+                while en_passant_mask.is_not_empty() {
+                    let target = en_passant_mask.pop_lsb();
+                    if target == en_passant_sq {
+                        move_list.add(BitMove::encode(source, target, pawn, PieceType::None, en_passant_flag));
+                    }
+                }
+            }
+        }
+    }
 
     {
         /*------------------------------*\ 
@@ -127,32 +171,49 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
 
     {
         /*------------------------------*\ 
-                    Pawn moves
+                   Bishop moves
         \*------------------------------*/
-        let mut pawn_bb = board_state.bbs[pawn];
-        while pawn_bb.is_not_empty() {
-            let source = pawn_bb.pop_lsb();
-            let source_rank = source.rank();
-
-            let mut move_mask = get_pawn_capture_mask(side, source) & enemy_occupancies;
+        let mut bishop_bb = board_state.bbs[bishop];
+        while bishop_bb.is_not_empty() {
+            let source = bishop_bb.pop_lsb();
+            let mut move_mask = get_bishop_mask(source, board_state.ao) & inv_own_occupancies;
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
-                let target_piece = get_target_piece(board_state, enemy_pieces, target);
-
-                if source_rank == pawn_promotion_rank {
-                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoN));
-                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoB));
-                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoR));
-                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoQ));
-                }
-                else {
-                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::Null));
-                }
+                let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
+                move_list.add(BitMove::encode(source, target, bishop, target_piece, MoveFlag::Null));
             }
+        }
+    }
 
-            // En-passant
+    {
+        /*------------------------------*\ 
+                    Rook moves
+        \*------------------------------*/
+        let mut rook_bb = board_state.bbs[rook];
+        while rook_bb.is_not_empty() {
+            let source = rook_bb.pop_lsb();
+            let mut move_mask = get_rook_mask(source, board_state.ao) & inv_own_occupancies;
+            while move_mask.is_not_empty() {
+                let target = move_mask.pop_lsb();
+                let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
+                move_list.add(BitMove::encode(source, target, rook, target_piece, MoveFlag::Null));
+            }
+        }
+    }
 
-            // Normal pushes (can't be captures) (remember promotion)
+    {
+        /*------------------------------*\ 
+                   Queen moves
+        \*------------------------------*/
+        let mut queen_bb = board_state.bbs[queen];
+        while queen_bb.is_not_empty() {
+            let source = queen_bb.pop_lsb();
+            let mut move_mask = get_queen_mask(source, board_state.ao) & inv_own_occupancies;
+            while move_mask.is_not_empty() {
+                let target = move_mask.pop_lsb();
+                let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
+                move_list.add(BitMove::encode(source, target, queen, target_piece, MoveFlag::Null));
+            }
         }
     }
 

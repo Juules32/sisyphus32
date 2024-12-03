@@ -1,5 +1,5 @@
 use core::fmt;
-use std::ops::*;
+use std::{mem::transmute, ops::*};
 use crate::square::Square;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -8,17 +8,17 @@ pub struct Bitboard(pub u64);
 impl Bitboard {
     #[inline(always)]
     pub fn set_sq(&mut self, sq: Square) {
-        self.0 |= 1 << sq.0;
+        self.0 |= 1 << sq as u8;
     }
 
     #[inline(always)]
     pub fn pop_sq(&mut self, sq: Square) {
-        self.0 &= !(1 << sq.0);
+        self.0 &= !(1 << sq as u8);
     }
 
     #[inline(always)]
     pub fn is_set_sq(&self, sq: Square) -> bool {
-        self.0 & 1 << sq.0 != 0
+        self.0 & (1 << sq as u8) != 0
     }
 
     #[inline(always)]
@@ -57,7 +57,7 @@ impl Bitboard {
     #[inline(always)]
     pub fn get_lsb(self) -> Square {
         debug_assert_ne!(self.count_bits(), 0);
-        Square(self.0.trailing_zeros() as u8)
+        unsafe { transmute::<u8, Square>(self.0.trailing_zeros() as u8) }
     }
 
     #[inline(always)]
