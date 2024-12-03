@@ -165,9 +165,11 @@ pub const ROOK_MAGIC_BITBOARDS: [Bitboard; 64] = [
     Bitboard(0x1004081002402),
 ];
 
-pub unsafe fn init() {
-    init_masks();
-    init_slider_configurations();
+pub fn init() {
+    unsafe {
+        init_masks();
+        init_slider_configurations();
+    }
 }
 
 unsafe fn init_masks() {

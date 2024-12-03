@@ -98,7 +98,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
         while knight_bb.is_not_empty() {
             let source = knight_bb.pop_lsb();
             
-            let mut move_mask = unsafe { move_init::KNIGHT_MASKS[source] } & inv_own_occupancies;
+            let mut move_mask = get_knight_mask(source) & inv_own_occupancies;
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
                 let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
@@ -114,7 +114,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
         let mut king_bb = board_state.bbs[king];
         while king_bb.is_not_empty() {
             let source = king_bb.pop_lsb();
-            let mut move_mask = unsafe { move_init::KING_MASKS[source] } & inv_own_occupancies;
+            let mut move_mask = get_king_mask(source) & inv_own_occupancies;
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
                 let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
@@ -134,7 +134,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
             let source = pawn_bb.pop_lsb();
             let source_rank = source.rank();
 
-            let mut move_mask = unsafe { move_init::PAWN_CAPTURE_MASKS[board_state.side][source] } & enemy_occupancies;
+            let mut move_mask = get_pawn_capture_mask(side, source) & enemy_occupancies;
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
                 let target_piece = get_target_piece(board_state, enemy_pieces, target);
