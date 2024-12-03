@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{bit_move::{BitMove, MoveFlag}, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, piece::PieceType, square::{self, Square}};
+use crate::{bit_move::{BitMove, MoveFlag}, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, piece::PieceType, square::Square};
 
 pub struct BoardState {
     pub bbs: [Bitboard; 12],
