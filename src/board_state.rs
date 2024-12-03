@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{bit_move::{BitMove, MoveFlag}, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, piece::PieceType, square::Square};
+use crate::{bit_move::{BitMove, MoveFlag}, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, piece::PieceType, square::{self, Square}};
 
 pub struct BoardState {
     pub bbs: [Bitboard; 12],
@@ -13,7 +13,6 @@ pub struct BoardState {
 }
 
 impl BoardState {
-
     #[inline(always)]
     pub fn merge_occupancies(&mut self) {
         self.ao = self.wo | self.bo;
@@ -79,7 +78,7 @@ impl BoardState {
         let (source, target, piece, capture, flag) = bit_move.decode();
 
         debug_assert_eq!(piece.color(), self.side);
-        debug_assert!(capture.color() == Color::NULL || capture.color() == self.side.opposite());
+        debug_assert_eq!(capture.color(), self.side.opposite());
         debug_assert!(self.bbs[piece].is_set_sq(source));
         debug_assert!(capture == PieceType::None || self.bbs[capture].is_set_sq(target));
 
@@ -134,7 +133,7 @@ impl Default for BoardState {
             wo: Bitboard::EMPTY,
             bo: Bitboard::EMPTY,
             ao: Bitboard::EMPTY,
-            side: Color::NULL,
+            side: Color::WHITE,
             en_passant_sq: Square::NO_SQ,
             castling_rights: CastlingRights::NONE,
         }

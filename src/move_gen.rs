@@ -1,344 +1,181 @@
+use crate::{bit_move::{BitMove, MoveFlag}, bitboard::Bitboard, board_state::BoardState, color::Color, move_init, move_list::MoveList, piece::PieceType, rank::Rank, square::Square};
 
+#[inline(always)]
+pub fn get_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
+    unsafe { move_init::PAWN_QUIET_MASKS[color][square] }
+}
 
+#[inline(always)]
+pub fn get_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
+    unsafe { move_init::PAWN_CAPTURE_MASKS[color][square] }
+}
 
+#[inline(always)]
+pub fn get_knight_mask(square: Square) -> Bitboard {
+    unsafe { move_init::KNIGHT_MASKS[square] }
+}
 
-pub mod move_init {
-    use crate::{bitboard::Bitboard, color::Color, rank::Rank, file::File, square::Square};
+#[inline(always)]
+pub fn get_king_mask(square: Square) -> Bitboard {
+    unsafe { move_init::KING_MASKS[square] }
+}
 
-    pub static mut WHITE_PAWN_QUIET_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-    pub static mut BLACK_PAWN_QUIET_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-    pub static mut WHITE_PAWN_CAPTURE_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-    pub static mut BLACK_PAWN_CAPTURE_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-    pub static mut KNIGHT_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-    pub static mut KING_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-    pub static mut BISHOP_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-    pub static mut ROOK_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-    pub static mut ROOK_MOVE_CONFIGURATIONS: [[Bitboard; 64]; 4096] = [[Bitboard::EMPTY; 64]; 4096];
-    pub static mut BISHOP_MOVE_CONFIGURATIONS: [[Bitboard; 64]; 512] = [[Bitboard::EMPTY; 64]; 512];
-
-    pub const BISHOP_RELEVANT_BITS: [u8; 64] = [
-        6, 5, 5, 5, 5, 5, 5, 6,
-        5, 5, 5, 5, 5, 5, 5, 5,
-        5, 5, 7, 7, 7, 7, 5, 5,
-        5, 5, 7, 9, 9, 7, 5, 5,
-        5, 5, 7, 9, 9, 7, 5, 5,
-        5, 5, 7, 7, 7, 7, 5, 5,
-        5, 5, 5, 5, 5, 5, 5, 5,
-        6, 5, 5, 5, 5, 5, 5, 6
-    ];
-
-    pub const ROOK_RELEVANT_BITS: [u8; 64] = [
-        12, 11, 11, 11, 11, 11, 11, 12,
-        11, 10, 10, 10, 10, 10, 10, 11,
-        11, 10, 10, 10, 10, 10, 10, 11,
-        11, 10, 10, 10, 10, 10, 10, 11,
-        11, 10, 10, 10, 10, 10, 10, 11,
-        11, 10, 10, 10, 10, 10, 10, 11,
-        11, 10, 10, 10, 10, 10, 10, 11,
-        12, 11, 11, 11, 11, 11, 11, 12
-    ];
-
-    pub unsafe fn init() {
-        init_masks();
-        init_slider_configurations();
+#[inline(always)]
+pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    unsafe {
+        let mut index = occupancy.0 & move_init::BISHOP_MASKS[square].0;
+        index = 
+            index.wrapping_mul(move_init::BISHOP_MAGIC_BITBOARDS[square].0) >> 
+            (64 - move_init::BISHOP_RELEVANT_BITS[square]);
+        move_init::BISHOP_MOVE_CONFIGURATIONS[square][index as usize]
     }
+}
 
-    unsafe fn init_masks() {
-        for square in Square::ALL_SQUARES {
-            WHITE_PAWN_QUIET_MASKS[square] = get_pawn_quiet_mask(Color::WHITE, square);
-            WHITE_PAWN_CAPTURE_MASKS[square] = get_pawn_capture_mask(Color::WHITE, square);
-            BLACK_PAWN_QUIET_MASKS[square] = get_pawn_quiet_mask(Color::BLACK, square);
-            BLACK_PAWN_CAPTURE_MASKS[square] = get_pawn_capture_mask(Color::BLACK, square);
-            KNIGHT_MASKS[square] = get_knight_mask(square);
-            KING_MASKS[square] = get_king_mask(square);
-            BISHOP_MASKS[square] = get_bishop_mask(square);
-            ROOK_MASKS[square] = get_rook_mask(square);
-
-            debug_assert_eq!(BISHOP_MASKS[square].count_bits(), BISHOP_RELEVANT_BITS[square]);
-            debug_assert_eq!(ROOK_MASKS[square].count_bits(), ROOK_RELEVANT_BITS[square]);
-        }
+#[inline(always)]
+pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    unsafe {
+        let mut index = occupancy.0 & move_init::ROOK_MASKS[square].0;
+        index = 
+            index.wrapping_mul(move_init::ROOK_MAGIC_BITBOARDS[square].0) >> 
+            (64 - move_init::ROOK_RELEVANT_BITS[square]);
+        move_init::ROOK_MOVE_CONFIGURATIONS[square][index as usize]
     }
+}
 
-    unsafe fn init_slider_configurations() {
-        for square in Square::ALL_SQUARES {
+#[inline(always)]
+pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    get_bishop_mask(square, occupancy) | get_rook_mask(square, occupancy)
+}
+
+// based on state side, relevant pieces and occupancies can be selected
+#[inline]
+pub fn generate_moves(board_state: &BoardState) -> MoveList {
+    let mut move_list = MoveList::default();
+    
+    let side = board_state.side;
+
+    let [pawn, knight, bishop, rook, queen, king] = match side {
+        Color::WHITE => PieceType::WHITE_PIECES,
+        Color::BLACK => PieceType::BLACK_PIECES,
+        _ => panic!("Illegal color found")
+    };
+
+    let enemy_pieces = match side {
+        Color::WHITE => PieceType::BLACK_PIECES,
+        Color::BLACK => PieceType::WHITE_PIECES,
+        _ => panic!("Illegal color found")
+    };
+
+    let inv_own_occupancies = match side {
+        Color::WHITE => !board_state.wo,
+        Color::BLACK => !board_state.bo,
+        _ => panic!("Illegal color found")
+    };
+    
+    let enemy_occupancies = match side {
+        Color::WHITE => board_state.bo,
+        Color::BLACK => board_state.wo,
+        _ => panic!("Illegal color found")
+    };
+
+    let pawn_promotion_rank = match side {
+        Color::WHITE => Rank::R7,
+        Color::BLACK => Rank::R2,
+        _ => panic!("Illegal color found")
+    };
+
+    let pawn_starting_rank = match side {
+        Color::WHITE => Rank::R2,
+        Color::BLACK => Rank::R7,
+        _ => panic!("Illegal color found")
+    };
+
+    {
+        /*------------------------------*\ 
+                   Knight moves
+        \*------------------------------*/
+        let mut knight_bb = board_state.bbs[knight];
+        while knight_bb.is_not_empty() {
+            let source = knight_bb.pop_lsb();
             
-        }
-    }
-
-    fn get_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
-        let mut bb_mask = Bitboard::EMPTY;
-        let square_bb = square.to_bb();
-        let square_rank = square.rank();
-        
-        match color {
-            Color::WHITE => {
-                bb_mask |= square_bb.shift_upwards(8);
-
-                if square_rank == Rank::R2 {
-                    bb_mask |= square_bb.shift_upwards(16);
-                }
-            },
-            Color::BLACK => {
-                bb_mask |= square_bb.shift_downwards(8);
-
-                if square_rank == Rank::R7 {
-                    bb_mask |= square_bb.shift_downwards(16);
-                }
-            },
-            _ => panic!("Illegal color used!")
-        };
-
-        bb_mask
-    }
-
-    fn get_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
-        let mut bb_mask = Bitboard::EMPTY;
-        let square_bb = square.to_bb();
-        let square_file = square.file();
-
-        match color {
-            Color::WHITE => {
-                if square_file != File::FA {
-                    bb_mask |= square_bb.shift_upwards(9);
-                }
-
-                if square_file != File::FH {
-                    bb_mask |= square_bb.shift_upwards(7);
-                }
-            },
-            Color::BLACK => {
-                if square_file != File::FA {
-                    bb_mask |= square_bb.shift_downwards(7);
-                }
-
-                if square_file != File::FH {
-                    bb_mask |= square_bb.shift_downwards(9);
-                }
-            },
-            _ => panic!("Illegal color used!")
-        };
-
-        bb_mask
-    }
-
-    fn get_knight_mask(square: Square) -> Bitboard {
-        let mut bb_mask = Bitboard::EMPTY;
-        let square_bb = square.to_bb();
-        let square_file = square.file();
-
-        if square_file != File::FA {
-            bb_mask |= square_bb.shift_upwards(17);
-            bb_mask |= square_bb.shift_downwards(15);
-
-            if square_file != File::FB {
-                bb_mask |= square_bb.shift_upwards(10);
-                bb_mask |= square_bb.shift_downwards(6);
+            let mut move_mask = unsafe { move_init::KNIGHT_MASKS[source] } & inv_own_occupancies;
+            while move_mask.is_not_empty() {
+                let target = move_mask.pop_lsb();
+                let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
+                move_list.add(BitMove::encode(source, target, knight, target_piece, MoveFlag::Null));
             }
         }
+    }
 
-        if square_file != File::FH {
-            bb_mask |= square_bb.shift_upwards(15);
-            bb_mask |= square_bb.shift_downwards(17);
-
-            if square_file != File::FG {
-                bb_mask |= square_bb.shift_upwards(6);
-                bb_mask |= square_bb.shift_downwards(10);
+    {
+        /*------------------------------*\ 
+                    King moves
+        \*------------------------------*/
+        let mut king_bb = board_state.bbs[king];
+        while king_bb.is_not_empty() {
+            let source = king_bb.pop_lsb();
+            let mut move_mask = unsafe { move_init::KING_MASKS[source] } & inv_own_occupancies;
+            while move_mask.is_not_empty() {
+                let target = move_mask.pop_lsb();
+                let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
+                move_list.add(BitMove::encode(source, target, king, target_piece, MoveFlag::Null));
             }
-        }
 
-        bb_mask
+            // Castling
+        }
     }
 
-    fn get_king_mask(square: Square) -> Bitboard {
-        let mut bb_mask = Bitboard::EMPTY;
-        let square_bb = square.to_bb();
-        let square_file = square.file();
+    {
+        /*------------------------------*\ 
+                    Pawn moves
+        \*------------------------------*/
+        let mut pawn_bb = board_state.bbs[pawn];
+        while pawn_bb.is_not_empty() {
+            let source = pawn_bb.pop_lsb();
+            let source_rank = source.rank();
 
-        bb_mask |= square_bb.shift_upwards(8);
-        bb_mask |= square_bb.shift_downwards(8);
+            let mut move_mask = unsafe { move_init::PAWN_CAPTURE_MASKS[board_state.side][source] } & enemy_occupancies;
+            while move_mask.is_not_empty() {
+                let target = move_mask.pop_lsb();
+                let target_piece = get_target_piece(board_state, enemy_pieces, target);
 
-        if square_file != File::FA {
-            bb_mask |= square_bb.shift_upwards(1);
-            bb_mask |= square_bb.shift_upwards(9);
-            bb_mask |= square_bb.shift_downwards(7);
-        }
-
-        if square_file != File::FH {
-            bb_mask |= square_bb.shift_upwards(7);
-            bb_mask |= square_bb.shift_downwards(1);
-            bb_mask |= square_bb.shift_downwards(9);
-        }
-
-        bb_mask
-    }
-
-    fn get_bishop_mask(square: Square) -> Bitboard {
-        let mut bb_mask = Bitboard::EMPTY;
-        let square_bb = square.to_bb();
-
-        let mut seeker = square_bb;
-        while 
-            (seeker & Bitboard::RANK_8).is_empty() &&
-            (seeker & Bitboard::FILE_A).is_empty()
-        {
-            bb_mask |= seeker;
-            seeker = seeker.shift_upwards(9);
-        }
-
-        seeker = square_bb;
-        while
-            (seeker & Bitboard::RANK_8).is_empty() &&
-            (seeker & Bitboard::FILE_H).is_empty()
-        {
-            bb_mask |= seeker;
-            seeker = seeker.shift_upwards(7);
-        }
-
-        seeker = square_bb;
-        while
-            (seeker & Bitboard::RANK_1).is_empty() &&
-            (seeker & Bitboard::FILE_A).is_empty()
-        {
-            bb_mask |= seeker;
-            seeker = seeker.shift_downwards(7);
-        }
-
-        seeker = square_bb;
-        while
-            (seeker & Bitboard::RANK_1).is_empty() &&
-            (seeker & Bitboard::FILE_H).is_empty()
-        {
-            bb_mask |= seeker;
-            seeker = seeker.shift_downwards(9);
-        }
-
-        bb_mask.pop_sq(square);
-
-        bb_mask
-    }
-
-    fn get_rook_mask(square: Square) -> Bitboard {
-        let mut bb_mask = Bitboard::EMPTY;
-        let square_bb = square.to_bb();
-
-        let mut seeker = square_bb;
-        while (seeker & Bitboard::RANK_8).is_empty() {
-            bb_mask |= seeker;
-            seeker = seeker.shift_upwards(8);
-        }
-
-        seeker = square_bb;
-        while (seeker & Bitboard::RANK_1).is_empty() {
-            bb_mask |= seeker;
-            seeker = seeker.shift_downwards(8);
-        }
-
-        seeker = square_bb;
-        while (seeker & Bitboard::FILE_A).is_empty() {
-            bb_mask |= seeker;
-            seeker = seeker.shift_upwards(1);
-        }
-
-        seeker = square_bb;
-        while (seeker & Bitboard::FILE_H).is_empty() {
-            bb_mask |= seeker;
-            seeker = seeker.shift_downwards(1);
-        }
-
-        bb_mask.pop_sq(square);
-
-        bb_mask
-    }
-
-    pub fn get_bishop_moves_on_the_fly(square: Square, blockers: Bitboard) -> Bitboard {
-        let mut bb_mask = Bitboard::EMPTY;
-        let square_bb = square.to_bb();
-
-        let mut seeker = square_bb;
-        while 
-            (seeker & Bitboard::RANK_8).is_empty() &&
-            (seeker & Bitboard::FILE_A).is_empty() &&
-            (seeker & blockers).is_empty()
-        {
-            seeker = seeker.shift_upwards(9);
-            bb_mask |= seeker;
-        }
-
-        seeker = square_bb;
-        while
-            (seeker & Bitboard::RANK_8).is_empty() &&
-            (seeker & Bitboard::FILE_H).is_empty() &&
-            (seeker & blockers).is_empty()
-        {
-            seeker = seeker.shift_upwards(7);
-            bb_mask |= seeker;
-        }
-
-        seeker = square_bb;
-        while
-            (seeker & Bitboard::RANK_1).is_empty() &&
-            (seeker & Bitboard::FILE_A).is_empty() &&
-            (seeker & blockers).is_empty()
-        {
-            seeker = seeker.shift_downwards(7);
-            bb_mask |= seeker;
-        }
-
-        seeker = square_bb;
-        while
-            (seeker & Bitboard::RANK_1).is_empty() &&
-            (seeker & Bitboard::FILE_H).is_empty() &&
-            (seeker & blockers).is_empty()
-        {
-            seeker = seeker.shift_downwards(9);
-            bb_mask |= seeker;
-        }
-
-        bb_mask
-    }
-
-    pub fn get_rook_moves_on_the_fly(square: Square, blockers: Bitboard) -> Bitboard {
-        let mut bb_mask = Bitboard::EMPTY;
-        let square_bb = square.to_bb();
-
-        let mut seeker = square_bb;
-        while (seeker & Bitboard::RANK_8).is_empty() && (seeker & blockers).is_empty() {
-            seeker = seeker.shift_upwards(8);
-            bb_mask |= seeker;
-        }
-
-        seeker = square_bb;
-        while (seeker & Bitboard::RANK_1).is_empty() && (seeker & blockers).is_empty() {
-            seeker = seeker.shift_downwards(8);
-            bb_mask |= seeker;
-        }
-
-        seeker = square_bb;
-        while (seeker & Bitboard::FILE_A).is_empty() && (seeker & blockers).is_empty() {
-            seeker = seeker.shift_upwards(1);
-            bb_mask |= seeker;
-        }
-
-        seeker = square_bb;
-        while (seeker & Bitboard::FILE_H).is_empty() && (seeker & blockers).is_empty() {
-            seeker = seeker.shift_downwards(1);
-            bb_mask |= seeker;
-        }
-
-        bb_mask
-    }
-
-    // Generates the relevant occupancy bitboard for a slider piece from an index,
-    // the number of relevant bits, and the relevant mask.
-    pub fn generate_occupancy_permutation(occupancy_index: u32, num_bits: u8, mut mask: Bitboard) -> Bitboard {
-        let mut occupancy = Bitboard::EMPTY;
-        for i in 0..num_bits {
-            let square = mask.pop_lsb();
-            if occupancy_index & (1 << i) != 0 {
-                occupancy.set_sq(square);
+                if source_rank == pawn_promotion_rank {
+                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoN));
+                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoB));
+                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoR));
+                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoQ));
+                }
+                else {
+                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::Null));
+                }
             }
-        }
 
-        occupancy
+            // En-passant
+
+            // Normal pushes (can't be captures) (remember promotion)
+        }
     }
+
+    move_list
+}
+
+#[inline(always)]
+pub fn get_target_piece(board_state: &BoardState, enemy_piece_types: [PieceType; 6], target: Square) -> PieceType {
+    for piece_type in enemy_piece_types {
+        if board_state.bbs[piece_type].is_set_sq(target) {
+            return piece_type;
+        }
+    }
+
+    panic!("There seems to be something wrong with the occupancy bitboards!")
+}
+
+
+#[inline(always)]
+pub fn get_target_piece_if_any(board_state: &BoardState, enemy_piece_types: [PieceType; 6], enemy_occupancies: Bitboard, target: Square) -> PieceType {
+    if (enemy_occupancies & target.to_bb()).is_empty() {
+        return PieceType::None;
+    }
+    
+    get_target_piece(board_state, enemy_piece_types, target)
 }

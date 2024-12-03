@@ -21,7 +21,7 @@ impl Default for MoveList {
 
 impl MoveList {
     #[inline(always)]
-    pub fn push(&mut self, mv: BitMove) {
+    pub fn add(&mut self, mv: BitMove) {
         debug_assert!(self.size < MAX_MOVES);
         
         unsafe {
