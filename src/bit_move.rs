@@ -43,10 +43,10 @@ impl fmt::Display for MoveFlag {
             MoveFlag::WQCastle => "White Queen Castle",
             MoveFlag::BKCastle => "Black King Castle",
             MoveFlag::BQCastle => "Black Queen Castle",
-            MoveFlag::PromoN => "Promotion to Knight",
-            MoveFlag::PromoB => "Promotion to Bishop",
-            MoveFlag::PromoR => "Promotion to Rook",
-            MoveFlag::PromoQ => "Promotion to Queen",
+            MoveFlag::PromoN => "Knight Promotion",
+            MoveFlag::PromoB => "Bishop Promotion",
+            MoveFlag::PromoR => "Rook Promotion",
+            MoveFlag::PromoQ => "Queen Promotion",
         };
         write!(f, "{}", name)
     }
@@ -88,6 +88,17 @@ impl BitMove {
     #[inline(always)]
     pub fn decode(&self) -> (Square, Square, PieceType, PieceType, MoveFlag) {
         (self.source(), self.target(), self.piece(), self.capture(), self.flag())
+    }
+
+    pub fn to_row_string(&self) -> String {
+        format!(
+            "  | {:<8} | {:<8} | {:<8} | {:<8} | {:<18} |\n", 
+            self.source().to_string(),
+            self.target().to_string(),
+            self.piece().to_string(),
+            self.capture().to_string(),
+            self.flag().to_string()
+        )
     }
 }
 

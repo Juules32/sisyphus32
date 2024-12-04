@@ -5,7 +5,7 @@ use std::ops::{Index, IndexMut};
 pub const MAX_MOVES: usize = 255;
 
 pub struct MoveList {
-    pub array: [BitMove; MAX_MOVES],
+    array: [BitMove; MAX_MOVES],
     size: usize
 }
 
@@ -50,11 +50,16 @@ impl IndexMut<usize> for MoveList {
 
 impl fmt::Display for MoveList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut s = format!("\n  Printing move data for {} moves:\n", self.size);
+        let mut s = format!("
+  |----------------------------------------------------------------|
+  | Source   | Target   | Piece    | Capture  | Flag               |
+  |----------------------------------------------------------------|\n");
 
         for i in 0..self.size {
-            s += &format!("{}\n", self[i]);
+            s += &self[i].to_row_string();
         }
+
+        s += &format!("  |----------------------------------------------------------------|");
 
         f.pad(&s)
     }

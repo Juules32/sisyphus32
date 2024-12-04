@@ -14,11 +14,8 @@ mod move_gen;
 mod magic_bitboards;
 mod todo;
 
-use bit_move::{BitMove, MoveFlag};
 use board_state::BoardState;
-use file::File;
-use magic_bitboards::MagicBitboardGenerator;
-use bitboard::Bitboard;
+use castling_rights::CastlingRights;
 use piece::PieceType;
 use square::Square;
 
@@ -31,7 +28,7 @@ fn main() {
     pl!(move_gen::get_queen_mask(Square::D4, Square::E4.to_bb()));
 
     let mut bs = BoardState::default();
-    bs.set_piece(PieceType::WK, Square::D8);
+    bs.set_piece(PieceType::WK, Square::E1);
     bs.set_piece(PieceType::WN, Square::C6);
     bs.set_piece(PieceType::BK, Square::A8);
     bs.set_piece(PieceType::WP, Square::B7);
@@ -39,13 +36,10 @@ fn main() {
     bs.set_piece(PieceType::BP, Square::F1);
     bs.set_piece(PieceType::WP, Square::E5);
     bs.en_passant_sq = Square::D6;
-
+    bs.castling_rights = CastlingRights::DEFAULT;
     bs.populate_occupancies();
 
-    let mut ml = move_gen::generate_moves(&bs);
+    let ml = move_gen::generate_moves(&bs);
     pl!(ml);
-    pl!(bs);
-
-    bs.make_move(ml.array[10]);
     pl!(bs);
 }

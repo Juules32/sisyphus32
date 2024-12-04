@@ -108,6 +108,11 @@ impl Bitboard {
     pub const EDGES: Bitboard = Bitboard(0xFF818181818181FF);
     pub const EMPTY: Bitboard = Bitboard(0x0);
 
+    pub const W_KING_SIDE_MASK: Bitboard = Bitboard(0x6000000000000000);
+    pub const W_QUEEN_SIDE_MASK: Bitboard = Bitboard(0xC00000000000000);
+    pub const B_KING_SIDE_MASK: Bitboard = Bitboard(0x60);
+    pub const B_QUEEN_SIDE_MASK: Bitboard = Bitboard(0xC);
+
     pub const BP: Bitboard = Bitboard::RANK_7;
     pub const BN: Bitboard = Bitboard(0x42);
     pub const BB: Bitboard = Bitboard(0x24);
