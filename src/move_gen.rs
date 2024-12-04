@@ -71,9 +71,24 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
         Color::Black => (Rank::R2, Rank::R7, Rank::R4, Rank::R5)
     };
     
-    let (double_pawn_flag, en_passant_flag) = match side {
-        Color::White => (MoveFlag::WDoublePawn, MoveFlag::WEnPassant),
-        Color::Black => (MoveFlag::BDoublePawn, MoveFlag::BEnPassant)
+    let (double_pawn_flag, en_passant_flag, king_side_castling_flag, queen_side_castling_flag) = match side {
+        Color::White => (MoveFlag::WDoublePawn, MoveFlag::WEnPassant, MoveFlag::WKCastle, MoveFlag::WQCastle),
+        Color::Black => (MoveFlag::BDoublePawn, MoveFlag::BEnPassant, MoveFlag::BKCastle, MoveFlag::BQCastle)
+    };
+
+    let (king_side_castling_mask, queen_side_castling_mask) = match side {
+        Color::White => (Bitboard::W_KING_SIDE_MASK, Bitboard::W_QUEEN_SIDE_MASK),
+        Color::Black => (Bitboard::B_KING_SIDE_MASK, Bitboard::B_QUEEN_SIDE_MASK)
+    };
+
+    let (king_side_castling_right, queen_side_castling_right) = match side {
+        Color::White => (board_state.castling_rights.wk(), board_state.castling_rights.wq()),
+        Color::Black => (board_state.castling_rights.bk(), board_state.castling_rights.bq())
+    };
+
+    let (castling_square_c, castling_square_d, castling_square_e, castling_square_f, castling_square_g) = match side {
+        Color::White => (Square::C1, Square::D1, Square::E1, Square::F1, Square::G1),
+        Color::Black => (Square::C8, Square::D8, Square::E8, Square::F8, Square::G8)
     };
 
     {
@@ -156,16 +171,32 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
                     King moves
         \*------------------------------*/
         let mut king_bb = board_state.bbs[king];
-        while king_bb.is_not_empty() {
-            let source = king_bb.pop_lsb();
-            let mut move_mask = get_king_mask(source) & inv_own_occupancies;
-            while move_mask.is_not_empty() {
-                let target = move_mask.pop_lsb();
-                let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
-                move_list.add(BitMove::encode(source, target, king, target_piece, MoveFlag::Null));
-            }
+        let source = king_bb.pop_lsb();
+        let mut move_mask = get_king_mask(source) & inv_own_occupancies;
+        while move_mask.is_not_empty() {
+            let target = move_mask.pop_lsb();
+            let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
+            move_list.add(BitMove::encode(source, target, king, target_piece, MoveFlag::Null));
+        }
 
-            // Castling
+        // King-side Castling
+        if king_side_castling_right && (board_state.ao & king_side_castling_mask).is_empty() {
+            if !board_state.is_square_attacked(castling_square_e, &enemy_pieces) &&
+               !board_state.is_square_attacked(castling_square_f, &enemy_pieces) &&
+               !board_state.is_square_attacked(castling_square_g, &enemy_pieces)
+            {
+                move_list.add(BitMove::encode(source, castling_square_g, king, PieceType::None, king_side_castling_flag));
+            }
+        }
+
+        // Queen-side Castling
+        if queen_side_castling_right && (board_state.ao & queen_side_castling_mask).is_empty() {
+            if !board_state.is_square_attacked(castling_square_e, &enemy_pieces) &&
+               !board_state.is_square_attacked(castling_square_d, &enemy_pieces) &&
+               !board_state.is_square_attacked(castling_square_c, &enemy_pieces)
+            {
+                move_list.add(BitMove::encode(source, castling_square_c, king, PieceType::None, queen_side_castling_flag));
+            }
         }
     }
 
@@ -216,6 +247,8 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
             }
         }
     }
+
+    // debug: all moves are different
 
     move_list
 }

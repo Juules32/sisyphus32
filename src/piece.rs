@@ -100,7 +100,7 @@ impl fmt::Display for PieceType {
             PieceType::BR => "♖",
             PieceType::BQ => "♕",
             PieceType::BK => "♔",
-            PieceType::None => "No Piece",
+            PieceType::None => "None",
         };
         f.pad(s)
     }

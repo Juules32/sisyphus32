@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{bit_move::{BitMove, MoveFlag}, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, piece::PieceType, square::Square};
+use crate::{bit_move::{BitMove, MoveFlag}, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, move_gen, piece::PieceType, square::Square};
 
 pub struct BoardState {
     pub bbs: [Bitboard; 12],
@@ -119,6 +119,29 @@ impl BoardState {
         self.castling_rights.update(source, target);
         self.side.switch();
         self.populate_occupancies();
+    }
+
+    #[inline(always)]
+    pub fn is_square_attacked(&self, square: Square, [enemy_pawn, enemy_knight, enemy_bishop, enemy_rook, enemy_queen, enemy_king]: &[PieceType; 6]) -> bool {
+        if (move_gen::get_pawn_capture_mask(self.side, square) & self.bbs[*enemy_pawn]).is_not_empty() {
+            return true;
+        }
+        if (move_gen::get_knight_mask(square) & self.bbs[*enemy_knight]).is_not_empty() {
+            return true;
+        }
+        if (move_gen::get_bishop_mask(square, self.ao) & self.bbs[*enemy_bishop]).is_not_empty() {
+            return true;
+        }
+        if (move_gen::get_rook_mask(square, self.ao) & self.bbs[*enemy_rook]).is_not_empty() {
+            return true;
+        }
+        if (move_gen::get_queen_mask(square, self.ao) & self.bbs[*enemy_queen]).is_not_empty() {
+            return true;
+        }
+        if (move_gen::get_king_mask(square) & self.bbs[*enemy_king]).is_not_empty() {
+            return true;
+        }
+        false
     }
 }
 
