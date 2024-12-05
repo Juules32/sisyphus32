@@ -1,8 +1,8 @@
 use core::fmt;
+use std::mem::transmute;
 
 #[derive(Clone, Copy, PartialEq)]
 #[repr(u8)]
-#[allow(dead_code)]
 pub enum Rank {
     R8 = 0,
     R7 = 1,
@@ -12,6 +12,13 @@ pub enum Rank {
     R3 = 5,
     R2 = 6,
     R1 = 7,
+}
+
+impl From<u8> for Rank {
+    #[inline(always)]
+    fn from(number: u8) -> Self {
+        unsafe { transmute::<u8, Self>(number) }
+    }
 }
 
 impl fmt::Display for Rank {

@@ -2,7 +2,6 @@ use crate::{piece::PieceType, square::Square};
 use core::fmt;
 use std::mem::transmute;
 
-
 const SOURCE_MASK: u32 =  0b0000_0000_0000_0000_0011_1111;
 const TARGET_MASK: u32 =  0b0000_0000_0000_1111_1100_0000;
 const PIECE_MASK: u32 =   0b0000_0000_1111_0000_0000_0000;
@@ -14,9 +13,8 @@ pub struct BitMove(u32);
 
 #[repr(u8)]
 #[derive(Clone, Copy)]
-#[allow(dead_code)]
 pub enum MoveFlag {
-    Null,
+    None,
     WEnPassant,
     BEnPassant,
     WDoublePawn,
@@ -31,10 +29,17 @@ pub enum MoveFlag {
     PromoQ,
 }
 
+impl From<u8> for MoveFlag {
+    #[inline(always)]
+    fn from(number: u8) -> Self {
+        unsafe { transmute::<u8, Self>(number) }
+    }
+}
+
 impl fmt::Display for MoveFlag {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match self {
-            MoveFlag::Null => "Null",
+            MoveFlag::None => "None",
             MoveFlag::WDoublePawn => "White Double Pawn Push",
             MoveFlag::BDoublePawn => "Black Double Pawn Push",
             MoveFlag::WEnPassant => "White En-passant",
@@ -48,36 +53,36 @@ impl fmt::Display for MoveFlag {
             MoveFlag::PromoR => "Rook Promotion",
             MoveFlag::PromoQ => "Queen Promotion",
         };
-        write!(f, "{}", name)
+        f.pad(name)
     }
 }
 
 impl BitMove {
-    pub const NULL: BitMove = BitMove(0);
+    pub const EMPTY: BitMove = BitMove(0);
 
     #[inline(always)]
     pub fn source(&self) -> Square {
-        unsafe { transmute::<u8, Square>((self.0 & SOURCE_MASK) as u8) }
+        Square::from((self.0 & SOURCE_MASK) as u8)
     }
 
     #[inline(always)]
     pub fn target(&self) -> Square {
-        unsafe { transmute::<u8, Square>(((self.0 & TARGET_MASK) >> 6) as u8) }
+        Square::from(((self.0 & TARGET_MASK) >> 6) as u8)
     }
 
     #[inline(always)]
     pub fn piece(&self) -> PieceType {
-        unsafe { transmute::<u8, PieceType>(((self.0 & PIECE_MASK) >> 12) as u8) }
+        PieceType::from(((self.0 & PIECE_MASK) >> 12) as u8)
     }
 
     #[inline(always)]
     pub fn capture(&self) -> PieceType {
-        unsafe { transmute::<u8, PieceType>(((self.0 & CAPTURE_MASK) >> 16) as u8) }
+        PieceType::from(((self.0 & CAPTURE_MASK) >> 16) as u8)
     }
 
     #[inline(always)]
     pub fn flag(&self) -> MoveFlag {
-        unsafe { transmute::<u8, MoveFlag>(((self.0 & FLAG_MASK) >> 20) as u8) }
+        MoveFlag::from(((self.0 & FLAG_MASK) >> 20) as u8)
     }
 
     #[inline(always)]
@@ -93,24 +98,30 @@ impl BitMove {
     pub fn to_row_string(&self) -> String {
         format!(
             "  | {:<8} | {:<8} | {:<8} | {:<8} | {:<18} |\n", 
-            self.source().to_string(),
-            self.target().to_string(),
-            self.piece().to_string(),
-            self.capture().to_string(),
-            self.flag().to_string()
+            self.source(),
+            self.target(),
+            self.piece(),
+            self.capture(),
+            self.flag()
         )
     }
 }
 
 impl fmt::Display for BitMove {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "
+        f.pad(&format!("
   Raw move data: {:b}
   Source Square: {}
   Target Square: {}
   Piece Type:    {}
   Capture:       {}
-  Move Flag:     {}
-        ", self.0, self.source(), self.target(), self.piece(), self.capture(), self.flag())
+  Move Flag:     {}\n",
+            self.0,
+            self.source(),
+            self.target(),
+            self.piece(),
+            self.capture(),
+            self.flag()
+        ))
     }
 }

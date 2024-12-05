@@ -56,6 +56,6 @@ impl fmt::Display for CastlingRights {
         let wq = if self.wq() { "Q" } else { "-" };
         let bk = if self.bk() { "k" } else { "-" };
         let bq = if self.bq() { "q" } else { "-" };
-        write!(f, "{}{}{}{}", wk, wq, bk, bq)
+        f.pad(&format!("{}{}{}{}", wk, wq, bk, bq))
     }
 }
