@@ -11,14 +11,14 @@ pub enum Color {
 impl Color {
     #[inline(always)]
     pub fn switch(&mut self) {
-        *self = unsafe { transmute::<u8, Color>(*self as u8 ^ 0b1) };
+        *self = self.opposite();
         debug_assert!(*self == Color::White || *self == Color::Black);
     }
 
     #[inline(always)]
     pub fn opposite(self) -> Color {
         debug_assert!(self == Color::White || self == Color::Black);
-        unsafe { transmute::<u8, Color>(self as u8 ^ 0b1) }
+        Color::from(self as u8 ^ 0b1)
     }
 }
 
@@ -33,6 +33,13 @@ impl<T, const N: usize> Index<Color> for [T; N] {
 impl<T, const N: usize> IndexMut<Color> for [T; N] {
     fn index_mut(&mut self, index: Color) -> &mut Self::Output {
         &mut self[index as usize]
+    }
+}
+
+impl From<u8> for Color {
+    #[inline(always)]
+    fn from(number: u8) -> Self {
+        unsafe { transmute::<u8, Self>(number) }
     }
 }
 

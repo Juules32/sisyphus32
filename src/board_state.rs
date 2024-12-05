@@ -58,7 +58,7 @@ impl BoardState {
             bo: Bitboard::BLACK_PIECES,
             ao: Bitboard::ALL_PIECES,
             side: Color::White,
-            en_passant_sq: Square::NoSquare,
+            en_passant_sq: Square::None,
             castling_rights: CastlingRights::DEFAULT,
         }
     }
@@ -89,10 +89,10 @@ impl BoardState {
             self.remove_piece(capture, target);
         }
 
-        self.en_passant_sq = Square::NoSquare;
+        self.en_passant_sq = Square::None;
 
         match flag {
-            MoveFlag::Null => (),
+            MoveFlag::None => (),
             MoveFlag::WDoublePawn => self.en_passant_sq = target.below(),
             MoveFlag::BDoublePawn => self.en_passant_sq = target.above(),
             MoveFlag::WEnPassant => self.remove_piece(PieceType::BP, target.below()),
@@ -153,7 +153,7 @@ impl Default for BoardState {
             bo: Bitboard::EMPTY,
             ao: Bitboard::EMPTY,
             side: Color::White,
-            en_passant_sq: Square::NoSquare,
+            en_passant_sq: Square::None,
             castling_rights: CastlingRights::NONE,
         }
     }
@@ -185,8 +185,12 @@ impl fmt::Display for BoardState {
      FEN:        {}
      Side        {}
      En-passant: {}
-     Castling:   {}
-        ", "Not Implemented", self.side, self.en_passant_sq, self.castling_rights);
+     Castling:   {}\n",
+            "Not Implemented",
+            self.side,
+            self.en_passant_sq,
+            self.castling_rights
+        );
         f.pad(&s)
     }
 }

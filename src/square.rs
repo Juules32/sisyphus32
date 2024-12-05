@@ -72,44 +72,43 @@ pub enum Square {
     F1 = 61,
     G1 = 62,
     H1 = 63,
-    #[allow(clippy::enum_variant_names)]
-    NoSquare = 64,
+    None = 64,
 }
 
 impl Square {
     #[inline(always)]
     pub fn to_bb(self) -> Bitboard {
-        unsafe { transmute::<u64, Bitboard>(1 << self as u64) }
+        Bitboard::from(1 << (self as u64))
     }
 
     #[inline(always)]
     pub fn rank(self) -> Rank {
-        unsafe { transmute::<u8, Rank>(self as u8 >> 3 & 0b0000_0111) }
+        Rank::from(self as u8 >> 3 & 0b0000_0111)
     }
 
     #[inline(always)]
     pub fn file(self) -> File {
-        unsafe { transmute::<u8, File>(self as u8 & 0b0000_0111) }
+        File::from(self as u8 & 0b0000_0111)
     }
 
     #[inline(always)]
     pub fn above(self) -> Square {
-        unsafe { transmute::<u8, Square>(self as u8 - 8) }
+        Square::from(self as u8 - 8)
     }
     
     #[inline(always)]
     pub fn below(self) -> Square {
-        unsafe { transmute::<u8, Square>(self as u8 + 8) }
+        Square::from(self as u8 + 8)
     }
 
     #[inline(always)]
     pub fn left(self) -> Square {
-        unsafe { transmute::<u8, Square>(self as u8 - 1) }
+        Square::from(self as u8 - 1)
     }
 
     #[inline(always)]
     pub fn right(self) -> Square {
-        unsafe { transmute::<u8, Square>(self as u8 + 1) }
+        Square::from(self as u8 + 1)
     }
 }
 
@@ -144,17 +143,17 @@ impl<T, const N: usize> IndexMut<Square> for [T; N] {
 impl From<u8> for Square {
     #[inline(always)]
     fn from(number: u8) -> Self {
-        unsafe { transmute::<u8, Square>(number) }
+        unsafe { transmute::<u8, Self>(number) }
     }
 }
 
 impl fmt::Display for Square {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if *self == Square::NoSquare {
+        if *self == Self::None {
             f.pad("No Square")
         }
         else {
-            write!(f, "{}{}", self.file(), self.rank())
+            f.pad(&format!("{}{}", self.file(), self.rank()))
         }
     }
 }

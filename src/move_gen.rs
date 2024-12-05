@@ -113,7 +113,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
                     move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoQ));
                 }
                 else {
-                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::Null));
+                    move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::None));
                 }
             }
 
@@ -132,12 +132,12 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
                     move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoQ));
                 }
                 else {
-                    move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::Null));
+                    move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::None));
                 }
             }
             
             // En-passant (could maybe be combined with captures?)
-            if en_passant_sq != Square::NoSquare && source_rank == en_passant_rank {
+            if en_passant_sq != Square::None && source_rank == en_passant_rank {
                 let mut en_passant_mask = get_pawn_capture_mask(side, source);
                 while en_passant_mask.is_not_empty() {
                     let target = en_passant_mask.pop_lsb();
@@ -161,7 +161,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
                 let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
-                move_list.add(BitMove::encode(source, target, knight, target_piece, MoveFlag::Null));
+                move_list.add(BitMove::encode(source, target, knight, target_piece, MoveFlag::None));
             }
         }
     }
@@ -176,7 +176,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
         while move_mask.is_not_empty() {
             let target = move_mask.pop_lsb();
             let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
-            move_list.add(BitMove::encode(source, target, king, target_piece, MoveFlag::Null));
+            move_list.add(BitMove::encode(source, target, king, target_piece, MoveFlag::None));
         }
 
         // King-side Castling
@@ -211,7 +211,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
                 let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
-                move_list.add(BitMove::encode(source, target, bishop, target_piece, MoveFlag::Null));
+                move_list.add(BitMove::encode(source, target, bishop, target_piece, MoveFlag::None));
             }
         }
     }
@@ -227,7 +227,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
                 let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
-                move_list.add(BitMove::encode(source, target, rook, target_piece, MoveFlag::Null));
+                move_list.add(BitMove::encode(source, target, rook, target_piece, MoveFlag::None));
             }
         }
     }
@@ -243,7 +243,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
                 let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
-                move_list.add(BitMove::encode(source, target, queen, target_piece, MoveFlag::Null));
+                move_list.add(BitMove::encode(source, target, queen, target_piece, MoveFlag::None));
             }
         }
     }

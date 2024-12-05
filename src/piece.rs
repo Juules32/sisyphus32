@@ -1,5 +1,5 @@
 use core::fmt;
-use std::ops::{Index, IndexMut};
+use std::{mem::transmute, ops::{Index, IndexMut}};
 
 use crate::{bitboard::Bitboard, color::Color};
 
@@ -82,6 +82,13 @@ impl Index<PieceType> for [Bitboard; 12] {
 impl IndexMut<PieceType> for [Bitboard; 12] {
     fn index_mut(&mut self, index: PieceType) -> &mut Self::Output {
         &mut self[index as usize]
+    }
+}
+
+impl From<u8> for PieceType {
+    #[inline(always)]
+    fn from(number: u8) -> Self {
+        unsafe { transmute::<u8, Self>(number) }
     }
 }
 

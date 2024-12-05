@@ -57,7 +57,7 @@ impl Bitboard {
     #[inline(always)]
     pub fn get_lsb(self) -> Square {
         debug_assert_ne!(self.count_bits(), 0);
-        unsafe { transmute::<u8, Square>(self.0.trailing_zeros() as u8) }
+        Square::from(self.0.trailing_zeros() as u8)
     }
 
     #[inline(always)]
@@ -168,6 +168,13 @@ impl_bb_op!(BitXor, bitxor, ^);
 impl_bb_assign!(BitAndAssign, bitand_assign, &=);
 impl_bb_assign!(BitOrAssign, bitor_assign, |=);
 impl_bb_assign!(BitXorAssign, bitxor_assign, ^=);
+
+impl From<u64> for Bitboard {
+    #[inline(always)]
+    fn from(number: u64) -> Self {
+        unsafe { transmute::<u64, Self>(number) }
+    }
+}
 
 impl fmt::Display for Bitboard {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

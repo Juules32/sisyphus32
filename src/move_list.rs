@@ -13,7 +13,7 @@ impl Default for MoveList {
     #[inline]
     fn default() -> Self {
         MoveList {
-            array: [BitMove::NULL; MAX_MOVES],
+            array: [BitMove::EMPTY; MAX_MOVES],
             size: 0,
         }
     }
@@ -52,8 +52,9 @@ impl fmt::Display for MoveList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = format!("
   |----------------------------------------------------------------|
+  | Printing move data for {:<3} moves                               |
   | Source   | Target   | Piece    | Capture  | Flag               |
-  |----------------------------------------------------------------|\n");
+  |----------------------------------------------------------------|\n", self.size);
 
         for i in 0..self.size {
             s += &self[i].to_row_string();
