@@ -2,11 +2,11 @@ use crate::{piece::PieceType, square::Square};
 use core::fmt;
 use std::mem::transmute;
 
-const SOURCE_MASK: u32 =  0b0000_0000_0000_0000_0011_1111;
-const TARGET_MASK: u32 =  0b0000_0000_0000_1111_1100_0000;
-const PIECE_MASK: u32 =   0b0000_0000_1111_0000_0000_0000;
-const CAPTURE_MASK: u32 = 0b0000_1111_0000_0000_0000_0000;
-const FLAG_MASK: u32 =    0b1111_0000_0000_0000_0000_0000;
+const SOURCE_MASK: u32 =  0b0000_0000_0000_0000_0000_0000_0011_1111;
+const TARGET_MASK: u32 =  0b0000_0000_0000_0000_0000_1111_1100_0000;
+const PIECE_MASK: u32 =   0b0000_0000_0000_0000_1111_0000_0000_0000;
+const CAPTURE_MASK: u32 = 0b0000_0000_0000_1111_0000_0000_0000_0000;
+const FLAG_MASK: u32 =    0b0000_0000_1111_0000_0000_0000_0000_0000;
 
 #[derive(Clone, Copy)]
 pub struct BitMove(u32);
@@ -61,27 +61,27 @@ impl BitMove {
     pub const EMPTY: BitMove = BitMove(0);
 
     #[inline(always)]
-    pub fn source(&self) -> Square {
+    fn source(&self) -> Square {
         Square::from((self.0 & SOURCE_MASK) as u8)
     }
 
     #[inline(always)]
-    pub fn target(&self) -> Square {
+    fn target(&self) -> Square {
         Square::from(((self.0 & TARGET_MASK) >> 6) as u8)
     }
 
     #[inline(always)]
-    pub fn piece(&self) -> PieceType {
+    fn piece(&self) -> PieceType {
         PieceType::from(((self.0 & PIECE_MASK) >> 12) as u8)
     }
 
     #[inline(always)]
-    pub fn capture(&self) -> PieceType {
+    fn capture(&self) -> PieceType {
         PieceType::from(((self.0 & CAPTURE_MASK) >> 16) as u8)
     }
 
     #[inline(always)]
-    pub fn flag(&self) -> MoveFlag {
+    fn flag(&self) -> MoveFlag {
         MoveFlag::from(((self.0 & FLAG_MASK) >> 20) as u8)
     }
 
@@ -103,6 +103,21 @@ impl BitMove {
             self.piece(),
             self.capture(),
             self.flag()
+        )
+    }
+
+    pub fn to_uci_string(&self) -> String {
+        format!(
+            "{}{}{}", 
+            self.source(),
+            self.target(),
+            match self.flag() {
+                MoveFlag::PromoN => "n",
+                MoveFlag::PromoB => "b",
+                MoveFlag::PromoR => "r",
+                MoveFlag::PromoQ => "q",
+                _ => ""
+            }
         )
     }
 }

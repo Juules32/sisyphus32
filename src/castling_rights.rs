@@ -13,7 +13,8 @@ const INDEX_2_CASTLING_RIGHTS: [u8; 64] = [
     0b1101, 0b1111, 0b1111, 0b1111, 0b1100, 0b1111, 0b1111, 0b1110
 ];
 
-pub struct CastlingRights(u8);
+#[derive(Clone, Copy)]
+pub struct CastlingRights(pub u8);
 
 impl CastlingRights {
     pub const DEFAULT: CastlingRights = CastlingRights(0b1111);

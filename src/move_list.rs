@@ -30,6 +30,11 @@ impl MoveList {
             self.size += 1;
         }
     }
+
+    #[inline(always)]
+    pub fn iter(&self) -> impl Iterator<Item = &BitMove> {
+        self.array[..self.size].iter()
+    }
 }
 
 impl Index<usize> for MoveList {
