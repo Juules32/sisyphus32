@@ -109,9 +109,9 @@ impl Bitboard {
     pub const EMPTY: Bitboard = Bitboard(0x0);
 
     pub const W_KING_SIDE_MASK: Bitboard = Bitboard(0x6000000000000000);
-    pub const W_QUEEN_SIDE_MASK: Bitboard = Bitboard(0xC00000000000000);
+    pub const W_QUEEN_SIDE_MASK: Bitboard = Bitboard(0xE00000000000000);
     pub const B_KING_SIDE_MASK: Bitboard = Bitboard(0x60);
-    pub const B_QUEEN_SIDE_MASK: Bitboard = Bitboard(0xC);
+    pub const B_QUEEN_SIDE_MASK: Bitboard = Bitboard(0xE);
 
     pub const BP: Bitboard = Bitboard::RANK_7;
     pub const BN: Bitboard = Bitboard(0x42);

@@ -17,7 +17,7 @@ impl Engine {
         let move_list = move_gen::generate_moves(&self.board_state);
         let castling_rights = self.board_state.castling_rights;
         for mv in move_list.iter() {
-            self.board_state.make_move(*mv);
+            if !self.board_state.make_move(*mv, castling_rights) { continue; }
             self.perft_driver(depth - 1);
             self.board_state.undo_move(*mv, castling_rights);
 
@@ -47,7 +47,7 @@ impl Engine {
         
         let castling_rights = self.board_state.castling_rights;
         for mv in move_list.iter() {
-            self.board_state.make_move(*mv);
+            if !self.board_state.make_move(*mv, castling_rights) { continue; }
             self.perft_driver(depth - 1);
             self.board_state.undo_move(*mv, castling_rights);
         }
