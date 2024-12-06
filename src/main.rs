@@ -15,8 +15,11 @@ mod magic_bitboards;
 mod engine;
 mod timer;
 
+use bit_move::{BitMove, MoveFlag};
 use board_state::BoardState;
 use engine::Engine;
+use piece::PieceType;
+use square::Square;
 
 fn main() {
 
@@ -24,7 +27,8 @@ fn main() {
 
     let bs = BoardState::starting_position();
 
+    pl!(bs);
     let mut engine = Engine {board_state: bs, nodes: 0};
 
-    engine.perft_test(5);
+    engine.perft_test(6);
 }

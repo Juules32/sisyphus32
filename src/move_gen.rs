@@ -123,7 +123,10 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
                 let target = quiet_mask.pop_lsb();
                 
                 if source_rank == pawn_starting_rank && target.rank() == pawn_double_push_rank {
-                    move_list.add(BitMove::encode(source, target, pawn, PieceType::None, double_pawn_flag));
+                    // Making sure both squares in front of the pawn are empty
+                    if (get_pawn_quiet_mask(side, source) & board_state.ao).is_empty() {
+                        move_list.add(BitMove::encode(source, target, pawn, PieceType::None, double_pawn_flag));
+                    } 
                 }
                 else if source_rank == pawn_promotion_rank {
                     move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoN));
@@ -181,9 +184,9 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
 
         // King-side Castling
         if king_side_castling_right && (board_state.ao & king_side_castling_mask).is_empty() {
-            if !board_state.is_square_attacked(castling_square_e, &enemy_pieces) &&
-               !board_state.is_square_attacked(castling_square_f, &enemy_pieces) &&
-               !board_state.is_square_attacked(castling_square_g, &enemy_pieces)
+            if !board_state.is_square_attacked(castling_square_e, board_state.side, &enemy_pieces) &&
+               !board_state.is_square_attacked(castling_square_f, board_state.side, &enemy_pieces) &&
+               !board_state.is_square_attacked(castling_square_g, board_state.side, &enemy_pieces)
             {
                 move_list.add(BitMove::encode(source, castling_square_g, king, PieceType::None, king_side_castling_flag));
             }
@@ -191,9 +194,9 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
 
         // Queen-side Castling
         if queen_side_castling_right && (board_state.ao & queen_side_castling_mask).is_empty() {
-            if !board_state.is_square_attacked(castling_square_e, &enemy_pieces) &&
-               !board_state.is_square_attacked(castling_square_d, &enemy_pieces) &&
-               !board_state.is_square_attacked(castling_square_c, &enemy_pieces)
+            if !board_state.is_square_attacked(castling_square_e, board_state.side, &enemy_pieces) &&
+               !board_state.is_square_attacked(castling_square_d, board_state.side, &enemy_pieces) &&
+               !board_state.is_square_attacked(castling_square_c, board_state.side, &enemy_pieces)
             {
                 move_list.add(BitMove::encode(source, castling_square_c, king, PieceType::None, queen_side_castling_flag));
             }

@@ -74,7 +74,7 @@ impl BoardState {
     }
 
     #[inline]
-    pub fn make_move(&mut self, bit_move: BitMove) {
+    pub fn make_move(&mut self, bit_move: BitMove, castling_rights: CastlingRights) -> bool {
         let (source, target, piece, capture, flag) = bit_move.decode();
 
         debug_assert_eq!(piece.color(), self.side);
@@ -149,6 +149,17 @@ impl BoardState {
         self.castling_rights.update(source, target);
         self.side.switch();
         self.populate_occupancies();
+
+        if self.is_square_attacked(
+            if self.side == Color::White {self.bbs[PieceType::BK].to_sq()} else {self.bbs[PieceType::WK].to_sq()},
+            self.side.opposite(),
+            if self.side == Color::White {&PieceType::WHITE_PIECES} else {&PieceType::BLACK_PIECES}
+        ) {
+            self.undo_move(bit_move, castling_rights);
+            return false;
+        }
+
+        true
     }
 
     #[inline]
@@ -227,8 +238,8 @@ impl BoardState {
     }
 
     #[inline(always)]
-    pub fn is_square_attacked(&self, square: Square, [enemy_pawn, enemy_knight, enemy_bishop, enemy_rook, enemy_queen, enemy_king]: &[PieceType; 6]) -> bool {
-        if (move_gen::get_pawn_capture_mask(self.side, square) & self.bbs[*enemy_pawn]).is_not_empty() {
+    pub fn is_square_attacked(&self, square: Square, defending_side: Color, [enemy_pawn, enemy_knight, enemy_bishop, enemy_rook, enemy_queen, enemy_king]: &[PieceType; 6]) -> bool {
+        if (move_gen::get_pawn_capture_mask(defending_side, square) & self.bbs[*enemy_pawn]).is_not_empty() {
             return true;
         }
         if (move_gen::get_knight_mask(square) & self.bbs[*enemy_knight]).is_not_empty() {
