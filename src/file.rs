@@ -21,6 +21,23 @@ impl From<u8> for File {
     }
 }
 
+impl From<char> for File {
+    #[inline(always)]
+    fn from(ch: char) -> Self {
+        match ch {
+            'a' => Self::FA,
+            'b' => Self::FB,
+            'c' => Self::FC,
+            'd' => Self::FD,
+            'e' => Self::FE,
+            'f' => Self::FF,
+            'g' => Self::FG,
+            'h' => Self::FH,
+            _ => panic!("Illegal file char!")
+        }
+    }
+}
+
 impl fmt::Display for File {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let f_char = (b'a' + *self as u8) as char;

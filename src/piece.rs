@@ -92,6 +92,27 @@ impl From<u8> for PieceType {
     }
 }
 
+impl From<char> for PieceType {
+    #[inline(always)]
+    fn from(ch: char) -> Self {
+        match ch {
+            'P' => PieceType::WP,
+            'N' => PieceType::WN,
+            'B' => PieceType::WB,
+            'R' => PieceType::WR,
+            'Q' => PieceType::WQ,
+            'K' => PieceType::WK,
+            'p' => PieceType::BP,
+            'n' => PieceType::BN,
+            'b' => PieceType::BB,
+            'r' => PieceType::BR,
+            'q' => PieceType::BQ,
+            'k' => PieceType::BK,
+            _ => panic!("Illegal piece char found!")
+        }
+    }
+}
+
 impl fmt::Display for PieceType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s = match self {

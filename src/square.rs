@@ -147,6 +147,21 @@ impl From<u8> for Square {
     }
 }
 
+impl From<&str> for Square {
+    #[inline(always)]
+    fn from(sq_str: &str) -> Self {
+        if sq_str.len() != 2 {
+            panic!("Illegal square string length!");
+        }
+
+        let mut chars_iter = sq_str.chars();
+        let file_char = chars_iter.next().expect("Missing file character");
+        let rank_char = chars_iter.next().expect("Missing rank character");
+
+        Self::from(Rank::from(rank_char) as u8 * 8 + File::from(file_char) as u8)
+    }
+}
+
 impl fmt::Display for Square {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if *self == Self::None {
