@@ -1,4 +1,4 @@
-use crate::{bitboard::Bitboard, color::Color, rank::Rank, file::File, square::Square};
+use crate::{bitboard::Bitboard, color::Color, file::File, rank::Rank, square::Square};
 
 pub static mut PAWN_QUIET_MASKS: [[Bitboard; 64]; 2] = [[Bitboard::EMPTY; 64]; 2];
 pub static mut PAWN_CAPTURE_MASKS: [[Bitboard; 64]; 2] = [[Bitboard::EMPTY; 64]; 2];
@@ -217,7 +217,7 @@ fn generate_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
     let mut bb_mask = Bitboard::EMPTY;
     let square_bb = square.to_bb();
     let square_rank = square.rank();
-    
+
     match color {
         Color::White => {
             bb_mask |= square_bb.shift_upwards(8);
@@ -225,7 +225,7 @@ fn generate_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
             if square_rank == Rank::R2 {
                 bb_mask |= square_bb.shift_upwards(16);
             }
-        },
+        }
         Color::Black => {
             bb_mask |= square_bb.shift_downwards(8);
 
@@ -252,7 +252,7 @@ fn generate_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
             if square_file != File::FH {
                 bb_mask |= square_bb.shift_upwards(7);
             }
-        },
+        }
         Color::Black => {
             if square_file != File::FA {
                 bb_mask |= square_bb.shift_downwards(7);

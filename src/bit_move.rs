@@ -97,7 +97,7 @@ impl BitMove {
 
     pub fn to_row_string(&self) -> String {
         format!(
-            "  | {:<8} | {:<8} | {:<8} | {:<8} | {:<18} |\n", 
+            "  | {:<8} | {:<8} | {:<8} | {:<8} | {:<18} |\n",
             self.source(),
             self.target(),
             self.piece(),
@@ -108,7 +108,7 @@ impl BitMove {
 
     pub fn to_uci_string(&self) -> String {
         format!(
-            "{}{}{}", 
+            "{}{}{}",
             self.source(),
             self.target(),
             match self.flag() {
@@ -116,7 +116,7 @@ impl BitMove {
                 MoveFlag::PromoB => "b",
                 MoveFlag::PromoR => "r",
                 MoveFlag::PromoQ => "q",
-                _ => ""
+                _ => "",
             }
         )
     }
@@ -124,7 +124,8 @@ impl BitMove {
 
 impl fmt::Display for BitMove {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.pad(&format!("
+        f.pad(&format!(
+            "
   Raw move data: {:b}
   Source Square: {}
   Target Square: {}

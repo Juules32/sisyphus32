@@ -111,8 +111,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
                     move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoB));
                     move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoR));
                     move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoQ));
-                }
-                else {
+                } else {
                     move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::None));
                 }
             }
@@ -127,14 +126,12 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
                     if (get_pawn_quiet_mask(side, source) & board_state.ao).is_empty() {
                         move_list.add(BitMove::encode(source, target, pawn, PieceType::None, double_pawn_flag));
                     } 
-                }
-                else if source_rank == pawn_promotion_rank {
+                } else if source_rank == pawn_promotion_rank {
                     move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoN));
                     move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoB));
                     move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoR));
                     move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoQ));
-                }
-                else {
+                } else {
                     move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::None));
                 }
             }

@@ -33,7 +33,7 @@ impl From<char> for Rank {
             '6' => Self::R6,
             '7' => Self::R7,
             '8' => Self::R8,
-            _ => panic!("Illegal rank char!")
+            _ => panic!("Illegal rank char!"),
         }
     }
 }

@@ -33,7 +33,7 @@ impl From<char> for File {
             'f' => Self::FF,
             'g' => Self::FG,
             'h' => Self::FH,
-            _ => panic!("Illegal file char!")
+            _ => panic!("Illegal file char!"),
         }
     }
 }
