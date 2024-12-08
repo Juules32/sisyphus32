@@ -1,5 +1,6 @@
 use core::fmt;
-use std::{mem::transmute, ops::{Index, IndexMut}};
+use std::mem::transmute;
+use std::ops::{Index, IndexMut};
 
 use crate::{bitboard::Bitboard, color::Color};
 
@@ -59,11 +60,9 @@ impl PieceType {
     pub fn color(self) -> Color {
         if PieceType::WHITE_PIECES.contains(&self) {
             Color::White
-        }
-        else if PieceType::BLACK_PIECES.contains(&self) {
+        } else if PieceType::BLACK_PIECES.contains(&self) {
             Color::Black
-        }
-        else {
+        } else {
             panic!("Illegal color found!")
         }
     }
@@ -108,7 +107,7 @@ impl From<char> for PieceType {
             'r' => PieceType::BR,
             'q' => PieceType::BQ,
             'k' => PieceType::BK,
-            _ => panic!("Illegal piece char found!")
+            _ => panic!("Illegal piece char found!"),
         }
     }
 }

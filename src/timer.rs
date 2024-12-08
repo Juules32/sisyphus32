@@ -6,7 +6,9 @@ pub struct Timer {
 
 impl Timer {
     pub fn new() -> Self {
-        Timer { start_time: Instant::now() }
+        Timer {
+            start_time: Instant::now(),
+        }
     }
 
     pub fn reset(&mut self) {

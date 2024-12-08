@@ -1,6 +1,6 @@
+use crate::square::Square;
 use core::fmt;
 use std::{mem::transmute, ops::*};
-use crate::square::Square;
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Bitboard(pub u64);
@@ -183,7 +183,7 @@ impl fmt::Display for Bitboard {
             s += &format!("  {}  ", 8 - i);
             for j in 0..8 {
                 let square = (self.0 >> (i * 8 + j)) & 1;
-                s += if square != 0 {"O "} else {". "};
+                s += if square != 0 { "O " } else { ". " };
             }
             s += "\n";
         }

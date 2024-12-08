@@ -39,8 +39,7 @@ impl MagicBitboardGenerator {
             
             if is_bishop {
                 moves[i] = move_init::generate_bishop_moves_on_the_fly(square, occupancies[i]);
-            }
-            else {
+            } else {
                 moves[i] = move_init::generate_rook_moves_on_the_fly(square, occupancies[i]);
             }
         }
@@ -63,9 +62,7 @@ impl MagicBitboardGenerator {
 
                 if used_moves[magic_index].is_empty() {
                     used_moves[magic_index] = moves[i];
-                }
-
-                else if used_moves[magic_index] != moves[i] {
+                } else if used_moves[magic_index] != moves[i] {
                     failed = true;
                 }
             }

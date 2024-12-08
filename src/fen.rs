@@ -25,11 +25,9 @@ fn set_pieces(board_state: &mut BoardState, pieces_str: &str) {
 fn set_side(board_state: &mut BoardState, side_str: &str) {
     if side_str == "w" {
         board_state.side = Color::White;
-    }
-    else if side_str == "b" {
+    } else if side_str == "b" {
         board_state.side = Color::Black;
-    }
-    else {
+    } else {
         panic!("Incorrect side_str!");
     }
 }

@@ -6,7 +6,7 @@ pub const MAX_MOVES: usize = 255;
 
 pub struct MoveList {
     array: [BitMove; MAX_MOVES],
-    size: usize
+    size: usize,
 }
 
 impl Default for MoveList {
@@ -23,7 +23,7 @@ impl MoveList {
     #[inline(always)]
     pub fn add(&mut self, mv: BitMove) {
         debug_assert!(self.size < MAX_MOVES);
-        
+
         unsafe {
             let end = self.array.get_unchecked_mut(self.size);
             *end = mv;

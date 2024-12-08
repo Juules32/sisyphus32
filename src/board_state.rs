@@ -1,6 +1,14 @@
 use core::fmt;
 
-use crate::{bit_move::{BitMove, MoveFlag}, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, move_gen, piece::PieceType, square::Square};
+use crate::{
+    bit_move::{BitMove, MoveFlag},
+    bitboard::Bitboard,
+    castling_rights::CastlingRights,
+    color::Color,
+    move_gen,
+    piece::PieceType,
+    square::Square,
+};
 
 pub struct BoardState {
     pub bbs: [Bitboard; 12],
@@ -9,7 +17,7 @@ pub struct BoardState {
     pub ao: Bitboard,
     pub side: Color,
     pub en_passant_sq: Square,
-    pub castling_rights: CastlingRights
+    pub castling_rights: CastlingRights,
 }
 
 impl BoardState {
@@ -20,21 +28,19 @@ impl BoardState {
 
     #[inline(always)]
     pub fn populate_occupancies(&mut self) {
-        self.wo = 
-            self.bbs[PieceType::WP] | 
-            self.bbs[PieceType::WN] |
-            self.bbs[PieceType::WB] |
-            self.bbs[PieceType::WR] |
-            self.bbs[PieceType::WQ] |
-            self.bbs[PieceType::WK];
-        self.bo = 
-            self.bbs[PieceType::BP] | 
-            self.bbs[PieceType::BN] |
-            self.bbs[PieceType::BB] |
-            self.bbs[PieceType::BR] |
-            self.bbs[PieceType::BQ] |
-            self.bbs[PieceType::BK];
-        
+        self.wo = self.bbs[PieceType::WP]
+                | self.bbs[PieceType::WN]
+                | self.bbs[PieceType::WB]
+                | self.bbs[PieceType::WR]
+                | self.bbs[PieceType::WQ]
+                | self.bbs[PieceType::WK];
+        self.bo = self.bbs[PieceType::BP]
+                | self.bbs[PieceType::BN]
+                | self.bbs[PieceType::BB]
+                | self.bbs[PieceType::BR]
+                | self.bbs[PieceType::BQ]
+                | self.bbs[PieceType::BK];
+
         self.merge_occupancies();
     }
 
@@ -103,47 +109,59 @@ impl BoardState {
             MoveFlag::WKCastle => {
                 self.remove_piece(PieceType::WR, Square::H1);
                 self.set_piece(PieceType::WR, Square::F1);
-            },
+            }
             MoveFlag::WQCastle => {
                 self.remove_piece(PieceType::WR, Square::A1);
                 self.set_piece(PieceType::WR, Square::D1);
-            },
+            }
             MoveFlag::BKCastle => {
                 self.remove_piece(PieceType::BR, Square::H8);
                 self.set_piece(PieceType::BR, Square::F8);
-            },
+            }
             MoveFlag::BQCastle => {
                 self.remove_piece(PieceType::BR, Square::A8);
                 self.set_piece(PieceType::BR, Square::D8);
-            },
+            }
             MoveFlag::PromoQ => {
                 self.remove_piece(piece, target);
-                self.set_piece(match self.side {
-                    Color::White => PieceType::WQ,
-                    Color::Black => PieceType::BQ
-                }, target);
-            },
+                self.set_piece(
+                    match self.side {
+                        Color::White => PieceType::WQ,
+                        Color::Black => PieceType::BQ,
+                    },
+                    target,
+                );
+            }
             MoveFlag::PromoR => {
                 self.remove_piece(piece, target);
-                self.set_piece(match self.side {
-                    Color::White => PieceType::WR,
-                    Color::Black => PieceType::BR
-                }, target);
-            },
+                self.set_piece(
+                    match self.side {
+                        Color::White => PieceType::WR,
+                        Color::Black => PieceType::BR,
+                    },
+                    target,
+                );
+            }
             MoveFlag::PromoN => {
                 self.remove_piece(piece, target);
-                self.set_piece(match self.side {
-                    Color::White => PieceType::WN,
-                    Color::Black => PieceType::BN
-                }, target);
-            },
+                self.set_piece(
+                    match self.side {
+                        Color::White => PieceType::WN,
+                        Color::Black => PieceType::BN,
+                    },
+                    target,
+                );
+            }
             MoveFlag::PromoB => {
                 self.remove_piece(piece, target);
-                self.set_piece(match self.side {
-                    Color::White => PieceType::WB,
-                    Color::Black => PieceType::BB
-                }, target);
-            },
+                self.set_piece(
+                    match self.side {
+                        Color::White => PieceType::WB,
+                        Color::Black => PieceType::BB,
+                    },
+                    target,
+                );
+            }
         };
 
         self.castling_rights.update(source, target);
@@ -151,9 +169,17 @@ impl BoardState {
         self.populate_occupancies();
 
         if self.is_square_attacked(
-            if self.side == Color::White {self.bbs[PieceType::BK].to_sq()} else {self.bbs[PieceType::WK].to_sq()},
+            if self.side == Color::White {
+                self.bbs[PieceType::BK].to_sq()
+            } else {
+                self.bbs[PieceType::WK].to_sq()
+            },
             self.side.opposite(),
-            if self.side == Color::White {&PieceType::WHITE_PIECES} else {&PieceType::BLACK_PIECES}
+            if self.side == Color::White {
+                &PieceType::WHITE_PIECES
+            } else {
+                &PieceType::BLACK_PIECES
+            },
         ) {
             self.undo_move(bit_move, castling_rights);
             return false;
@@ -168,7 +194,7 @@ impl BoardState {
 
         // Switches side first to make it easier to conceptualize
         self.side.switch();
-        
+
         debug_assert_eq!(piece.color(), self.side);
         debug_assert!(capture == PieceType::None || capture.color() == self.side.opposite());
 
@@ -186,51 +212,63 @@ impl BoardState {
             MoveFlag::WEnPassant => {
                 self.en_passant_sq = target;
                 self.set_piece(PieceType::BP, target.below())
-            },
+            }
             MoveFlag::BEnPassant => {
                 self.en_passant_sq = target;
                 self.set_piece(PieceType::WP, target.above())
-            },
+            }
             MoveFlag::WKCastle => {
                 self.set_piece(PieceType::WR, Square::H1);
                 self.remove_piece(PieceType::WR, Square::F1);
-            },
+            }
             MoveFlag::WQCastle => {
                 self.set_piece(PieceType::WR, Square::A1);
                 self.remove_piece(PieceType::WR, Square::D1);
-            },
+            }
             MoveFlag::BKCastle => {
                 self.set_piece(PieceType::BR, Square::H8);
                 self.remove_piece(PieceType::BR, Square::F8);
-            },
+            }
             MoveFlag::BQCastle => {
                 self.set_piece(PieceType::BR, Square::A8);
                 self.remove_piece(PieceType::BR, Square::D8);
-            },
+            }
             MoveFlag::PromoQ => {
-                self.remove_piece(match self.side {
-                    Color::White => PieceType::WQ,
-                    Color::Black => PieceType::BQ
-                }, target);
-            },
+                self.remove_piece(
+                    match self.side {
+                        Color::White => PieceType::WQ,
+                        Color::Black => PieceType::BQ,
+                    },
+                    target,
+                );
+            }
             MoveFlag::PromoR => {
-                self.remove_piece(match self.side {
-                    Color::White => PieceType::WR,
-                    Color::Black => PieceType::BR
-                }, target);
-            },
+                self.remove_piece(
+                    match self.side {
+                        Color::White => PieceType::WR,
+                        Color::Black => PieceType::BR,
+                    },
+                    target,
+                );
+            }
             MoveFlag::PromoN => {
-                self.remove_piece(match self.side {
-                    Color::White => PieceType::WN,
-                    Color::Black => PieceType::BN
-                }, target);
-            },
+                self.remove_piece(
+                    match self.side {
+                        Color::White => PieceType::WN,
+                        Color::Black => PieceType::BN,
+                    },
+                    target,
+                );
+            }
             MoveFlag::PromoB => {
-                self.remove_piece(match self.side {
-                    Color::White => PieceType::WB,
-                    Color::Black => PieceType::BB
-                }, target);
-            },
+                self.remove_piece(
+                    match self.side {
+                        Color::White => PieceType::WB,
+                        Color::Black => PieceType::BB,
+                    },
+                    target,
+                );
+            }
         };
 
         self.castling_rights = old_castling_rights;
@@ -238,7 +276,12 @@ impl BoardState {
     }
 
     #[inline(always)]
-    pub fn is_square_attacked(&self, square: Square, defending_side: Color, [enemy_pawn, enemy_knight, enemy_bishop, enemy_rook, enemy_queen, enemy_king]: &[PieceType; 6]) -> bool {
+    pub fn is_square_attacked(
+        &self,
+        square: Square,
+        defending_side: Color,
+        [enemy_pawn, enemy_knight, enemy_bishop, enemy_rook, enemy_queen, enemy_king]: &[PieceType; 6]
+    ) -> bool {
         if (move_gen::get_pawn_capture_mask(defending_side, square) & self.bbs[*enemy_pawn]).is_not_empty() {
             return true;
         }
@@ -295,7 +338,8 @@ impl fmt::Display for BoardState {
             }
             s += "\n";
         }
-        s += &format!("
+        s += &format!(
+            "
      a b c d e f g h
 
      FEN:        {}

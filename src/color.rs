@@ -47,7 +47,7 @@ impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.pad(match *self {
             Color::White => "White",
-            Color::Black => "Black"
+            Color::Black => "Black",
         })
     }
 }
