@@ -20,10 +20,10 @@ impl CastlingRights {
     pub const DEFAULT: CastlingRights = CastlingRights(0b1111);
     pub const NONE: CastlingRights = CastlingRights(0b0000);
 
-    const WK: CastlingRights = CastlingRights(0b0001);
-    const WQ: CastlingRights = CastlingRights(0b0010);
-    const BK: CastlingRights = CastlingRights(0b0100);
-    const BQ: CastlingRights = CastlingRights(0b1000);
+    pub const WK: CastlingRights = CastlingRights(0b0001);
+    pub const WQ: CastlingRights = CastlingRights(0b0010);
+    pub const BK: CastlingRights = CastlingRights(0b0100);
+    pub const BQ: CastlingRights = CastlingRights(0b1000);
 
     #[inline(always)]
     pub fn update(&mut self, source: Square, target: Square) {

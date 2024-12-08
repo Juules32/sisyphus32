@@ -21,6 +21,23 @@ impl From<u8> for Rank {
     }
 }
 
+impl From<char> for Rank {
+    #[inline(always)]
+    fn from(ch: char) -> Self {
+        match ch {
+            '1' => Self::R1,
+            '2' => Self::R2,
+            '3' => Self::R3,
+            '4' => Self::R4,
+            '5' => Self::R5,
+            '6' => Self::R6,
+            '7' => Self::R7,
+            '8' => Self::R8,
+            _ => panic!("Illegal rank char!")
+        }
+    }
+}
+
 impl fmt::Display for Rank {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.pad(&(8 - *self as u8).to_string())
