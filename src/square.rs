@@ -1,6 +1,6 @@
 use crate::bitboard::Bitboard;
-use crate::file::File;
-use crate::rank::Rank;
+use crate::file::{File, FileParseError};
+use crate::rank::{Rank, RankParseError};
 use core::fmt;
 use std::mem::transmute;
 use std::ops::{Index, IndexMut};
@@ -91,8 +91,8 @@ impl From<u8> for Square {
     }
 }
 
-pub struct SquareParseError(&'static str);
-
+#[derive(Debug)]
+pub struct SquareParseError(pub &'static str);
 impl TryFrom<&str> for Square {
     type Error = SquareParseError;
 
@@ -106,7 +106,10 @@ impl TryFrom<&str> for Square {
         let file_char = chars_iter.next().ok_or(SquareParseError("Missing file character"))?;
         let rank_char = chars_iter.next().ok_or(SquareParseError("Missing rank character"))?;
 
-        Ok(Self::from(Rank::from(rank_char) as u8 * 8 + File::from(file_char) as u8))
+        let rank = Rank::try_from(rank_char).map_err(|RankParseError(msg)| SquareParseError(msg))?;
+        let file = File::try_from(file_char).map_err(|FileParseError(msg)| SquareParseError(msg))?;
+
+        Ok(Self::from(rank as u8 * 8 + file as u8))
     }
 }
 

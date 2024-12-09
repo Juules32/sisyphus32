@@ -1,4 +1,4 @@
-use crate::{board_state::BoardState, castling_rights::CastlingRights, color::Color, piece::PieceType, square::Square};
+use crate::{board_state::BoardState, castling_rights::CastlingRights, color::Color, piece::PieceType, square::{Square, SquareParseError}};
 
 pub const STARTING_POSITION: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -";
 pub const KIWIPETE_POSITION: &str = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
@@ -59,7 +59,7 @@ fn set_en_passant_sq(board_state: &mut BoardState, en_passant_sq_str: &str) -> R
         "-" => Ok(()),
         _ => {
             board_state.en_passant_sq = Square::try_from(en_passant_sq_str)
-                .map_err(|_| FenParseError("Invalid en-passant square!"))?;
+                .map_err(|SquareParseError(msg)| FenParseError(msg))?;
             Ok(())
         }
     }

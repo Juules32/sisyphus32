@@ -21,19 +21,24 @@ impl From<u8> for File {
     }
 }
 
-impl From<char> for File {
+#[derive(Debug)]
+pub struct FileParseError(pub &'static str);
+
+impl TryFrom<char> for File {
+    type Error = FileParseError;
+
     #[inline(always)]
-    fn from(ch: char) -> Self {
+    fn try_from(ch: char) -> Result<Self, Self::Error> {
         match ch {
-            'a' => Self::FA,
-            'b' => Self::FB,
-            'c' => Self::FC,
-            'd' => Self::FD,
-            'e' => Self::FE,
-            'f' => Self::FF,
-            'g' => Self::FG,
-            'h' => Self::FH,
-            _ => panic!("Illegal file char!"),
+            'a' => Ok(Self::FA),
+            'b' => Ok(Self::FB),
+            'c' => Ok(Self::FC),
+            'd' => Ok(Self::FD),
+            'e' => Ok(Self::FE),
+            'f' => Ok(Self::FF),
+            'g' => Ok(Self::FG),
+            'h' => Ok(Self::FH),
+            _ => Err(FileParseError("Illegal file char!")),
         }
     }
 }
