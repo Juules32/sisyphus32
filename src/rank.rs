@@ -21,19 +21,24 @@ impl From<u8> for Rank {
     }
 }
 
-impl From<char> for Rank {
+#[derive(Debug)]
+pub struct RankParseError(pub &'static str);
+
+impl TryFrom<char> for Rank {
+    type Error = RankParseError;
+
     #[inline(always)]
-    fn from(ch: char) -> Self {
+    fn try_from(ch: char) -> Result<Self, Self::Error> {
         match ch {
-            '1' => Self::R1,
-            '2' => Self::R2,
-            '3' => Self::R3,
-            '4' => Self::R4,
-            '5' => Self::R5,
-            '6' => Self::R6,
-            '7' => Self::R7,
-            '8' => Self::R8,
-            _ => panic!("Illegal rank char!"),
+            '1' => Ok(Self::R1),
+            '2' => Ok(Self::R2),
+            '3' => Ok(Self::R3),
+            '4' => Ok(Self::R4),
+            '5' => Ok(Self::R5),
+            '6' => Ok(Self::R6),
+            '7' => Ok(Self::R7),
+            '8' => Ok(Self::R8),
+            _ => Err(RankParseError("Illegal rank char!")),
         }
     }
 }
