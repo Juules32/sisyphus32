@@ -25,7 +25,7 @@ use square::Square;
 fn main() {
     move_init::init();
 
-    let bs = fen::parse(fen::STARTING_POSITION);
+    let bs = fen::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR d KQkq -").unwrap();
 
     pl!(bs);
     let mut engine = Engine {

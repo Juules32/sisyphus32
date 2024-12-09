@@ -91,18 +91,22 @@ impl From<u8> for Square {
     }
 }
 
-impl From<&str> for Square {
+pub struct SquareParseError(&'static str);
+
+impl TryFrom<&str> for Square {
+    type Error = SquareParseError;
+
     #[inline(always)]
-    fn from(sq_str: &str) -> Self {
+    fn try_from(sq_str: &str) -> Result<Self, Self::Error> {
         if sq_str.len() != 2 {
-            panic!("Illegal square string length!");
+            return Err(SquareParseError("Invalid string length!"));
         }
 
         let mut chars_iter = sq_str.chars();
-        let file_char = chars_iter.next().expect("Missing file character");
-        let rank_char = chars_iter.next().expect("Missing rank character");
+        let file_char = chars_iter.next().ok_or(SquareParseError("Missing file character"))?;
+        let rank_char = chars_iter.next().ok_or(SquareParseError("Missing rank character"))?;
 
-        Self::from(Rank::from(rank_char) as u8 * 8 + File::from(file_char) as u8)
+        Ok(Self::from(Rank::from(rank_char) as u8 * 8 + File::from(file_char) as u8))
     }
 }
 
