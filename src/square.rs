@@ -39,12 +39,22 @@ impl Square {
 
     #[inline(always)]
     pub fn rank(self) -> Rank {
-        Rank::from(self as u8 >> 3 & 0b0000_0111)
+        Rank::from(self.rank_as_u8())
     }
 
     #[inline(always)]
     pub fn file(self) -> File {
-        File::from(self as u8 & 0b0000_0111)
+        File::from(self.file_as_u8())
+    }
+
+    #[inline(always)]
+    pub fn rank_as_u8(self) -> u8 {
+        self as u8 >> 3 & 0b0000_0111
+    }
+
+    #[inline(always)]
+    pub fn file_as_u8(self) -> u8 {
+        self as u8 & 0b0000_0111
     }
 
     #[inline(always)]

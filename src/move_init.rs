@@ -319,156 +319,146 @@ fn generate_king_mask(square: Square) -> Bitboard {
 }
 
 fn generate_bishop_mask(square: Square) -> Bitboard {
+    use std::cmp::min;
+
     let mut bb_mask = Bitboard::EMPTY;
     let square_bb = square.to_bb();
+    let rank_u8 = square.rank_as_u8();
+    let file_u8 = square.file_as_u8();
 
-    let mut seeker = square_bb;
-    while 
-        (seeker & Bitboard::RANK_8).is_empty() &&
-        (seeker & Bitboard::FILE_A).is_empty()
-    {
-        bb_mask |= seeker;
-        seeker = seeker.shift_upwards(9);
+    // Bottom right
+    for i in 1..=min(6_u8.saturating_sub(rank_u8), 6_u8.saturating_sub(file_u8)) as usize {
+        let ray = square_bb.shift_downwards(i * 9);
+        bb_mask |= ray;
+    }
+    
+    // Top right
+    for i in 1..=min(rank_u8.saturating_sub(1), 6_u8.saturating_sub(file_u8)) as usize {
+        let ray = square_bb.shift_upwards(i * 7);
+        bb_mask |= ray;
     }
 
-    seeker = square_bb;
-    while
-        (seeker & Bitboard::RANK_8).is_empty() &&
-        (seeker & Bitboard::FILE_H).is_empty()
-    {
-        bb_mask |= seeker;
-        seeker = seeker.shift_upwards(7);
+    // Bottom left
+    for i in 1..=min(6_u8.saturating_sub(rank_u8), file_u8.saturating_sub(1)) as usize {
+        let ray = square_bb.shift_downwards(i * 7);
+        bb_mask |= ray;
     }
 
-    seeker = square_bb;
-    while
-        (seeker & Bitboard::RANK_1).is_empty() &&
-        (seeker & Bitboard::FILE_A).is_empty()
-    {
-        bb_mask |= seeker;
-        seeker = seeker.shift_downwards(7);
+    // Top left
+    for i in 1..=min(rank_u8.saturating_sub(1), file_u8.saturating_sub(1)) as usize {
+        let ray = square_bb.shift_upwards(i * 9);
+        bb_mask |= ray;
     }
-
-    seeker = square_bb;
-    while
-        (seeker & Bitboard::RANK_1).is_empty() &&
-        (seeker & Bitboard::FILE_H).is_empty()
-    {
-        bb_mask |= seeker;
-        seeker = seeker.shift_downwards(9);
-    }
-
-    bb_mask.pop_sq(square);
 
     bb_mask
 }
+
 
 fn generate_rook_mask(square: Square) -> Bitboard {
     let mut bb_mask = Bitboard::EMPTY;
     let square_bb = square.to_bb();
+    let rank_u8 = square.rank_as_u8();
+    let file_u8 = square.file_as_u8();
 
-    let mut seeker = square_bb;
-    while (seeker & Bitboard::RANK_8).is_empty() {
-        bb_mask |= seeker;
-        seeker = seeker.shift_upwards(8);
+    // Down
+    for i in 1..=(6_u8.saturating_sub(rank_u8)) as usize {
+        let ray = square_bb.shift_downwards(i * 8);
+        bb_mask |= ray;
+    }
+    
+    // Up
+    for i in 1..=(rank_u8.saturating_sub(1)) as usize {
+        let ray = square_bb.shift_upwards(i * 8);
+        bb_mask |= ray;
     }
 
-    seeker = square_bb;
-    while (seeker & Bitboard::RANK_1).is_empty() {
-        bb_mask |= seeker;
-        seeker = seeker.shift_downwards(8);
+    // Right
+    for i in 1..=(6_u8.saturating_sub(file_u8)) as usize {
+        let ray = square_bb.shift_downwards(i);
+        bb_mask |= ray;
     }
 
-    seeker = square_bb;
-    while (seeker & Bitboard::FILE_A).is_empty() {
-        bb_mask |= seeker;
-        seeker = seeker.shift_upwards(1);
-    }
-
-    seeker = square_bb;
-    while (seeker & Bitboard::FILE_H).is_empty() {
-        bb_mask |= seeker;
-        seeker = seeker.shift_downwards(1);
-    }
-
-    bb_mask.pop_sq(square);
-
-    bb_mask
-}
-
-pub fn generate_bishop_moves_on_the_fly(square: Square, blockers: Bitboard) -> Bitboard {
-    let mut bb_mask = Bitboard::EMPTY;
-    let square_bb = square.to_bb();
-
-    let mut seeker = square_bb;
-    while 
-        (seeker & Bitboard::RANK_8).is_empty() &&
-        (seeker & Bitboard::FILE_A).is_empty() &&
-        (seeker & blockers).is_empty()
-    {
-        seeker = seeker.shift_upwards(9);
-        bb_mask |= seeker;
-    }
-
-    seeker = square_bb;
-    while
-        (seeker & Bitboard::RANK_8).is_empty() &&
-        (seeker & Bitboard::FILE_H).is_empty() &&
-        (seeker & blockers).is_empty()
-    {
-        seeker = seeker.shift_upwards(7);
-        bb_mask |= seeker;
-    }
-
-    seeker = square_bb;
-    while
-        (seeker & Bitboard::RANK_1).is_empty() &&
-        (seeker & Bitboard::FILE_A).is_empty() &&
-        (seeker & blockers).is_empty()
-    {
-        seeker = seeker.shift_downwards(7);
-        bb_mask |= seeker;
-    }
-
-    seeker = square_bb;
-    while
-        (seeker & Bitboard::RANK_1).is_empty() &&
-        (seeker & Bitboard::FILE_H).is_empty() &&
-        (seeker & blockers).is_empty()
-    {
-        seeker = seeker.shift_downwards(9);
-        bb_mask |= seeker;
+    // Left
+    for i in 1..=(file_u8.saturating_sub(1)) as usize {
+        let ray = square_bb.shift_upwards(i);
+        bb_mask |= ray;
     }
 
     bb_mask
 }
 
-pub fn generate_rook_moves_on_the_fly(square: Square, blockers: Bitboard) -> Bitboard {
+
+pub fn generate_bishop_moves_on_the_fly(square: Square, occupancy: Bitboard) -> Bitboard {
+    use std::cmp::min;
+
     let mut bb_mask = Bitboard::EMPTY;
     let square_bb = square.to_bb();
+    let rank_u8 = square.rank_as_u8();
+    let file_u8 = square.file_as_u8();
 
-    let mut seeker = square_bb;
-    while (seeker & Bitboard::RANK_8).is_empty() && (seeker & blockers).is_empty() {
-        seeker = seeker.shift_upwards(8);
-        bb_mask |= seeker;
+    // Bottom right
+    for i in 1..=min(7_u8.saturating_sub(rank_u8), 7_u8.saturating_sub(file_u8)) as usize {
+        let ray = square_bb.shift_downwards(i * 9);
+        bb_mask |= ray;
+        if (ray & occupancy).is_not_empty() { break; }
+    }
+    
+    // Top right
+    for i in 1..=min(rank_u8, 7_u8.saturating_sub(file_u8)) as usize {
+        let ray = square_bb.shift_upwards(i * 7);
+        bb_mask |= ray;
+        if (ray & occupancy).is_not_empty() { break; }
     }
 
-    seeker = square_bb;
-    while (seeker & Bitboard::RANK_1).is_empty() && (seeker & blockers).is_empty() {
-        seeker = seeker.shift_downwards(8);
-        bb_mask |= seeker;
+    // Bottom left
+    for i in 1..=min(7_u8.saturating_sub(rank_u8), file_u8) as usize {
+        let ray = square_bb.shift_downwards(i * 7);
+        bb_mask |= ray;
+        if (ray & occupancy).is_not_empty() { break; }
     }
 
-    seeker = square_bb;
-    while (seeker & Bitboard::FILE_A).is_empty() && (seeker & blockers).is_empty() {
-        seeker = seeker.shift_upwards(1);
-        bb_mask |= seeker;
+    // Top left
+    for i in 1..=min(rank_u8, file_u8) as usize {
+        let ray = square_bb.shift_upwards(i * 9);
+        bb_mask |= ray;
+        if (ray & occupancy).is_not_empty() { break; }
     }
 
-    seeker = square_bb;
-    while (seeker & Bitboard::FILE_H).is_empty() && (seeker & blockers).is_empty() {
-        seeker = seeker.shift_downwards(1);
-        bb_mask |= seeker;
+    bb_mask
+}
+
+pub fn generate_rook_moves_on_the_fly(square: Square, occupancy: Bitboard) -> Bitboard {
+    let mut bb_mask = Bitboard::EMPTY;
+    let square_bb = square.to_bb();
+    let rank_u8 = square.rank_as_u8();
+    let file_u8 = square.file_as_u8();
+
+    // Down
+    for i in 1..=(7_u8.saturating_sub(rank_u8)) as usize {
+        let ray = square_bb.shift_downwards(i * 8);
+        bb_mask |= ray;
+        if (ray & occupancy).is_not_empty() { break; }
+    }
+    
+    // Up
+    for i in 1..=rank_u8 as usize {
+        let ray = square_bb.shift_upwards(i * 8);
+        bb_mask |= ray;
+        if (ray & occupancy).is_not_empty() { break; }
+    }
+
+    // Right
+    for i in 1..=(7_u8.saturating_sub(file_u8)) as usize {
+        let ray = square_bb.shift_downwards(i);
+        bb_mask |= ray;
+        if (ray & occupancy).is_not_empty() { break; }
+    }
+
+    // Left
+    for i in 1..=file_u8 as usize {
+        let ray = square_bb.shift_upwards(i);
+        bb_mask |= ray;
+        if (ray & occupancy).is_not_empty() { break; }
     }
 
     bb_mask

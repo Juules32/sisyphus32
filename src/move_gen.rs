@@ -21,6 +21,11 @@ pub fn get_king_mask(square: Square) -> Bitboard {
 }
 
 #[inline(always)]
+pub fn get_bishop_mask_old(square: Square, occupancy: Bitboard) -> Bitboard {
+    move_init::generate_bishop_moves_on_the_fly(square, occupancy)
+}
+
+#[inline(always)]
 pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
     unsafe {
         let mut index = occupancy.0 & move_init::BISHOP_MASKS[square].0;
@@ -32,6 +37,11 @@ pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
 }
 
 #[inline(always)]
+pub fn get_rook_mask_old(square: Square, occupancy: Bitboard) -> Bitboard {
+    move_init::generate_rook_moves_on_the_fly(square, occupancy)
+}
+
+#[inline(always)]
 pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
     unsafe {
         let mut index = occupancy.0 & move_init::ROOK_MASKS[square].0;
@@ -40,6 +50,11 @@ pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
             (64 - move_init::ROOK_RELEVANT_BITS[square]);
         move_init::ROOK_MOVE_CONFIGURATIONS[square][index as usize]
     }
+}
+
+#[inline(always)]
+pub fn get_queen_mask_old(square: Square, occupancy: Bitboard) -> Bitboard {
+    get_bishop_mask_old(square, occupancy) | get_rook_mask_old(square, occupancy)
 }
 
 #[inline(always)]
