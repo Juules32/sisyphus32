@@ -40,14 +40,14 @@ impl fmt::Display for MoveFlag {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match self {
             MoveFlag::None => "None",
-            MoveFlag::WDoublePawn => "White Double Pawn Push",
-            MoveFlag::BDoublePawn => "Black Double Pawn Push",
-            MoveFlag::WEnPassant => "White En-passant",
-            MoveFlag::BEnPassant => "Black En-passant",
-            MoveFlag::WKCastle => "White King Castle",
-            MoveFlag::WQCastle => "White Queen Castle",
-            MoveFlag::BKCastle => "Black King Castle",
-            MoveFlag::BQCastle => "Black Queen Castle",
+            MoveFlag::WDoublePawn => "Double Pawn Push",
+            MoveFlag::BDoublePawn => "Double Pawn Push",
+            MoveFlag::WEnPassant => "En-passant",
+            MoveFlag::BEnPassant => "En-passant",
+            MoveFlag::WKCastle => "Kingside Castle",
+            MoveFlag::WQCastle => "Queenside Castle",
+            MoveFlag::BKCastle => "Kingside Castle",
+            MoveFlag::BQCastle => "Queenside Castle",
             MoveFlag::PromoN => "Knight Promotion",
             MoveFlag::PromoB => "Bishop Promotion",
             MoveFlag::PromoR => "Rook Promotion",
@@ -97,7 +97,7 @@ impl BitMove {
 
     pub fn to_row_string(&self) -> String {
         format!(
-            "  | {:<8} | {:<8} | {:<8} | {:<8} | {:<18} |\n",
+            "  | {:<8} | {:<8} | {:<8} | {:<8} | {:<19} |\n",
             self.source(),
             self.target(),
             self.piece(),

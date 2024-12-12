@@ -1,6 +1,5 @@
 use crate::{bitboard::Bitboard, move_init, square::Square};
 
-#[allow(dead_code)]
 pub struct MagicBitboardGenerator {
     pub seed: u32
 }

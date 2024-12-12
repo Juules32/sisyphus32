@@ -179,7 +179,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
             move_list.add(BitMove::encode(source, target, king, target_piece, MoveFlag::None));
         }
 
-        // King-side Castling
+        // Kingside Castling
         if king_side_castling_right && (board_state.ao & king_side_castling_mask).is_empty() {
             if !board_state.is_square_attacked(castling_square_e, board_state.side, &enemy_pieces) &&
                !board_state.is_square_attacked(castling_square_f, board_state.side, &enemy_pieces) &&
@@ -189,7 +189,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
             }
         }
 
-        // Queen-side Castling
+        // Queenside Castling
         if queen_side_castling_right && (board_state.ao & queen_side_castling_mask).is_empty() {
             if !board_state.is_square_attacked(castling_square_e, board_state.side, &enemy_pieces) &&
                !board_state.is_square_attacked(castling_square_d, board_state.side, &enemy_pieces) &&
