@@ -56,16 +56,16 @@ impl IndexMut<usize> for MoveList {
 impl fmt::Display for MoveList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = format!("
-  |----------------------------------------------------------------|
-  | Printing move data for {:<3} moves                               |
-  | Source   | Target   | Piece    | Capture  | Flag               |
-  |----------------------------------------------------------------|\n", self.size);
+    Printing move data for {} moves:
+  |-----------------------------------------------------------------|
+  | Source   | Target   | Piece    | Capture  | Flag                |
+  |-----------------------------------------------------------------|\n", self.size);
 
         for i in 0..self.size {
             s += &self[i].to_row_string();
         }
 
-        s += &format!("  |----------------------------------------------------------------|");
+        s += &format!("  |-----------------------------------------------------------------|");
 
         f.pad(&s)
     }

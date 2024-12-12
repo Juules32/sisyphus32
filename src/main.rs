@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 mod bit_move;
 mod bitboard;
 mod board_state;
@@ -15,6 +17,7 @@ mod piece;
 mod rank;
 mod square;
 mod timer;
+mod perft;
 
 use bit_move::{BitMove, MoveFlag};
 use board_state::BoardState;
@@ -25,15 +28,9 @@ use square::Square;
 fn main() {
     move_init::init();
 
-    let bs = fen::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w -Qkq e8").unwrap();
+    let bs = BoardState::starting_position();
+    let ml = move_gen::generate_moves(&bs);
+    pl!(ml);
 
-    pl!(bs);
-    let mut engine = Engine {
-        board_state: bs,
-        nodes: 0,
-    };
-
-    for i in 1..=7 {
-        engine.perft_test(i);
-    }
+    perft::perft_tests();
 }
