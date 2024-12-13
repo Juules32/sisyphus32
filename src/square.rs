@@ -104,7 +104,6 @@ pub struct SquareParseError(pub &'static str);
 impl TryFrom<&str> for Square {
     type Error = SquareParseError;
 
-    #[inline(always)]
     fn try_from(sq_str: &str) -> Result<Self, Self::Error> {
         if sq_str.len() != 2 {
             return Err(SquareParseError("Invalid string length!"));

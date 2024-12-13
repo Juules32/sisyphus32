@@ -10,6 +10,7 @@ use crate::{
     square::Square,
 };
 
+#[derive(Clone)]
 pub struct BoardState {
     pub bbs: [Bitboard; 12],
     pub wo: Bitboard,
@@ -60,9 +61,9 @@ impl BoardState {
                 Bitboard::BQ,
                 Bitboard::BK,
             ],
-            wo: Bitboard::WHITE_PIECES,
-            bo: Bitboard::BLACK_PIECES,
-            ao: Bitboard::ALL_PIECES,
+            wo: Bitboard::WHITE_STARTING_PIECES,
+            bo: Bitboard::BLACK_STARTING_PIECES,
+            ao: Bitboard::ALL_STARTING_PIECES,
             side: Color::White,
             en_passant_sq: Square::None,
             castling_rights: CastlingRights::DEFAULT,
@@ -80,7 +81,7 @@ impl BoardState {
     }
 
     #[inline]
-    pub fn make_move(&mut self, bit_move: BitMove, castling_rights: CastlingRights) -> bool {
+    pub fn make_move(&mut self, bit_move: BitMove) -> bool {
         let (source, target, piece, capture, flag) = bit_move.decode();
 
         debug_assert_eq!(piece.color(), self.side);
@@ -181,7 +182,6 @@ impl BoardState {
                 &PieceType::BLACK_PIECES
             },
         ) {
-            self.undo_move(bit_move, castling_rights);
             return false;
         }
 

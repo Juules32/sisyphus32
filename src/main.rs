@@ -18,6 +18,7 @@ mod rank;
 mod square;
 mod timer;
 mod perft;
+mod bit_twiddles;
 
 use bit_move::{BitMove, MoveFlag};
 use bitboard::Bitboard;
@@ -41,5 +42,5 @@ fn main() {
     let mut bb = Bitboard::EMPTY;
     bb.set_sq(Square::G4);
 
-    perft::perft_tests();
+    perft::short_perft_tests();
 }

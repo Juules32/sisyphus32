@@ -1,4 +1,4 @@
-use crate::square::Square;
+use crate::{bit_twiddles, square::Square};
 use core::fmt;
 use std::{mem::transmute, ops::*};
 
@@ -43,21 +43,13 @@ impl Bitboard {
 
     #[inline(always)]
     pub fn count_bits(self) -> u8 {
-        let mut bitboard_data = self.0;
-        let mut count = 0;
-
-        while bitboard_data != 0 {
-            bitboard_data &= bitboard_data - 1;
-            count += 1;
-        }
-
-        count
+        bit_twiddles::count_bits(self.0)
     }
 
     #[inline(always)]
     pub fn get_lsb(self) -> Square {
         debug_assert_ne!(self.count_bits(), 0);
-        Square::from(self.0.trailing_zeros() as u8)
+        Square::from(bit_twiddles::get_lsb(self.0))
     }
 
     #[inline(always)]
@@ -102,9 +94,10 @@ impl Bitboard {
     pub const WHITE_SQUARES: Bitboard = Bitboard(0xAA55AA55AA55AA55);
     pub const BLACK_SQUARES: Bitboard = Bitboard(0x55AA55AA55AA55AA);
 
-    pub const WHITE_PIECES: Bitboard = Bitboard(0xFFFF000000000000);
-    pub const BLACK_PIECES: Bitboard = Bitboard(0xFFFF);
-    pub const ALL_PIECES: Bitboard = Bitboard(0xFFFF00000000FFFF);
+    pub const WHITE_STARTING_PIECES: Bitboard = Bitboard(0xFFFF000000000000);
+    pub const BLACK_STARTING_PIECES: Bitboard = Bitboard(0xFFFF);
+    pub const ALL_STARTING_PIECES: Bitboard = Bitboard(0xFFFF00000000FFFF);
+    
     pub const EDGES: Bitboard = Bitboard(0xFF818181818181FF);
     pub const EMPTY: Bitboard = Bitboard(0x0);
 
