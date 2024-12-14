@@ -1,4 +1,4 @@
-use crate::{board_state::BoardState, fen, move_gen, pl, timer::Timer};
+use crate::{position::Position, fen, move_gen, pl, timer::Timer};
 
 pub struct PerftResult {
     depth: u8,
@@ -79,20 +79,20 @@ static SHORT_PERFT_POSITIONS: [PerftPosition; 5] = [
     },
 ];
 
-pub fn perft_test(board_state: &mut BoardState, depth: u8, print_result: bool) -> PerftResult {
+pub fn perft_test(position: &mut Position, depth: u8, print_result: bool) -> PerftResult {
     let mut current_nodes = 0_u64;
     let mut cumulative_nodes = 0_u64;
     let timer = Timer::new();
 
     if print_result { pl!("\n  Performance Test\n"); }
 
-    let move_list = move_gen::generate_moves(&board_state);
+    let move_list = move_gen::generate_moves(position);
     for mv in move_list.iter() {
-        let board_state_copy = board_state.clone();
-        if board_state.make_move(*mv) {
-            perft_driver(board_state, depth - 1, &mut current_nodes);
+        let position_copy = position.clone();
+        if position.make_move(*mv) {
+            perft_driver(position, depth - 1, &mut current_nodes);
         }
-        *board_state = board_state_copy;
+        *position = position_copy;
 
         if print_result {
             pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), current_nodes));
@@ -123,20 +123,20 @@ Time: {} milliseconds\n",
 }
 
 #[inline(always)]
-fn perft_driver(board_state: &mut BoardState, depth: u8, nodes: &mut u64) {
-    if depth <= 0 {
+fn perft_driver(position: &mut Position, depth: u8, nodes: &mut u64) {
+    if depth == 0 {
         *nodes += 1;
         return;
     }
 
-    let move_list = move_gen::generate_moves(&board_state);
+    let move_list = move_gen::generate_moves(position);
     
     for mv in move_list.iter() {
-        let board_state_copy = board_state.clone();
-        if board_state.make_move(*mv) {
-            perft_driver(board_state, depth - 1, nodes);
+        let position_copy = position.clone();
+        if position.make_move(*mv) {
+            perft_driver(position, depth - 1, nodes);
         }
-        *board_state = board_state_copy;
+        *position = position_copy;
     }
 }
 
@@ -149,8 +149,8 @@ fn perft_tests(perft_positions: &[PerftPosition; 5]) {
     println!("  |-----------------------------------------------------------------|");
 
     for perft_position in perft_positions {
-        let mut board_state = fen::parse(perft_position.fen).expect("FEN parser could not parse given position!");
-        let perft_result = perft_test(&mut board_state, perft_position.depth, false);
+        let mut position = fen::parse(perft_position.fen).expect("FEN parser could not parse given position!");
+        let perft_result = perft_test(&mut position, perft_position.depth, false);
         if perft_result.nodes != perft_position.target_nodes {
             panic!("Perft test of {} did not get the target nodes!", perft_position.name);
         }
@@ -159,7 +159,7 @@ fn perft_tests(perft_positions: &[PerftPosition; 5]) {
         println!("  | {:<18} | {:<6} | {:<10} | {:<6} | {:<11} |", perft_position.name, perft_position.depth, perft_result.nodes, perft_result.time, performance);
     }
 
-    let score = performances.iter().fold(0_u128, |acc, &x| acc + x) / performances.len() as u128;
+    let score = performances.iter().sum::<u128>() / performances.len() as u128;
 
     println!("  |-----------------------------------------------------------------|");
     println!("  | Overall score: {:<13}                                    |", score);

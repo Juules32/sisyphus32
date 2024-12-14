@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct BoardState {
+pub struct Position {
     pub bbs: [Bitboard; 12],
     pub wo: Bitboard,
     pub bo: Bitboard,
@@ -21,7 +21,7 @@ pub struct BoardState {
     pub castling_rights: CastlingRights,
 }
 
-impl BoardState {
+impl Position {
     #[inline(always)]
     pub fn merge_occupancies(&mut self) {
         self.ao = self.wo | self.bo;
@@ -45,8 +45,8 @@ impl BoardState {
         self.merge_occupancies();
     }
 
-    pub fn starting_position() -> BoardState {
-        BoardState {
+    pub fn starting_position() -> Position {
+        Position {
             bbs: [
                 Bitboard::WP,
                 Bitboard::WN,
@@ -304,9 +304,9 @@ impl BoardState {
     }
 }
 
-impl Default for BoardState {
-    fn default() -> BoardState {
-        BoardState {
+impl Default for Position {
+    fn default() -> Position {
+        Position {
             bbs: [Bitboard::EMPTY; 12],
             wo: Bitboard::EMPTY,
             bo: Bitboard::EMPTY,
@@ -318,7 +318,7 @@ impl Default for BoardState {
     }
 }
 
-impl fmt::Display for BoardState {
+impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = String::from("\n");
         for rank in 0..8_u8 {

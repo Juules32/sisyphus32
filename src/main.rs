@@ -2,7 +2,7 @@
 
 mod bit_move;
 mod bitboard;
-mod board_state;
+mod position;
 mod castling_rights;
 mod color;
 mod engine;
@@ -22,7 +22,7 @@ mod bit_twiddles;
 
 use bit_move::{BitMove, MoveFlag};
 use bitboard::Bitboard;
-use board_state::BoardState;
+use position::Position;
 use engine::Engine;
 use piece::PieceType;
 use square::Square;
@@ -30,14 +30,14 @@ use square::Square;
 fn main() {
     move_init::init();
 
-    let mut bs = fen::parse(fen::KIWIPETE_POSITION).unwrap();
-    let ml = move_gen::generate_moves(&bs);
+    let mut pos = fen::parse(fen::KIWIPETE_POSITION).unwrap();
+    let ml = move_gen::generate_moves(&pos);
     pl!(ml);
-    pl!(bs);
+    pl!(pos);
 
-    pl!(move_gen::get_bishop_mask_old(Square::C6, bs.ao) & !bs.wo);
+    pl!(move_gen::get_bishop_mask_old(Square::C6, pos.ao) & !pos.wo);
 
-    perft::perft_test(&mut bs, 1, true);
+    perft::perft_test(&mut pos, 1, true);
 
     let mut bb = Bitboard::EMPTY;
     bb.set_sq(Square::G4);
