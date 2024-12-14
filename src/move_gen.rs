@@ -1,4 +1,4 @@
-use crate::{bit_move::{BitMove, MoveFlag}, bitboard::Bitboard, board_state::BoardState, color::Color, move_init, move_list::MoveList, piece::PieceType, rank::Rank, square::Square};
+use crate::{bit_move::{BitMove, MoveFlag}, bitboard::Bitboard, position::Position, color::Color, move_init, move_list::MoveList, piece::PieceType, rank::Rank, square::Square};
 
 #[inline(always)]
 pub fn get_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
@@ -62,14 +62,14 @@ pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
     get_bishop_mask(square, occupancy) | get_rook_mask(square, occupancy)
 }
 
-// based on state side, relevant pieces and occupancies can be selected
+// Based on side, relevant pieces and occupancies can be selected
 #[inline]
-pub fn generate_moves(board_state: &BoardState) -> MoveList {
+pub fn generate_moves(position: &Position) -> MoveList {
     let mut move_list = MoveList::default();
     
-    let side = board_state.side;
-    let en_passant_sq = board_state.en_passant_sq;
-    let inv_all_occupancies = !board_state.ao;
+    let side = position.side;
+    let en_passant_sq = position.en_passant_sq;
+    let inv_all_occupancies = !position.ao;
     
     let ([pawn, knight, bishop, rook, queen, king], enemy_pieces) = match side {
         Color::White => (PieceType::WHITE_PIECES, PieceType::BLACK_PIECES),
@@ -77,8 +77,8 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
     };
 
     let (inv_own_occupancies, enemy_occupancies) = match side {
-        Color::White => (!board_state.wo, board_state.bo),
-        Color::Black => (!board_state.bo, board_state.wo)
+        Color::White => (!position.wo, position.bo),
+        Color::Black => (!position.bo, position.wo)
     };
     
     let (pawn_promotion_rank, pawn_starting_rank, en_passant_rank, pawn_double_push_rank) = match side {
@@ -97,8 +97,8 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
     };
 
     let (king_side_castling_right, queen_side_castling_right) = match side {
-        Color::White => (board_state.castling_rights.wk(), board_state.castling_rights.wq()),
-        Color::Black => (board_state.castling_rights.bk(), board_state.castling_rights.bq())
+        Color::White => (position.castling_rights.wk(), position.castling_rights.wq()),
+        Color::Black => (position.castling_rights.bk(), position.castling_rights.bq())
     };
 
     let (castling_square_c, castling_square_d, castling_square_e, castling_square_f, castling_square_g) = match side {
@@ -110,7 +110,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
         /*------------------------------*\ 
                     Pawn moves
         \*------------------------------*/
-        let mut pawn_bb = board_state.bbs[pawn];
+        let mut pawn_bb = position.bbs[pawn];
         while pawn_bb.is_not_empty() {
             let source = pawn_bb.pop_lsb();
             let source_rank = source.rank();
@@ -119,7 +119,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
             let mut capture_mask = get_pawn_capture_mask(side, source) & enemy_occupancies;
             while capture_mask.is_not_empty() {
                 let target = capture_mask.pop_lsb();
-                let target_piece = get_target_piece(board_state, enemy_pieces, target);
+                let target_piece = get_target_piece(position, enemy_pieces, target);
 
                 if source_rank == pawn_promotion_rank {
                     move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoN));
@@ -138,7 +138,7 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
                 
                 if source_rank == pawn_starting_rank && target.rank() == pawn_double_push_rank {
                     // Making sure both squares in front of the pawn are empty
-                    if (get_pawn_quiet_mask(side, source) & board_state.ao).is_empty() {
+                    if (get_pawn_quiet_mask(side, source) & position.ao).is_empty() {
                         move_list.add(BitMove::encode(source, target, pawn, PieceType::None, double_pawn_flag));
                     } 
                 } else if source_rank == pawn_promotion_rank {
@@ -168,14 +168,14 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
         /*------------------------------*\ 
                    Knight moves
         \*------------------------------*/
-        let mut knight_bb = board_state.bbs[knight];
+        let mut knight_bb = position.bbs[knight];
         while knight_bb.is_not_empty() {
             let source = knight_bb.pop_lsb();
             
             let mut move_mask = get_knight_mask(source) & inv_own_occupancies;
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
-                let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
+                let target_piece = get_target_piece_if_any(position, enemy_pieces, enemy_occupancies, target);
                 move_list.add(BitMove::encode(source, target, knight, target_piece, MoveFlag::None));
             }
         }
@@ -185,30 +185,32 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
         /*------------------------------*\ 
                     King moves
         \*------------------------------*/
-        let mut king_bb = board_state.bbs[king];
+        let mut king_bb = position.bbs[king];
         let source = king_bb.pop_lsb();
         let mut move_mask = get_king_mask(source) & inv_own_occupancies;
         while move_mask.is_not_empty() {
             let target = move_mask.pop_lsb();
-            let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
+            let target_piece = get_target_piece_if_any(position, enemy_pieces, enemy_occupancies, target);
             move_list.add(BitMove::encode(source, target, king, target_piece, MoveFlag::None));
         }
 
         // Kingside Castling
-        if king_side_castling_right && (board_state.ao & king_side_castling_mask).is_empty() {
-            if !board_state.is_square_attacked(castling_square_e, board_state.side, &enemy_pieces) &&
-               !board_state.is_square_attacked(castling_square_f, board_state.side, &enemy_pieces) &&
-               !board_state.is_square_attacked(castling_square_g, board_state.side, &enemy_pieces)
+        #[allow(clippy::collapsible_if)]
+        if king_side_castling_right && (position.ao & king_side_castling_mask).is_empty() {
+            if !position.is_square_attacked(castling_square_e, position.side, &enemy_pieces) &&
+               !position.is_square_attacked(castling_square_f, position.side, &enemy_pieces) &&
+               !position.is_square_attacked(castling_square_g, position.side, &enemy_pieces)
             {
                 move_list.add(BitMove::encode(source, castling_square_g, king, PieceType::None, king_side_castling_flag));
             }
         }
 
         // Queenside Castling
-        if queen_side_castling_right && (board_state.ao & queen_side_castling_mask).is_empty() {
-            if !board_state.is_square_attacked(castling_square_e, board_state.side, &enemy_pieces) &&
-               !board_state.is_square_attacked(castling_square_d, board_state.side, &enemy_pieces) &&
-               !board_state.is_square_attacked(castling_square_c, board_state.side, &enemy_pieces)
+        #[allow(clippy::collapsible_if)]
+        if queen_side_castling_right && (position.ao & queen_side_castling_mask).is_empty() {
+            if !position.is_square_attacked(castling_square_e, position.side, &enemy_pieces) &&
+               !position.is_square_attacked(castling_square_d, position.side, &enemy_pieces) &&
+               !position.is_square_attacked(castling_square_c, position.side, &enemy_pieces)
             {
                 move_list.add(BitMove::encode(source, castling_square_c, king, PieceType::None, queen_side_castling_flag));
             }
@@ -219,13 +221,13 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
         /*------------------------------*\ 
                    Bishop moves
         \*------------------------------*/
-        let mut bishop_bb = board_state.bbs[bishop];
+        let mut bishop_bb = position.bbs[bishop];
         while bishop_bb.is_not_empty() {
             let source = bishop_bb.pop_lsb();
-            let mut move_mask = get_bishop_mask(source, board_state.ao) & inv_own_occupancies;
+            let mut move_mask = get_bishop_mask(source, position.ao) & inv_own_occupancies;
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
-                let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
+                let target_piece = get_target_piece_if_any(position, enemy_pieces, enemy_occupancies, target);
                 move_list.add(BitMove::encode(source, target, bishop, target_piece, MoveFlag::None));
             }
         }
@@ -235,13 +237,13 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
         /*------------------------------*\ 
                     Rook moves
         \*------------------------------*/
-        let mut rook_bb = board_state.bbs[rook];
+        let mut rook_bb = position.bbs[rook];
         while rook_bb.is_not_empty() {
             let source = rook_bb.pop_lsb();
-            let mut move_mask = get_rook_mask(source, board_state.ao) & inv_own_occupancies;
+            let mut move_mask = get_rook_mask(source, position.ao) & inv_own_occupancies;
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
-                let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
+                let target_piece = get_target_piece_if_any(position, enemy_pieces, enemy_occupancies, target);
                 move_list.add(BitMove::encode(source, target, rook, target_piece, MoveFlag::None));
             }
         }
@@ -251,13 +253,13 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
         /*------------------------------*\ 
                    Queen moves
         \*------------------------------*/
-        let mut queen_bb = board_state.bbs[queen];
+        let mut queen_bb = position.bbs[queen];
         while queen_bb.is_not_empty() {
             let source = queen_bb.pop_lsb();
-            let mut move_mask = get_queen_mask(source, board_state.ao) & inv_own_occupancies;
+            let mut move_mask = get_queen_mask(source, position.ao) & inv_own_occupancies;
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
-                let target_piece = get_target_piece_if_any(board_state, enemy_pieces, enemy_occupancies, target);
+                let target_piece = get_target_piece_if_any(position, enemy_pieces, enemy_occupancies, target);
                 move_list.add(BitMove::encode(source, target, queen, target_piece, MoveFlag::None));
             }
         }
@@ -269,9 +271,9 @@ pub fn generate_moves(board_state: &BoardState) -> MoveList {
 }
 
 #[inline(always)]
-pub fn get_target_piece(board_state: &BoardState, enemy_piece_types: [PieceType; 6], target: Square) -> PieceType {
+pub fn get_target_piece(position: &Position, enemy_piece_types: [PieceType; 6], target: Square) -> PieceType {
     for piece_type in enemy_piece_types {
-        if board_state.bbs[piece_type].is_set_sq(target) {
+        if position.bbs[piece_type].is_set_sq(target) {
             return piece_type;
         }
     }
@@ -281,10 +283,10 @@ pub fn get_target_piece(board_state: &BoardState, enemy_piece_types: [PieceType;
 
 
 #[inline(always)]
-pub fn get_target_piece_if_any(board_state: &BoardState, enemy_piece_types: [PieceType; 6], enemy_occupancies: Bitboard, target: Square) -> PieceType {
+pub fn get_target_piece_if_any(position: &Position, enemy_piece_types: [PieceType; 6], enemy_occupancies: Bitboard, target: Square) -> PieceType {
     if (enemy_occupancies & target.to_bb()).is_empty() {
         return PieceType::None;
     }
     
-    get_target_piece(board_state, enemy_piece_types, target)
+    get_target_piece(position, enemy_piece_types, target)
 }

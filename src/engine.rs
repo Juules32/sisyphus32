@@ -1,7 +1,7 @@
-use crate::board_state::BoardState;
+use crate::position::Position;
 
 pub struct Engine {
-    pub board_state: BoardState,
+    pub position: Position,
     // flags: Flags, // Use for debugging, verbose etc.
 }
 

@@ -95,7 +95,7 @@ impl BitMove {
         (self.source(), self.target(), self.piece(), self.capture(), self.flag())
     }
 
-    pub fn to_row_string(&self) -> String {
+    pub fn to_row_string(self) -> String {
         format!(
             "  | {:<8} | {:<8} | {:<8} | {:<8} | {:<19} |\n",
             self.source(),
@@ -106,7 +106,7 @@ impl BitMove {
         )
     }
 
-    pub fn to_uci_string(&self) -> String {
+    pub fn to_uci_string(self) -> String {
         format!(
             "{}{}{}",
             self.source(),
