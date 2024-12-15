@@ -265,8 +265,6 @@ pub fn generate_moves(position: &Position) -> MoveList {
         }
     }
 
-    // debug: all moves are different
-
     move_list
 }
 
@@ -280,7 +278,6 @@ pub fn get_target_piece(position: &Position, enemy_piece_types: [PieceType; 6], 
 
     panic!("There seems to be something wrong with the occupancy bitboards!")
 }
-
 
 #[inline(always)]
 pub fn get_target_piece_if_any(position: &Position, enemy_piece_types: [PieceType; 6], enemy_occupancies: Bitboard, target: Square) -> PieceType {
