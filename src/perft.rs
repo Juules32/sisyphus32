@@ -1,4 +1,4 @@
-use crate::{position::Position, fen, move_gen, pl, timer::Timer};
+use crate::{position::Position, fen, move_masks, pl, timer::Timer};
 
 pub struct PerftResult {
     depth: u8,
@@ -86,7 +86,7 @@ pub fn perft_test(position: &mut Position, depth: u8, print_result: bool) -> Per
 
     if print_result { pl!("\n  Performance Test\n"); }
 
-    let move_list = move_gen::generate_moves(position);
+    let move_list = position.generate_moves();
     for mv in move_list.iter() {
         let position_copy = position.clone();
         if position.make_move(*mv) {
@@ -129,7 +129,7 @@ fn perft_driver(position: &mut Position, depth: u8, nodes: &mut u64) {
         return;
     }
 
-    let move_list = move_gen::generate_moves(position);
+    let move_list = position.generate_moves();
     
     for mv in move_list.iter() {
         let position_copy = position.clone();
