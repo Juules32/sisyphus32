@@ -81,7 +81,7 @@ static SHORT_PERFT_POSITIONS: [PerftPosition; 5] = [
     },
 ];
 
-pub fn perft_test(position: &mut Position, depth: u8, print_result: bool) -> PerftResult {
+pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftResult {
     let timer = Timer::new();
 
     if print_result {
@@ -94,31 +94,28 @@ pub fn perft_test(position: &mut Position, depth: u8, print_result: bool) -> Per
     let position_arc = Arc::new(position.clone());
 
     // Computes nodes reached in parallel
-    let legal_moves_and_nodes: Vec<(BitMove, u64)> = move_list
+    let cumulative_nodes = move_list
         .par_iter()
-        .filter_map(|&mv| {
+        .map(|&mv| {
             let mut pos_clone = (*position_arc).clone();
             if pos_clone.make_move(mv) {
                 let nodes = perft_driver(Arc::new(pos_clone), depth - 1);
-                Some((mv, nodes))
+                if print_result {
+                    pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), nodes));
+                }
+                nodes
             } else {
-                None
+                0
             }
         })
-        .collect();
-
-    let cumulative_nodes: u64 = legal_moves_and_nodes.iter().map(|(_, nodes)| *nodes).sum();
+        .collect::<Vec<_>>().into_iter().sum();
 
     if print_result {
-        for (mv, nodes) in &legal_moves_and_nodes {
-            pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), nodes));
-        }
-
         pl!(format!(
             "
-Depth: {}
-Nodes: {}
-Time: {} milliseconds\n",
+ Depth: {}
+ Nodes: {}
+  Time: {} milliseconds\n",
             depth,
             cumulative_nodes,
             timer.get_time_passed_millis()
