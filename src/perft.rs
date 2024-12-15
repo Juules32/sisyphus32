@@ -1,4 +1,6 @@
-use crate::{position::Position, fen, move_gen, pl, timer::Timer};
+use crate::{bit_move::BitMove, fen, move_gen, pl, position::Position, timer::Timer};
+use std::sync::Arc;
+use rayon::prelude::*;
 
 pub struct PerftResult {
     depth: u8,
@@ -80,63 +82,76 @@ static SHORT_PERFT_POSITIONS: [PerftPosition; 5] = [
 ];
 
 pub fn perft_test(position: &mut Position, depth: u8, print_result: bool) -> PerftResult {
-    let mut current_nodes = 0_u64;
-    let mut cumulative_nodes = 0_u64;
     let timer = Timer::new();
 
-    if print_result { pl!("\n  Performance Test\n"); }
-
-    let move_list = move_gen::generate_moves(position);
-    let position_copy = position.clone();
-    for mv in move_list.iter() {
-        if position.make_move(*mv) {
-            perft_driver(position, depth - 1, &mut current_nodes);
-        }
-        *position = position_copy.clone();
-
-        if print_result {
-            pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), current_nodes));
-        }
-
-        cumulative_nodes += current_nodes;
-        current_nodes = 0;
+    if print_result {
+        pl!("\n  Performance Test\n");
     }
 
-    let perft_result = PerftResult {
-        depth,
-        nodes: cumulative_nodes,
-        time: timer.get_time_passed_millis(),
-    };
+    let move_list = move_gen::generate_moves(position);
+
+    // Thread-safe clone of position
+    let position_arc = Arc::new(position.clone());
+
+    // Computes nodes reached in parallel
+    let legal_moves_and_nodes: Vec<(BitMove, u64)> = move_list
+        .par_iter()
+        .filter_map(|&mv| {
+            let mut pos_clone = (*position_arc).clone();
+            if pos_clone.make_move(mv) {
+                let nodes = perft_driver(Arc::new(pos_clone), depth - 1);
+                Some((mv, nodes))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let cumulative_nodes: u64 = legal_moves_and_nodes.iter().map(|(_, nodes)| *nodes).sum();
 
     if print_result {
-        pl!(format!("
+        for (mv, nodes) in &legal_moves_and_nodes {
+            pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), nodes));
+        }
+
+        pl!(format!(
+            "
 Depth: {}
 Nodes: {}
 Time: {} milliseconds\n",
-            perft_result.depth,
-            perft_result.nodes,
-            perft_result.time
+            depth,
+            cumulative_nodes,
+            timer.get_time_passed_millis()
         ));
     }
 
-    perft_result
+    PerftResult {
+        depth,
+        nodes: cumulative_nodes,
+        time: timer.get_time_passed_millis(),
+    }
 }
 
 #[inline(always)]
-fn perft_driver(position: &mut Position, depth: u8, nodes: &mut u64) {
+fn perft_driver(position_arc: Arc<Position>, depth: u8) -> u64 {
     if depth == 0 {
-        *nodes += 1;
-        return;
+        return 1;
     }
 
-    let move_list = move_gen::generate_moves(position);
-    let position_ref = position.clone();
-    for mv in move_list.iter() {
-        if position.make_move(*mv) {
-            perft_driver(position, depth - 1, nodes);
-        }
-        *position = position_ref.clone();
-    }
+    let move_list = move_gen::generate_moves(&position_arc);
+
+    // Recursively counts nodes in parallel
+    move_list
+        .par_iter()
+        .map(|mv| {
+            let mut pos_clone = (*position_arc).clone();
+            if pos_clone.make_move(*mv) {
+                perft_driver(Arc::new(pos_clone), depth - 1)
+            } else {
+                0
+            }
+        })
+        .sum()
 }
 
 fn perft_tests(perft_positions: &[PerftPosition; 5]) {
