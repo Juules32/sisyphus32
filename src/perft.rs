@@ -1,6 +1,7 @@
 use crate::{bit_move::BitMove, fen, move_gen, pl, position::Position, timer::Timer};
 use std::sync::Arc;
 use rayon::prelude::*;
+use crate::{position::Position, fen, move_masks, pl, timer::Timer};
 
 pub struct PerftResult {
     depth: u8,

@@ -1,4 +1,4 @@
-use crate::{bitboard::Bitboard, color::Color, file::File, rank::Rank, square::Square};
+use crate::{bit_move::{BitMove, MoveFlag}, bitboard::Bitboard, position::Position, color::Color, move_list::MoveList, piece::PieceType, rank::Rank, square::Square, file::File};
 
 pub static mut PAWN_QUIET_MASKS: [[Bitboard; 64]; 2] = [[Bitboard::EMPTY; 64]; 2];
 pub static mut PAWN_CAPTURE_MASKS: [[Bitboard; 64]; 2] = [[Bitboard::EMPTY; 64]; 2];
@@ -476,4 +476,66 @@ pub fn generate_occupancy_permutation(occupancy_index: u32, num_bits: u8, mut ma
     }
 
     occupancy
+}
+
+#[inline(always)]
+pub fn get_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
+    unsafe { PAWN_QUIET_MASKS[color][square] }
+}
+
+#[inline(always)]
+pub fn get_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
+    unsafe { PAWN_CAPTURE_MASKS[color][square] }
+}
+
+#[inline(always)]
+pub fn get_knight_mask(square: Square) -> Bitboard {
+    unsafe { KNIGHT_MASKS[square] }
+}
+
+#[inline(always)]
+pub fn get_king_mask(square: Square) -> Bitboard {
+    unsafe { KING_MASKS[square] }
+}
+
+#[inline(always)]
+pub fn get_bishop_mask_old(square: Square, occupancy: Bitboard) -> Bitboard {
+    generate_bishop_moves_on_the_fly(square, occupancy)
+}
+
+#[inline(always)]
+pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    unsafe {
+        let mut index = occupancy.0 & BISHOP_MASKS[square].0;
+        index = 
+            index.wrapping_mul(BISHOP_MAGIC_BITBOARDS[square].0) >> 
+            (64 - BISHOP_RELEVANT_BITS[square]);
+        BISHOP_MOVE_CONFIGURATIONS[square][index as usize]
+    }
+}
+
+#[inline(always)]
+pub fn get_rook_mask_old(square: Square, occupancy: Bitboard) -> Bitboard {
+    generate_rook_moves_on_the_fly(square, occupancy)
+}
+
+#[inline(always)]
+pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    unsafe {
+        let mut index = occupancy.0 & ROOK_MASKS[square].0;
+        index = 
+            index.wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> 
+            (64 - ROOK_RELEVANT_BITS[square]);
+        ROOK_MOVE_CONFIGURATIONS[square][index as usize]
+    }
+}
+
+#[inline(always)]
+pub fn get_queen_mask_old(square: Square, occupancy: Bitboard) -> Bitboard {
+    get_bishop_mask_old(square, occupancy) | get_rook_mask_old(square, occupancy)
+}
+
+#[inline(always)]
+pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    get_bishop_mask(square, occupancy) | get_rook_mask(square, occupancy)
 }
