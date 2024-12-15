@@ -9,7 +9,7 @@ pub static mut ROOK_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
 pub static mut ROOK_MOVE_CONFIGURATIONS: [[Bitboard; 4096]; 64] = [[Bitboard::EMPTY; 4096]; 64];
 pub static mut BISHOP_MOVE_CONFIGURATIONS: [[Bitboard; 512]; 64] = [[Bitboard::EMPTY; 512]; 64];
 
-pub const BISHOP_RELEVANT_BITS: [u8; 64] = [
+pub static BISHOP_RELEVANT_BITS: [u8; 64] = [
     6, 5, 5, 5, 5, 5, 5, 6,
     5, 5, 5, 5, 5, 5, 5, 5,
     5, 5, 7, 7, 7, 7, 5, 5,
@@ -20,7 +20,7 @@ pub const BISHOP_RELEVANT_BITS: [u8; 64] = [
     6, 5, 5, 5, 5, 5, 5, 6
 ];
 
-pub const ROOK_RELEVANT_BITS: [u8; 64] = [
+pub static ROOK_RELEVANT_BITS: [u8; 64] = [
     12, 11, 11, 11, 11, 11, 11, 12,
     11, 10, 10, 10, 10, 10, 10, 11,
     11, 10, 10, 10, 10, 10, 10, 11,
@@ -31,7 +31,7 @@ pub const ROOK_RELEVANT_BITS: [u8; 64] = [
     12, 11, 11, 11, 11, 11, 11, 12
 ];
 
-pub const BISHOP_MAGIC_BITBOARDS: [Bitboard; 64] = [
+pub static BISHOP_MAGIC_BITBOARDS: [Bitboard; 64] = [
     Bitboard(0x40040844404084),
     Bitboard(0x2004208a004208),
     Bitboard(0x10190041080202),
@@ -98,7 +98,7 @@ pub const BISHOP_MAGIC_BITBOARDS: [Bitboard; 64] = [
     Bitboard(0x4010011029020020),
 ];
 
-pub const ROOK_MAGIC_BITBOARDS: [Bitboard; 64] = [
+pub static ROOK_MAGIC_BITBOARDS: [Bitboard; 64] = [
     Bitboard(0x8a80104000800020),
     Bitboard(0x140002000100040),
     Bitboard(0x2801880a0017001),
