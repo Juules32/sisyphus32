@@ -10,8 +10,7 @@ mod fen;
 mod file;
 mod macros;
 mod magic_bitboards;
-mod move_gen;
-mod move_init;
+mod move_masks;
 mod move_list;
 mod piece;
 mod rank;
@@ -22,12 +21,13 @@ mod bit_twiddles;
 
 use bit_move::{BitMove, MoveFlag};
 use bitboard::Bitboard;
+use magic_bitboards::MagicBitboardGenerator;
 use position::Position;
 use engine::Engine;
 use piece::PieceType;
 use square::Square;
 
 fn main() {
-    move_init::init();
+    move_masks::init();
     perft::short_perft_tests();
 }
