@@ -37,6 +37,15 @@ impl MoveList {
     }
 }
 
+impl<'a> rayon::iter::IntoParallelRefIterator<'a> for MoveList {
+    type Item = &'a BitMove;
+    type Iter = rayon::slice::Iter<'a, BitMove>;
+
+    fn par_iter(&'a self) -> Self::Iter {
+        self.array[..self.size].par_iter()
+    }
+}
+
 impl Index<usize> for MoveList {
     type Output = BitMove;
 
