@@ -1,7 +1,6 @@
-use crate::{bit_move::BitMove, fen, move_gen, pl, position::Position, timer::Timer};
+use crate::{bit_move::BitMove, fen, pl, position::Position, timer::Timer, move_masks};
 use std::sync::Arc;
 use rayon::prelude::*;
-use crate::{position::Position, fen, move_masks, pl, timer::Timer};
 
 pub struct PerftResult {
     depth: u8,
@@ -89,7 +88,7 @@ pub fn perft_test(position: &mut Position, depth: u8, print_result: bool) -> Per
         pl!("\n  Performance Test\n");
     }
 
-    let move_list = move_gen::generate_moves(position);
+    let move_list = position.generate_moves();
 
     // Thread-safe clone of position
     let position_arc = Arc::new(position.clone());
@@ -139,7 +138,7 @@ fn perft_driver(position_arc: Arc<Position>, depth: u8) -> u64 {
         return 1;
     }
 
-    let move_list = move_gen::generate_moves(&position_arc);
+    let move_list = &position_arc.generate_moves();
 
     // Recursively counts nodes in parallel
     move_list
