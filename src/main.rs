@@ -29,18 +29,5 @@ use square::Square;
 
 fn main() {
     move_init::init();
-
-    let mut pos = fen::parse(fen::KIWIPETE_POSITION).unwrap();
-    let ml = move_gen::generate_moves(&pos);
-    pl!(ml);
-    pl!(pos);
-
-    pl!(move_gen::get_bishop_mask_old(Square::C6, pos.ao) & !pos.wo);
-
-    perft::perft_test(&mut pos, 1, true);
-
-    let mut bb = Bitboard::EMPTY;
-    bb.set_sq(Square::G4);
-
     perft::short_perft_tests();
 }

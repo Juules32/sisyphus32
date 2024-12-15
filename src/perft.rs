@@ -87,12 +87,12 @@ pub fn perft_test(position: &mut Position, depth: u8, print_result: bool) -> Per
     if print_result { pl!("\n  Performance Test\n"); }
 
     let move_list = move_gen::generate_moves(position);
+    let position_copy = position.clone();
     for mv in move_list.iter() {
-        let position_copy = position.clone();
         if position.make_move(*mv) {
             perft_driver(position, depth - 1, &mut current_nodes);
         }
-        *position = position_copy;
+        *position = position_copy.clone();
 
         if print_result {
             pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), current_nodes));
@@ -130,13 +130,12 @@ fn perft_driver(position: &mut Position, depth: u8, nodes: &mut u64) {
     }
 
     let move_list = move_gen::generate_moves(position);
-    
+    let position_ref = position.clone();
     for mv in move_list.iter() {
-        let position_copy = position.clone();
         if position.make_move(*mv) {
             perft_driver(position, depth - 1, nodes);
         }
-        *position = position_copy;
+        *position = position_ref.clone();
     }
 }
 
