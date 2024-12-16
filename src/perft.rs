@@ -133,22 +133,33 @@ pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftRe
 fn perft_driver(position_arc: Arc<Position>, depth: u8) -> u64 {
     if depth == 0 {
         return 1;
+    } else if depth <= 2 {
+        // Recursively counts nodes sequentially
+        position_arc.generate_moves()
+            .iter()
+            .map(|mv| {
+                let mut pos_clone = (*position_arc).clone();
+                if pos_clone.make_move(*mv) {
+                    perft_driver(Arc::new(pos_clone), depth - 1)
+                } else {
+                    0
+                }
+            })
+            .sum()
+    } else {
+        // Recursively counts nodes in parallel
+        position_arc.generate_moves()
+            .par_iter()
+            .map(|mv| {
+                let mut pos_clone = (*position_arc).clone();
+                if pos_clone.make_move(*mv) {
+                    perft_driver(Arc::new(pos_clone), depth - 1)
+                } else {
+                    0
+                }
+            })
+            .sum()
     }
-
-    let move_list = &position_arc.generate_moves();
-
-    // Recursively counts nodes in parallel
-    move_list
-        .par_iter()
-        .map(|mv| {
-            let mut pos_clone = (*position_arc).clone();
-            if pos_clone.make_move(*mv) {
-                perft_driver(Arc::new(pos_clone), depth - 1)
-            } else {
-                0
-            }
-        })
-        .sum()
 }
 
 fn perft_tests(perft_positions: &[PerftPosition; 5]) {
