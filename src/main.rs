@@ -18,14 +18,7 @@ mod square;
 mod timer;
 mod perft;
 mod bit_twiddles;
-
-use bit_move::{BitMove, MoveFlag};
-use bitboard::Bitboard;
-use magic_bitboards::MagicBitboardGenerator;
-use position::Position;
-use engine::Engine;
-use piece::PieceType;
-use square::Square;
+mod move_flag;
 
 fn main() {
     move_masks::init();
