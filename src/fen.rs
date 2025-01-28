@@ -10,6 +10,23 @@ pub const TRICKY_POSITION_2: &str = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQ
 #[derive(Debug)]
 pub struct FenParseError(&'static str);
 
+pub fn parse(fen_string: &str) -> Result<Position, FenParseError> {
+    let mut pos = Position::default();
+
+    let mut fen_iter = fen_string.split_whitespace();
+    let pieces_str = fen_iter.next().ok_or(FenParseError("No pieces found!"))?;
+    let side_str = fen_iter.next().ok_or(FenParseError("No side found!"))?;
+    let castling_rights_str = fen_iter.next().ok_or(FenParseError("No castling rights found!"))?;
+    let en_passant_sq_str = fen_iter.next().ok_or(FenParseError("No en-passant found!"))?;
+
+    set_pieces(&mut pos, pieces_str)?;
+    set_side(&mut pos, side_str)?;
+    set_castling_rights(&mut pos, castling_rights_str)?;
+    set_en_passant_sq(&mut pos, en_passant_sq_str)?;
+
+    Ok(pos)
+}
+
 fn set_pieces(position: &mut Position, pieces_str: &str) -> Result<(), FenParseError> {
     let mut sq_index = 0_u8;
     for pieces_char in pieces_str.chars() {
@@ -64,21 +81,4 @@ fn set_en_passant_sq(position: &mut Position, en_passant_sq_str: &str) -> Result
             Ok(())
         }
     }
-}
-
-pub fn parse(fen_string: &str) -> Result<Position, FenParseError> {
-    let mut pos = Position::default();
-
-    let mut fen_iter = fen_string.split_whitespace();
-    let pieces_str = fen_iter.next().ok_or(FenParseError("No pieces found!"))?;
-    let side_str = fen_iter.next().ok_or(FenParseError("No side found!"))?;
-    let castling_rights_str = fen_iter.next().ok_or(FenParseError("No castling rights found!"))?;
-    let en_passant_sq_str = fen_iter.next().ok_or(FenParseError("No en-passant found!"))?;
-
-    set_pieces(&mut pos, pieces_str)?;
-    set_side(&mut pos, side_str)?;
-    set_castling_rights(&mut pos, castling_rights_str)?;
-    set_en_passant_sq(&mut pos, en_passant_sq_str)?;
-
-    Ok(pos)
 }

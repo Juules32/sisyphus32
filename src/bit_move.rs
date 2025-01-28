@@ -1,4 +1,4 @@
-use crate::{piece::PieceType, square::Square};
+use crate::{move_flag::MoveFlag, piece::PieceType, square::Square};
 use core::fmt;
 use std::mem::transmute;
 
@@ -8,54 +8,8 @@ const PIECE_MASK: u32 =   0b0000_0000_0000_0000_1111_0000_0000_0000;
 const CAPTURE_MASK: u32 = 0b0000_0000_0000_1111_0000_0000_0000_0000;
 const FLAG_MASK: u32 =    0b0000_0000_1111_0000_0000_0000_0000_0000;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BitMove(u32);
-
-#[repr(u8)]
-#[derive(Clone, Copy)]
-pub enum MoveFlag {
-    None,
-    WEnPassant,
-    BEnPassant,
-    WDoublePawn,
-    BDoublePawn,
-    WKCastle,
-    WQCastle,
-    BKCastle,
-    BQCastle,
-    PromoN,
-    PromoB,
-    PromoR,
-    PromoQ,
-}
-
-impl From<u8> for MoveFlag {
-    #[inline(always)]
-    fn from(number: u8) -> Self {
-        unsafe { transmute::<u8, Self>(number) }
-    }
-}
-
-impl fmt::Display for MoveFlag {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match self {
-            MoveFlag::None => "None",
-            MoveFlag::WDoublePawn => "Double Pawn Push",
-            MoveFlag::BDoublePawn => "Double Pawn Push",
-            MoveFlag::WEnPassant => "En-passant",
-            MoveFlag::BEnPassant => "En-passant",
-            MoveFlag::WKCastle => "Kingside Castle",
-            MoveFlag::WQCastle => "Queenside Castle",
-            MoveFlag::BKCastle => "Kingside Castle",
-            MoveFlag::BQCastle => "Queenside Castle",
-            MoveFlag::PromoN => "Knight Promotion",
-            MoveFlag::PromoB => "Bishop Promotion",
-            MoveFlag::PromoR => "Rook Promotion",
-            MoveFlag::PromoQ => "Queen Promotion",
-        };
-        f.pad(name)
-    }
-}
 
 impl BitMove {
     pub const EMPTY: BitMove = BitMove(0);
@@ -86,8 +40,20 @@ impl BitMove {
     }
 
     #[inline(always)]
-    pub fn encode(source: Square, target: Square, piece: PieceType, capture: PieceType, flag: MoveFlag) -> BitMove {
-        BitMove(source as u32 | (target as u32) << 6 | (piece as u32) << 12 | (capture as u32) << 16 | (flag as u32) << 20)
+    pub fn encode(
+        source: Square, 
+        target: Square, 
+        piece: PieceType, 
+        capture: PieceType, 
+        flag: MoveFlag
+    ) -> BitMove {
+        BitMove(
+            source as u32 | 
+            (target as u32) << 6 | 
+            (piece as u32) << 12 | 
+            (capture as u32) << 16 | 
+            (flag as u32) << 20
+        )
     }
 
     #[inline(always)]

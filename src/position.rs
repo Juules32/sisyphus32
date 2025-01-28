@@ -1,8 +1,6 @@
 use core::fmt;
-
-use crate::{
-    bit_move::{BitMove, MoveFlag}, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, move_masks, move_list::MoveList, piece::PieceType, rank::Rank, square::Square
-};
+use std::collections::HashSet;
+use crate::{bit_move::BitMove, move_flag::MoveFlag, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, move_masks, move_list::MoveList, piece::PieceType, rank::Rank, square::Square};
 
 #[derive(Clone)]
 pub struct Position {
@@ -412,9 +410,13 @@ impl Position {
                 }
             }
         }
-
-        // debug: all moves are different
-
+        
+        // Checks that all moves are unique
+        debug_assert!({
+            let mut seen: HashSet<BitMove> = HashSet::new();
+            move_list.iter().all(|&m| seen.insert(m))
+        });
+        
         move_list
     }
 
@@ -429,7 +431,6 @@ impl Position {
         panic!("There seems to be something wrong with the occupancy bitboards!")
     }
 
-
     #[inline(always)]
     pub fn get_target_piece_if_any(&self, enemy_piece_types: [PieceType; 6], enemy_occupancies: Bitboard, target: Square) -> PieceType {
         if (enemy_occupancies & target.to_bb()).is_empty() {
@@ -438,7 +439,6 @@ impl Position {
         
         self.get_target_piece(enemy_piece_types, target)
     }
-
 }
 
 impl Default for Position {

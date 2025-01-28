@@ -132,7 +132,7 @@ pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftRe
 #[inline(always)]
 fn perft_driver(position_arc: Arc<Position>, depth: u8) -> u64 {
     if depth == 0 {
-        return 1;
+        1
     } else if depth <= 2 {
         // Recursively counts nodes sequentially
         position_arc.generate_moves()
@@ -171,8 +171,8 @@ fn perft_tests(perft_positions: &[PerftPosition; 5]) {
     println!("  |-----------------------------------------------------------------|");
 
     for perft_position in perft_positions {
-        let mut position = fen::parse(perft_position.fen).expect("FEN parser could not parse given position!");
-        let perft_result = perft_test(&mut position, perft_position.depth, false);
+        let position = fen::parse(perft_position.fen).expect("FEN parser could not parse given position!");
+        let perft_result = perft_test(&position, perft_position.depth, false);
         if perft_result.nodes != perft_position.target_nodes {
             panic!("Perft test of {} did not get the target nodes!", perft_position.name);
         }
