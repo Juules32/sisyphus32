@@ -216,6 +216,94 @@ impl Position {
         true
     }
 
+    #[inline]
+    #[cfg(feature = "revert_with_undo_move")]
+    pub fn undo_move(&mut self, bit_move: BitMove, old_castling_rights: CastlingRights) {
+        let (source, target, piece, capture, flag) = bit_move.decode();
+
+        // Switches side first to make it easier to conceptualize
+        self.side.switch();
+
+        debug_assert_eq!(piece.color(), self.side);
+        debug_assert!(capture == PieceType::None || capture.color() == self.side.opposite());
+
+        self.set_piece(piece, source);
+        self.remove_piece(piece, target);
+
+        if capture != PieceType::None {
+            self.set_piece(capture, target);
+        }
+
+        self.en_passant_sq = Square::None;
+
+        match flag {
+            MoveFlag::None | MoveFlag::WDoublePawn | MoveFlag::BDoublePawn => (),
+            MoveFlag::WEnPassant => {
+                self.en_passant_sq = target;
+                self.set_piece(PieceType::BP, target.below())
+            }
+            MoveFlag::BEnPassant => {
+                self.en_passant_sq = target;
+                self.set_piece(PieceType::WP, target.above())
+            }
+            MoveFlag::WKCastle => {
+                self.set_piece(PieceType::WR, Square::H1);
+                self.remove_piece(PieceType::WR, Square::F1);
+            }
+            MoveFlag::WQCastle => {
+                self.set_piece(PieceType::WR, Square::A1);
+                self.remove_piece(PieceType::WR, Square::D1);
+            }
+            MoveFlag::BKCastle => {
+                self.set_piece(PieceType::BR, Square::H8);
+                self.remove_piece(PieceType::BR, Square::F8);
+            }
+            MoveFlag::BQCastle => {
+                self.set_piece(PieceType::BR, Square::A8);
+                self.remove_piece(PieceType::BR, Square::D8);
+            }
+            MoveFlag::PromoQ => {
+                self.remove_piece(
+                    match self.side {
+                        Color::White => PieceType::WQ,
+                        Color::Black => PieceType::BQ,
+                    },
+                    target,
+                );
+            }
+            MoveFlag::PromoR => {
+                self.remove_piece(
+                    match self.side {
+                        Color::White => PieceType::WR,
+                        Color::Black => PieceType::BR,
+                    },
+                    target,
+                );
+            }
+            MoveFlag::PromoN => {
+                self.remove_piece(
+                    match self.side {
+                        Color::White => PieceType::WN,
+                        Color::Black => PieceType::BN,
+                    },
+                    target,
+                );
+            }
+            MoveFlag::PromoB => {
+                self.remove_piece(
+                    match self.side {
+                        Color::White => PieceType::WB,
+                        Color::Black => PieceType::BB,
+                    },
+                    target,
+                );
+            }
+        };
+
+        self.castling_rights = old_castling_rights;
+        self.populate_occupancies();
+    }
+
     #[inline(always)]
     pub fn is_square_attacked(
         &self,

@@ -91,11 +91,20 @@ pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftRe
 
     let move_list = position.generate_moves();
     let mut position_copy = position.clone();
+
+    #[cfg(feature = "revert_with_undo_move")]
+    let old_castling_rights = position.castling_rights;
+
     for mv in move_list.iter() {
         if position_copy.make_move(*mv) {
             perft_driver(&position_copy, depth - 1, &mut current_nodes);
         }
-        position_copy = position.clone();
+
+        #[cfg(feature = "revert_with_clone")]
+        { position_copy = position.clone(); }
+
+        #[cfg(feature = "revert_with_undo_move")]
+        position_copy.undo_move(*mv, old_castling_rights);
 
         if print_result {
             pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), current_nodes));
@@ -183,12 +192,21 @@ fn perft_driver(position: &Position, depth: u8, nodes: &mut u64) {
     }
 
     let move_list = position.generate_moves();
-    let mut position_clone = position.clone();
+    let mut position_copy = position.clone();
+    
+    #[cfg(feature = "revert_with_undo_move")]
+    let old_castling_rights = position.castling_rights;
+
     for mv in move_list.iter() {
-        if position_clone.make_move(*mv) {
-            perft_driver(&position_clone, depth - 1, nodes);
+        if position_copy.make_move(*mv) {
+            perft_driver(&position_copy, depth - 1, nodes);
         }
-        position_clone = position.clone();
+
+        #[cfg(feature = "revert_with_clone")]
+        { position_copy = position.clone(); }
+
+        #[cfg(feature = "revert_with_undo_move")]
+        position_copy.undo_move(*mv, old_castling_rights);
     }
 }
 
