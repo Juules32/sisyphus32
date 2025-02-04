@@ -66,7 +66,6 @@ impl Bitboard {
     }
 }
 
-#[allow(dead_code)]
 impl Bitboard {
     pub const FILE_A: Bitboard = Bitboard(0x101010101010101);
     pub const FILE_B: Bitboard = Bitboard(0x202020202020202);

@@ -20,7 +20,6 @@ pub enum Square {
 }
 
 impl Square {
-    #[allow(dead_code)]
     pub const ALL_SQUARES: [Square; 64] = [
         Square::A8, Square::B8, Square::C8, Square::D8, Square::E8, Square::F8, Square::G8, Square::H8,
         Square::A7, Square::B7, Square::C7, Square::D7, Square::E7, Square::F7, Square::G7, Square::H7,

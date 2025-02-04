@@ -4,7 +4,6 @@ pub struct MagicBitboardGenerator {
     pub seed: u32
 }
 
-#[allow(dead_code)]
 impl MagicBitboardGenerator {
     fn generate_u32(&mut self) -> u32 {
         self.seed ^= self.seed << 13; 

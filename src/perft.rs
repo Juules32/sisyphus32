@@ -81,6 +81,51 @@ static SHORT_PERFT_POSITIONS: [PerftPosition; 5] = [
     },
 ];
 
+#[cfg(feature = "perft_single_thread")]
+pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftResult {
+    let mut current_nodes = 0_u64;
+    let mut cumulative_nodes = 0_u64;
+    let timer = Timer::new();
+
+    if print_result { pl!("\n  Performance Test\n"); }
+
+    let move_list = position.generate_moves();
+    let mut position_copy = position.clone();
+    for mv in move_list.iter() {
+        if position_copy.make_move(*mv) {
+            perft_driver(&position_copy, depth - 1, &mut current_nodes);
+        }
+        position_copy = position.clone();
+
+        if print_result {
+            pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), current_nodes));
+        }
+
+        cumulative_nodes += current_nodes;
+        current_nodes = 0;
+    }
+
+    let perft_result = PerftResult {
+        depth,
+        nodes: cumulative_nodes,
+        time: timer.get_time_passed_millis(),
+    };
+
+    if print_result {
+        pl!(format!("
+Depth: {}
+Nodes: {}
+Time: {} milliseconds\n",
+            perft_result.depth,
+            perft_result.nodes,
+            perft_result.time
+        ));
+    }
+
+    perft_result
+}
+
+#[cfg(feature = "perft_parallelize")]
 pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftResult {
     let timer = Timer::new();
 
@@ -129,6 +174,25 @@ pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftRe
     }
 }
 
+#[cfg(feature = "perft_single_thread")]
+#[inline(always)]
+fn perft_driver(position: &Position, depth: u8, nodes: &mut u64) {
+    if depth == 0 {
+        *nodes += 1;
+        return;
+    }
+
+    let move_list = position.generate_moves();
+    let mut position_clone = position.clone();
+    for mv in move_list.iter() {
+        if position_clone.make_move(*mv) {
+            perft_driver(&position_clone, depth - 1, nodes);
+        }
+        position_clone = position.clone();
+    }
+}
+
+#[cfg(feature = "perft_parallelize")]
 #[inline(always)]
 fn perft_driver(position_arc: Arc<Position>, depth: u8) -> u64 {
     if depth == 0 {

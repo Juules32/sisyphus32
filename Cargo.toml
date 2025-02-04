@@ -5,3 +5,15 @@ edition = "2021"
 
 [dependencies]
 rayon = "1.10.0"
+
+[features]
+default = ["board_representation_bitboard", "perft_single_thread"]
+
+board_representation_bitboard = []
+board_representation_array = []
+
+perft_parallelize = []
+perft_single_thread = []
+
+revert_with_undo_move = []
+revert_with_clone = []
