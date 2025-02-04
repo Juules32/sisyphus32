@@ -4,7 +4,6 @@ pub struct Timer {
     start_time: Instant,
 }
 
-#[allow(dead_code)]
 impl Timer {
     pub fn new() -> Self {
         Timer {

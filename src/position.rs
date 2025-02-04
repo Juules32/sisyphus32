@@ -4,6 +4,9 @@ use crate::{bit_move::BitMove, move_flag::MoveFlag, bitboard::Bitboard, castling
 
 #[derive(Clone)]
 pub struct Position {
+    #[cfg(feature = "board_representation_array")]
+    pub pps: [PieceType; 64],
+
     pub bbs: [Bitboard; 12],
     pub wo: Bitboard,
     pub bo: Bitboard,
@@ -39,6 +42,18 @@ impl Position {
 
     pub fn starting_position() -> Position {
         Position {
+            #[cfg(feature = "board_representation_array")]
+            pps: [
+                PieceType::BR, PieceType::BN, PieceType::BB, PieceType::BQ, PieceType::BK, PieceType::BB, PieceType::BN, PieceType::BR,
+                PieceType::BP, PieceType::BP, PieceType::BP, PieceType::BP, PieceType::BP, PieceType::BP, PieceType::BP, PieceType::BP,
+                PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None,
+                PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None,
+                PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None,
+                PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None, PieceType::None,
+                PieceType::WP, PieceType::WP, PieceType::WP, PieceType::WP, PieceType::WP, PieceType::WP, PieceType::WP, PieceType::WP,
+                PieceType::WR, PieceType::WN, PieceType::WB, PieceType::WQ, PieceType::WK, PieceType::WB, PieceType::WN, PieceType::WR,
+            ],
+
             bbs: [
                 Bitboard::WP,
                 Bitboard::WN,
@@ -65,16 +80,33 @@ impl Position {
     #[inline(always)]
     pub fn set_piece(&mut self, piece: PieceType, sq: Square) {
         self.bbs[piece].set_sq(sq);
+
+        #[cfg(feature = "board_representation_array")]
+        { self.pps[sq] = piece; }
     }
 
     #[inline(always)]
     pub fn remove_piece(&mut self, piece: PieceType, sq: Square) {
         self.bbs[piece].pop_sq(sq);
+
+        #[cfg(feature = "board_representation_array")]
+        { self.pps[sq] = PieceType::None; }
     }
 
     #[inline]
     pub fn make_move(&mut self, bit_move: BitMove) -> bool {
+        #[cfg(feature = "board_representation_bitboard")]
         let (source, target, piece, capture, flag) = bit_move.decode();
+
+        #[cfg(feature = "board_representation_array")]
+        let (source, target, flag) = bit_move.decode();
+
+        #[cfg(feature = "board_representation_array")]
+        let piece = self.pps[source];
+
+        #[cfg(feature = "board_representation_array")]
+        let capture = self.pps[target];
+
 
         debug_assert_eq!(piece.color(), self.side);
         debug_assert!(capture == PieceType::None || capture.color() == self.side.opposite());
@@ -87,7 +119,11 @@ impl Position {
 
         // Removes captured piece
         if capture != PieceType::None {
+            #[cfg(feature = "board_representation_bitboard")]
             self.remove_piece(capture, target);
+            
+            #[cfg(feature = "board_representation_array")]
+            self.bbs[capture].pop_sq(target);
         }
 
         // Resets en-passant square
@@ -210,7 +246,7 @@ impl Position {
     
     // Based on side, relevant pieces and occupancies can be selected
     #[inline]
-    pub fn generate_moves(self: &Position) -> MoveList {
+    pub fn generate_moves(&self) -> MoveList {
         let mut move_list = MoveList::default();
         
         let side = self.side;
@@ -265,15 +301,42 @@ impl Position {
                 let mut capture_mask = move_masks::get_pawn_capture_mask(side, source) & enemy_occupancies;
                 while capture_mask.is_not_empty() {
                     let target = capture_mask.pop_lsb();
+
+                    #[cfg(feature = "board_representation_bitboard")]
                     let target_piece = self.get_target_piece(enemy_pieces, target);
 
                     if source_rank == pawn_promotion_rank {
+                        
+                        #[cfg(feature = "board_representation_bitboard")]
                         move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoN));
+
+                        #[cfg(feature = "board_representation_array")]
+                        move_list.add(BitMove::encode(source, target, MoveFlag::PromoN));
+                        
+                        #[cfg(feature = "board_representation_bitboard")]
                         move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoB));
+
+                        #[cfg(feature = "board_representation_array")]
+                        move_list.add(BitMove::encode(source, target, MoveFlag::PromoB));
+                        
+                        #[cfg(feature = "board_representation_bitboard")]
                         move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoR));
+
+                        #[cfg(feature = "board_representation_array")]
+                        move_list.add(BitMove::encode(source, target, MoveFlag::PromoR));
+                        
+                        #[cfg(feature = "board_representation_bitboard")]
                         move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoQ));
+
+                        #[cfg(feature = "board_representation_array")]
+                        move_list.add(BitMove::encode(source, target, MoveFlag::PromoQ));
                     } else {
+                        
+                        #[cfg(feature = "board_representation_bitboard")]
                         move_list.add(BitMove::encode(source, target, pawn, target_piece, MoveFlag::None));
+
+                        #[cfg(feature = "board_representation_array")]
+                        move_list.add(BitMove::encode(source, target, MoveFlag::None));
                     }
                 }
 
@@ -285,15 +348,43 @@ impl Position {
                     if source_rank == pawn_starting_rank && target.rank() == pawn_double_push_rank {
                         // Making sure both squares in front of the pawn are empty
                         if (move_masks::get_pawn_quiet_mask(side, source) & self.ao).is_empty() {
+                            
+                            #[cfg(feature = "board_representation_bitboard")]
                             move_list.add(BitMove::encode(source, target, pawn, PieceType::None, double_pawn_flag));
+
+                            #[cfg(feature = "board_representation_array")]
+                                move_list.add(BitMove::encode(source, target, double_pawn_flag));
                         } 
                     } else if source_rank == pawn_promotion_rank {
+                        #[cfg(feature = "board_representation_bitboard")]
                         move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoN));
+
+                        #[cfg(feature = "board_representation_array")]
+                        move_list.add(BitMove::encode(source, target, MoveFlag::PromoN));
+                        
+                        #[cfg(feature = "board_representation_bitboard")]
                         move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoB));
+
+                        #[cfg(feature = "board_representation_array")]
+                        move_list.add(BitMove::encode(source, target, MoveFlag::PromoB));
+                        
+                        #[cfg(feature = "board_representation_bitboard")]
                         move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoR));
+
+                        #[cfg(feature = "board_representation_array")]
+                        move_list.add(BitMove::encode(source, target, MoveFlag::PromoR));
+                        
+                        #[cfg(feature = "board_representation_bitboard")]
                         move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoQ));
+
+                        #[cfg(feature = "board_representation_array")]
+                        move_list.add(BitMove::encode(source, target, MoveFlag::PromoQ));
                     } else {
+                        #[cfg(feature = "board_representation_bitboard")]
                         move_list.add(BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::None));
+
+                        #[cfg(feature = "board_representation_array")]
+                        move_list.add(BitMove::encode(source, target, MoveFlag::None));
                     }
                 }
                 
@@ -303,7 +394,11 @@ impl Position {
                     while en_passant_mask.is_not_empty() {
                         let target = en_passant_mask.pop_lsb();
                         if target == en_passant_sq {
+                            #[cfg(feature = "board_representation_bitboard")]
                             move_list.add(BitMove::encode(source, target, pawn, PieceType::None, en_passant_flag));
+
+                            #[cfg(feature = "board_representation_array")]
+                            move_list.add(BitMove::encode(source, target, en_passant_flag));
                         }
                     }
                 }
@@ -321,8 +416,15 @@ impl Position {
                 let mut move_mask = move_masks::get_knight_mask(source) & inv_own_occupancies;
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
+
+                    #[cfg(feature = "board_representation_bitboard")]
                     let target_piece = self.get_target_piece_if_any(enemy_pieces, enemy_occupancies, target);
+                    
+                    #[cfg(feature = "board_representation_bitboard")]
                     move_list.add(BitMove::encode(source, target, knight, target_piece, MoveFlag::None));
+
+                    #[cfg(feature = "board_representation_array")]
+                    move_list.add(BitMove::encode(source, target, MoveFlag::None));
                 }
             }
         }
@@ -336,8 +438,15 @@ impl Position {
             let mut move_mask = move_masks::get_king_mask(source) & inv_own_occupancies;
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
+
+                #[cfg(feature = "board_representation_bitboard")]
                 let target_piece = self.get_target_piece_if_any(enemy_pieces, enemy_occupancies, target);
+                
+                #[cfg(feature = "board_representation_bitboard")]
                 move_list.add(BitMove::encode(source, target, king, target_piece, MoveFlag::None));
+
+                #[cfg(feature = "board_representation_array")]
+                move_list.add(BitMove::encode(source, target, MoveFlag::None));
             }
 
             // Kingside Castling
@@ -347,7 +456,12 @@ impl Position {
                 !self.is_square_attacked(castling_square_f, self.side, &enemy_pieces) &&
                 !self.is_square_attacked(castling_square_g, self.side, &enemy_pieces)
                 {
+                    
+                    #[cfg(feature = "board_representation_bitboard")]
                     move_list.add(BitMove::encode(source, castling_square_g, king, PieceType::None, king_side_castling_flag));
+
+                    #[cfg(feature = "board_representation_array")]
+                    move_list.add(BitMove::encode(source, castling_square_g, king_side_castling_flag));
                 }
             }
 
@@ -358,7 +472,12 @@ impl Position {
                 !self.is_square_attacked(castling_square_d, self.side, &enemy_pieces) &&
                 !self.is_square_attacked(castling_square_c, self.side, &enemy_pieces)
                 {
+                    
+                    #[cfg(feature = "board_representation_bitboard")]
                     move_list.add(BitMove::encode(source, castling_square_c, king, PieceType::None, queen_side_castling_flag));
+
+                    #[cfg(feature = "board_representation_array")]
+                    move_list.add(BitMove::encode(source, castling_square_c, queen_side_castling_flag));
                 }
             }
         }
@@ -373,8 +492,15 @@ impl Position {
                 let mut move_mask = move_masks::get_bishop_mask(source, self.ao) & inv_own_occupancies;
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
+
+                    #[cfg(feature = "board_representation_bitboard")]
                     let target_piece = self.get_target_piece_if_any(enemy_pieces, enemy_occupancies, target);
+                    
+                    #[cfg(feature = "board_representation_bitboard")]
                     move_list.add(BitMove::encode(source, target, bishop, target_piece, MoveFlag::None));
+
+                    #[cfg(feature = "board_representation_array")]
+                    move_list.add(BitMove::encode(source, target, MoveFlag::None));
                 }
             }
         }
@@ -389,8 +515,15 @@ impl Position {
                 let mut move_mask = move_masks::get_rook_mask(source, self.ao) & inv_own_occupancies;
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
+
+                    #[cfg(feature = "board_representation_bitboard")]
                     let target_piece = self.get_target_piece_if_any(enemy_pieces, enemy_occupancies, target);
+                    
+                    #[cfg(feature = "board_representation_bitboard")]
                     move_list.add(BitMove::encode(source, target, rook, target_piece, MoveFlag::None));
+
+                    #[cfg(feature = "board_representation_array")]
+                    move_list.add(BitMove::encode(source, target, MoveFlag::None));
                 }
             }
         }
@@ -405,8 +538,15 @@ impl Position {
                 let mut move_mask = move_masks::get_queen_mask(source, self.ao) & inv_own_occupancies;
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
+
+                    #[cfg(feature = "board_representation_bitboard")]
                     let target_piece = self.get_target_piece_if_any(enemy_pieces, enemy_occupancies, target);
+                    
+                    #[cfg(feature = "board_representation_bitboard")]
                     move_list.add(BitMove::encode(source, target, queen, target_piece, MoveFlag::None));
+
+                    #[cfg(feature = "board_representation_array")]
+                    move_list.add(BitMove::encode(source, target, MoveFlag::None));
                 }
             }
         }
@@ -444,6 +584,9 @@ impl Position {
 impl Default for Position {
     fn default() -> Position {
         Position {
+            #[cfg(feature = "board_representation_array")]
+            pps: [PieceType::None; 64],
+
             bbs: [Bitboard::EMPTY; 12],
             wo: Bitboard::EMPTY,
             bo: Bitboard::EMPTY,
