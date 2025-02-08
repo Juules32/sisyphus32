@@ -2,7 +2,7 @@ use std::mem::transmute;
 use core::fmt;
 
 #[repr(u8)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum MoveFlag {
     None,
     WEnPassant,
