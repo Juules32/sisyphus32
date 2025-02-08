@@ -7,7 +7,7 @@ pub const TRICKY_POSITION: &str = "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1P
 pub const TRICKY_POSITION_2: &str = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
 
 #[derive(Debug)]
-pub struct FenParseError(&'static str);
+pub struct FenParseError(pub &'static str);
 
 pub fn parse(fen_string: &str) -> Result<Position, FenParseError> {
     let mut pos = Position::default();

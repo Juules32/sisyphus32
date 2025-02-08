@@ -100,6 +100,7 @@ impl From<u8> for Square {
 
 #[derive(Debug)]
 pub struct SquareParseError(pub &'static str);
+
 impl TryFrom<&str> for Square {
     type Error = SquareParseError;
 
