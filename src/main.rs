@@ -1,5 +1,8 @@
 #![allow(dead_code, unused_imports, unused_assignments)]
 
+use position::Position;
+use uci::UCI;
+
 // NOTE: The following pairs of features are not allowed to be used together:
 #[cfg(all(feature = "perft_parallelize", feature = "perft_single_thread"))]
 compile_error!("feature \"perft_parallelize\" and feature \"perft_single_thread\" cannot be enabled at the same time!");
@@ -18,7 +21,7 @@ mod bitboard;
 mod position;
 mod castling_rights;
 mod color;
-mod engine;
+mod uci;
 mod fen;
 mod file;
 mod macros;
@@ -35,5 +38,5 @@ mod move_flag;
 
 fn main() {
     move_masks::init();
-    perft::short_perft_tests();
+    UCI::default().init();
 }
