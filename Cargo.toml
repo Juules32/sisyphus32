@@ -7,7 +7,7 @@ edition = "2021"
 rayon = "1.10.0"
 
 [features]
-default = ["board_representation_bitboard", "perft_single_thread", "revert_with_clone"]
+default = ["board_representation_bitboard", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards"]
 
 board_representation_bitboard = []
 board_representation_array = []
@@ -17,3 +17,6 @@ perft_single_thread = []
 
 revert_with_clone = []
 revert_with_undo_move = []
+
+sliders_magic_bitboards = []
+sliders_on_the_fly = []

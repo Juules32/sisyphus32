@@ -13,8 +13,11 @@ compile_error!("feature \"board_representation_bitboard\" and feature \"board_re
 #[cfg(all(feature = "revert_with_clone", feature = "revert_with_undo_move"))]
 compile_error!("feature \"revert_with_clone\" and feature \"revert_with_undo_move\" cannot be enabled at the same time!");
 
+#[cfg(all(feature = "sliders_magic_bitboards", feature = "sliders_on_the_fly"))]
+compile_error!("feature \"sliders_magic_bitboards\" and feature \"sliders_on_the_fly\" cannot be enabled at the same time!");
+
 #[cfg(all(feature = "revert_with_undo_move", feature = "board_representation_array"))]
-compile_error!("feature \"revert_with_clone\" and feature \"revert_with_undo_move\" cannot be enabled at the same time!");
+compile_error!("feature \"revert_with_undo_move\" and feature \"board_representation_array\" cannot be enabled at the same time!");
 
 mod bit_move;
 mod bitboard;
