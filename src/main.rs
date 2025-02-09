@@ -1,7 +1,7 @@
 #![allow(dead_code, unused_imports, unused_assignments)]
 
 use position::Position;
-use uci::UCI;
+use uci::Uci;
 
 // NOTE: The following pairs of features are not allowed to be used together:
 #[cfg(all(feature = "perft_parallelize", feature = "perft_single_thread"))]
@@ -41,6 +41,6 @@ mod move_flag;
 
 fn main() {
     move_masks::init();
-    perft::short_perft_tests();
-    UCI::default().init();
+    // perft::short_perft_tests();
+    Uci::default().init();
 }
