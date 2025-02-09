@@ -1,50 +1,63 @@
-use std::{io::{self, BufRead}, process::exit};
+use std::{error::Error, io::{self, BufRead}, num::ParseIntError, process::exit};
 
-use crate::{bit_move::BitMove, fen::{self, FenParseError}, move_flag::MoveFlag, pl, position::Position, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, fen::{self, FenParseError}, move_flag::MoveFlag, perft, pl, position::Position, square::{Square, SquareParseError}};
 
-pub fn print_info(text: &str) {
-    pl!("info ".to_owned() + text);
-}
-
-pub struct UCIParseError(pub &'static str);
+pub struct UciParseError(pub &'static str);
 
 #[derive(Default)]
-pub struct UCI {
+pub struct Uci {
     pub position: Position
 }
 
-impl UCI {
+impl Uci {
     pub fn init(&mut self) {
+        Self::print_uci_info();
+
         let mut lines = io::stdin().lock().lines();
         while let Some(Ok(line)) = lines.next() {
             self.parse_line(line);
         }
     }
+
+    fn print_uci_info() {
+        pl!("id name unnamed-chess-engine");
+        pl!("id author Juules32");
+        pl!("uciok");
+    }
     
     fn parse_line(&mut self, line: String) {
         let mut words = line.split_whitespace();
-        let result: Result<(), UCIParseError> = match words.next() {
+        let result: Result<(), UciParseError> = match words.next() {
             Some(keyword) => {
                 match keyword {
                     "quit" | "exit" => exit(0),
                     "go" => self.parse_go(words),
-                    "position" => self.parse_position(line),
-                    _ => Ok(()),
+                    "position" => self.parse_position(&line),
+                    "ucinewgame" => self.parse_position("position startpos"),
+                    "isready" => {
+                        pl!("readyok");
+                        Ok(())
+                    },
+                    "uci" => {
+                        Self::print_uci_info();
+                        Ok(())
+                    }
+                    "" => Ok(()),
+                    _ => Err(UciParseError("Found unknown keyword!")),
                 }
             }
             None => Ok(()),
         };
 
-        match result {
-            Err(UCIParseError(message)) => { pl!(message); },
-            _ => (),
+        if let Err(UciParseError(msg)) = result {
+            eprintln!("{msg}");
         }
     }
 
-    fn parse_move_string(&mut self, move_string: &str) -> Result<BitMove, UCIParseError> {
+    fn parse_move_string(&mut self, move_string: &str) -> Result<BitMove, UciParseError> {
         if move_string.len() == 4 || move_string.len() == 5 {
-            let source = Square::try_from(&move_string[0..2]).map_err(|SquareParseError(msg)| UCIParseError(msg))?;
-            let target = Square::try_from(&move_string[2..4]).map_err(|SquareParseError(msg)| UCIParseError(msg))?;
+            let source = Square::try_from(&move_string[0..2]).map_err(|SquareParseError(msg)| UciParseError(msg))?;
+            let target = Square::try_from(&move_string[2..4]).map_err(|SquareParseError(msg)| UciParseError(msg))?;
             let promotion_piece_option = if move_string.len() == 5 {
                 Some(&move_string[4..5])
             } else {
@@ -65,7 +78,7 @@ impl UCI {
                                 "r" => if f == MoveFlag::PromoR { return Ok(*m) },
                                 "b" => if f == MoveFlag::PromoB { return Ok(*m) },
                                 "n" => if f == MoveFlag::PromoN { return Ok(*m) },
-                                _ => return Err(UCIParseError("Found illegal promotion piece string!"))
+                                _ => return Err(UciParseError("Found illegal promotion piece string!"))
                             }
                         },
                         None => return Ok(*m),
@@ -73,13 +86,13 @@ impl UCI {
                 }
             }
 
-            Err(UCIParseError("Couldn't find a pseudo-legal move!"))
+            Err(UciParseError("Couldn't find a pseudo-legal move!"))
         } else {
-            Err(UCIParseError("Couldn't parse move with illegal amount of characters!"))
+            Err(UciParseError("Couldn't parse move with illegal amount of characters!"))
         }
     }
     
-    fn parse_position(&mut self, line: String) -> Result<(), UCIParseError> {
+    fn parse_position(&mut self, line: &str) -> Result<(), UciParseError> {
         let fen_index_option = line.find("fen");
         let startpos_index_option = line.find("startpos");
         let moves_index_option = line.find("moves");
@@ -91,18 +104,18 @@ impl UCI {
                     None => &line[fen_index + 3..].trim(),
                 }
             };
-            self.position = fen::parse(fen_string).map_err(|FenParseError(msg)| UCIParseError(msg))?;
-        } else if let Some(_) = startpos_index_option {
-            self.position = fen::parse(fen::STARTING_POSITION).map_err(|FenParseError(msg)| UCIParseError(msg))?;
+            self.position = fen::parse(fen_string).map_err(|FenParseError(msg)| UciParseError(msg))?;
+        } else if startpos_index_option.is_some() {
+            self.position = fen::parse(fen::STARTING_POSITION).map_err(|FenParseError(msg)| UciParseError(msg))?;
         } else {
-            return Err(UCIParseError("Neither fen nor startpos found!"));
+            return Err(UciParseError("Neither fen nor startpos found!"));
         }
 
         if let Some(moves_index) = moves_index_option {
-            for move_string in line[moves_index + 5..].trim().split_whitespace() {
+            for move_string in line[moves_index + 5..].split_whitespace() {
                 let pseudo_legal_move = self.parse_move_string(move_string)?;
                 if !self.position.make_move(pseudo_legal_move) {
-                    return Err(UCIParseError("Found illegal move while parsing moves!"))
+                    return Err(UciParseError("Found illegal move while parsing moves!"))
                 }
             }
         }
@@ -111,7 +124,28 @@ impl UCI {
         Ok(())
     }
     
-    fn parse_go<'a, I>(&self, words: I) -> Result<(), UCIParseError> where I: Iterator<Item = &'a str> {
-        todo!()
+    fn parse_go<'a, I>(&self, mut words: I) -> Result<(), UciParseError> where I: Iterator<Item = &'a str> {
+        match words.next() {
+            Some(word) => {
+                match word {
+                    "perft" => {
+                        match words.next() {
+                            Some(depth_string) => {
+                                match depth_string.parse::<u8>() {
+                                    Ok(depth) => {
+                                        perft::perft_test(&self.position, depth, true);
+                                        Ok(())
+                                    },
+                                    Err(_) => Err(UciParseError("Couldn't parse depth string!")),
+                                }
+                            },
+                            None => Err(UciParseError("Couldn't find perft depth!")),
+                        }
+                    }
+                    _ => Err(UciParseError("Unknown go command found!"))
+                }
+            },
+            None => Err(UciParseError("Couldn't find go command!"))
+        }
     }
 }
