@@ -53,7 +53,10 @@ impl UCI {
 
             let ms = self.position.generate_moves();
             for m in ms.iter() {
-                let (s, t, _, _, f) = m.decode();
+                let s = m.source();
+                let t = m.target();
+                let f = m.flag();
+                
                 if source == s && target == t {
                     match promotion_piece_option {
                         Some(promotion_piece_string) => {

@@ -33,37 +33,37 @@ impl BitMove {
     pub const EMPTY: BitMove = BitMove(0);
 
     #[inline(always)]
-    fn source(&self) -> Square {
+    pub fn source(&self) -> Square {
         Square::from((self.0 & SOURCE_MASK) as u8)
     }
 
     #[inline(always)]
-    fn target(&self) -> Square {
+    pub fn target(&self) -> Square {
         Square::from(((self.0 & TARGET_MASK) >> 6) as u8)
     }
 
     #[cfg(feature = "board_representation_bitboard")]
     #[inline(always)]
-    fn piece(&self) -> PieceType {
+    pub fn piece(&self) -> PieceType {
         PieceType::from(((self.0 & PIECE_MASK) >> 12) as u8)
     }
 
     #[cfg(feature = "board_representation_bitboard")]
     #[inline(always)]
-    fn capture(&self) -> PieceType {
+    pub fn capture(&self) -> PieceType {
         PieceType::from(((self.0 & CAPTURE_MASK) >> 16) as u8)
     }
 
     #[cfg(feature = "board_representation_bitboard")]
     #[inline(always)]
-    fn flag(&self) -> MoveFlag {
+    pub fn flag(&self) -> MoveFlag {
         MoveFlag::from(((self.0 & FLAG_MASK) >> 20) as u8)
     }
 
     // NOTE: For the array representation, the flag mask is offset by 12 instead of 20
     #[cfg(feature = "board_representation_array")]
     #[inline(always)]
-    fn flag(&self) -> MoveFlag {
+    pub fn flag(&self) -> MoveFlag {
         MoveFlag::from(((self.0 & FLAG_MASK) >> 12) as u8)
     }
 

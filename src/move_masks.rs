@@ -499,11 +499,13 @@ pub fn get_king_mask(square: Square) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn get_bishop_mask_old(square: Square, occupancy: Bitboard) -> Bitboard {
+#[cfg(feature = "sliders_on_the_fly")]
+pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
     generate_bishop_moves_on_the_fly(square, occupancy)
 }
 
 #[inline(always)]
+#[cfg(feature = "sliders_magic_bitboards")]
 pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
     unsafe {
         let mut index = occupancy.0 & BISHOP_MASKS[square].0;
@@ -515,11 +517,13 @@ pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn get_rook_mask_old(square: Square, occupancy: Bitboard) -> Bitboard {
+#[cfg(feature = "sliders_on_the_fly")]
+pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
     generate_rook_moves_on_the_fly(square, occupancy)
 }
 
 #[inline(always)]
+#[cfg(feature = "sliders_magic_bitboards")]
 pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
     unsafe {
         let mut index = occupancy.0 & ROOK_MASKS[square].0;
@@ -531,11 +535,13 @@ pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn get_queen_mask_old(square: Square, occupancy: Bitboard) -> Bitboard {
-    get_bishop_mask_old(square, occupancy) | get_rook_mask_old(square, occupancy)
+#[cfg(feature = "sliders_on_the_fly")]
+pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    get_bishop_mask(square, occupancy) | get_rook_mask(square, occupancy)
 }
 
 #[inline(always)]
+#[cfg(feature = "sliders_magic_bitboards")]
 pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
     get_bishop_mask(square, occupancy) | get_rook_mask(square, occupancy)
 }
