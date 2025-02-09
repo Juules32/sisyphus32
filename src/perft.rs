@@ -81,7 +81,7 @@ static SHORT_PERFT_POSITIONS: [PerftPosition; 5] = [
     },
 ];
 
-#[cfg(feature = "perft_single_thread")]
+#[cfg(all(feature = "perft_single_thread", feature = "revert_with_undo_move"))]
 pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftResult {
     let mut current_nodes = 0_u64;
     let mut cumulative_nodes = 0_u64;
@@ -89,21 +89,13 @@ pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftRe
 
     if print_result { pl!("\n  Performance Test\n"); }
 
-    let move_list = position.generate_moves();
     let mut position_copy = position.clone();
-
-    #[cfg(feature = "revert_with_undo_move")]
     let old_castling_rights = position.castling_rights;
-
-    for mv in move_list.iter() {
+    
+    for mv in position.generate_moves().iter() {
         if position_copy.make_move(*mv) {
-            perft_driver(&position_copy, depth - 1, &mut current_nodes);
+            current_nodes += perft_driver(&position_copy, depth - 1);
         }
-
-        #[cfg(feature = "revert_with_clone")]
-        { position_copy = position.clone(); }
-
-        #[cfg(feature = "revert_with_undo_move")]
         position_copy.undo_move(*mv, old_castling_rights);
 
         if print_result {
@@ -124,7 +116,50 @@ pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftRe
         pl!(format!("
 Depth: {}
 Nodes: {}
-Time: {} milliseconds\n",
+ Time: {} milliseconds\n",
+            perft_result.depth,
+            perft_result.nodes,
+            perft_result.time
+        ));
+    }
+
+    perft_result
+}
+
+#[cfg(all(feature = "perft_single_thread", feature = "revert_with_clone"))]
+pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftResult {
+    let mut current_nodes = 0_u64;
+    let mut cumulative_nodes = 0_u64;
+    let timer = Timer::new();
+
+    if print_result { pl!("\n  Performance Test\n"); }
+
+    for mv in position.generate_moves().iter() {
+        let mut position_copy = position.clone();
+
+        if position_copy.make_move(*mv) {
+            current_nodes += perft_driver(&position_copy, depth - 1);
+        }
+
+        if print_result {
+            pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), current_nodes));
+        }
+
+        cumulative_nodes += current_nodes;
+        current_nodes = 0;
+    }
+
+    let perft_result = PerftResult {
+        depth,
+        nodes: cumulative_nodes,
+        time: timer.get_time_passed_millis(),
+    };
+
+    if print_result {
+        pl!(format!("
+Depth: {}
+Nodes: {}
+ Time: {} milliseconds\n",
             perft_result.depth,
             perft_result.nodes,
             perft_result.time
@@ -151,9 +186,9 @@ pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftRe
     let cumulative_nodes = move_list
         .par_iter()
         .map(|&mv| {
-            let mut pos_clone = (*position_arc).clone();
-            if pos_clone.make_move(mv) {
-                let nodes = perft_driver(Arc::new(pos_clone), depth - 1);
+            let mut position_arc_copy = (*position_arc).clone();
+            if position_arc_copy.make_move(mv) {
+                let nodes = perft_driver(Arc::new(position_arc_copy), depth - 1);
                 if print_result {
                     pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), nodes));
                 }
@@ -183,30 +218,44 @@ pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftRe
     }
 }
 
-#[cfg(feature = "perft_single_thread")]
+#[cfg(all(feature = "perft_single_thread", feature = "revert_with_undo_move"))]
 #[inline(always)]
-fn perft_driver(position: &Position, depth: u8, nodes: &mut u64) {
+fn perft_driver(position: &Position, depth: u8) -> u64 {
     if depth == 0 {
-        *nodes += 1;
-        return;
-    }
-
-    let move_list = position.generate_moves();
-    let mut position_copy = position.clone();
-    
-    #[cfg(feature = "revert_with_undo_move")]
-    let old_castling_rights = position.castling_rights;
-
-    for mv in move_list.iter() {
-        if position_copy.make_move(*mv) {
-            perft_driver(&position_copy, depth - 1, nodes);
+        1
+    } else {
+        let mut nodes = 0;
+        let mut position_copy = position.clone();
+        let old_castling_rights = position.castling_rights;
+        
+        for mv in position.generate_moves().iter() {
+            if position_copy.make_move(*mv) {
+                nodes += perft_driver(&position_copy, depth - 1);
+            }
+            position_copy.undo_move(*mv, old_castling_rights);
         }
+        nodes
+    }
+}
 
-        #[cfg(feature = "revert_with_clone")]
-        { position_copy = position.clone(); }
-
-        #[cfg(feature = "revert_with_undo_move")]
-        position_copy.undo_move(*mv, old_castling_rights);
+#[cfg(all(feature = "perft_single_thread", feature = "revert_with_clone"))]
+#[inline(always)]
+fn perft_driver(position: &Position, depth: u8) -> u64 {
+    if depth == 0 {
+        1
+    } else {
+        position
+            .generate_moves()
+            .iter()
+            .map(|mv| {
+                let mut position_copy = position.clone();
+                if position_copy.make_move(*mv) {
+                    perft_driver(&position_copy, depth - 1)
+                } else {
+                    0
+                }
+            })
+            .sum()
     }
 }
 
@@ -220,9 +269,9 @@ fn perft_driver(position_arc: Arc<Position>, depth: u8) -> u64 {
         position_arc.generate_moves()
             .iter()
             .map(|mv| {
-                let mut pos_clone = (*position_arc).clone();
-                if pos_clone.make_move(*mv) {
-                    perft_driver(Arc::new(pos_clone), depth - 1)
+                let mut position_arc_copy = (*position_arc).clone();
+                if position_arc_copy.make_move(*mv) {
+                    perft_driver(Arc::new(position_arc_copy), depth - 1)
                 } else {
                     0
                 }
@@ -233,9 +282,9 @@ fn perft_driver(position_arc: Arc<Position>, depth: u8) -> u64 {
         position_arc.generate_moves()
             .par_iter()
             .map(|mv| {
-                let mut pos_clone = (*position_arc).clone();
-                if pos_clone.make_move(*mv) {
-                    perft_driver(Arc::new(pos_clone), depth - 1)
+                let mut position_arc_copy = (*position_arc).clone();
+                if position_arc_copy.make_move(*mv) {
+                    perft_driver(Arc::new(position_arc_copy), depth - 1)
                 } else {
                     0
                 }
