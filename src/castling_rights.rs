@@ -13,7 +13,7 @@ const INDEX_2_CASTLING_RIGHTS: [u8; 64] = [
     0b1101, 0b1111, 0b1111, 0b1111, 0b1100, 0b1111, 0b1111, 0b1110
 ];
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct CastlingRights(pub u8);
 
 impl CastlingRights {
@@ -53,10 +53,15 @@ impl CastlingRights {
 
 impl fmt::Display for CastlingRights {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let wk = if self.wk() { "K" } else { "-" };
-        let wq = if self.wq() { "Q" } else { "-" };
-        let bk = if self.bk() { "k" } else { "-" };
-        let bq = if self.bq() { "q" } else { "-" };
-        f.pad(&format!("{}{}{}{}", wk, wq, bk, bq))
+        match *self {
+            CastlingRights::NONE => f.pad(&format!("-")),
+            _ => {
+                let wk = if self.wk() { "K" } else { "" };
+                let wq = if self.wq() { "Q" } else { "" };
+                let bk = if self.bk() { "k" } else { "" };
+                let bq = if self.bq() { "q" } else { "" };
+                f.pad(&format!("{}{}{}{}", wk, wq, bk, bq))
+            }
+        }
     }
 }

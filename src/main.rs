@@ -41,6 +41,5 @@ mod move_flag;
 
 fn main() {
     move_masks::init();
-    // perft::short_perft_tests();
     Uci::default().init();
 }

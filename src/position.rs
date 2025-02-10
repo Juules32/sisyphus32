@@ -1,6 +1,6 @@
 use core::fmt;
 use std::collections::HashSet;
-use crate::{bit_move::BitMove, move_flag::MoveFlag, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, move_masks, move_list::MoveList, piece::PieceType, rank::Rank, square::Square};
+use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, fen, move_flag::MoveFlag, move_list::MoveList, move_masks, piece::{self, PieceType}, rank::Rank, square::Square};
 
 #[derive(Clone)]
 pub struct Position {
@@ -649,6 +649,16 @@ impl Position {
     }
 
     #[inline(always)]
+    fn get_piece_type(&self, square: Square) -> PieceType {
+        for piece_type in PieceType::ALL_PIECES {
+            if self.bbs[piece_type].is_set_sq(square) {
+                return piece_type
+            }
+        }
+        PieceType::None
+    }
+
+    #[inline(always)]
     pub fn get_target_piece(&self, enemy_piece_types: [PieceType; 6], target: Square) -> PieceType {
         for piece_type in enemy_piece_types {
             if self.bbs[piece_type].is_set_sq(target) {
@@ -666,6 +676,64 @@ impl Position {
         }
         
         self.get_target_piece(enemy_piece_types, target)
+    }
+
+    fn to_fen_string(&self) -> String {
+        let mut fen_str = String::new();
+        let mut curr_width = 0;
+        let mut curr_empty = 0;
+        for square in Square::ALL_SQUARES {
+            curr_width += 1;
+
+            let piece_type = self.get_piece_type(square);
+            match piece_type {
+                PieceType::None => curr_empty += 1,
+                _ => {
+                    if curr_empty != 0 {
+                        fen_str.push_str(&curr_empty.to_string());
+                        curr_empty = 0;
+                    }
+                    fen_str.push(piece_type.into())
+                }
+            }
+
+
+            if curr_width == 8 {
+                if curr_empty != 0 {
+                    fen_str.push_str(&curr_empty.to_string());
+                }
+
+                if square != *Square::ALL_SQUARES.last().unwrap() {
+                    fen_str.push('/');
+                }
+
+                curr_empty = 0;
+                curr_width = 0;
+            }
+        }
+
+        fen_str.push(' ');
+
+        fen_str.push(
+            match self.side {
+                Color::White => 'w',
+                Color::Black => 'b',
+            }
+        );
+
+        fen_str.push(' ');
+
+        fen_str.push_str(&self.castling_rights.to_string());
+
+        fen_str.push(' ');
+
+        fen_str.push_str(
+            &match self.en_passant_sq {
+                Square::None => "-".to_owned(),
+                _ => self.en_passant_sq.to_string(),
+            }
+        );
+        fen_str
     }
 }
 
@@ -710,11 +778,11 @@ impl fmt::Display for Position {
             "
      a b c d e f g h
 
-     FEN:        {}
-     Side        {}
-     En-passant: {}
-     Castling:   {}\n",
-            "Not Implemented",
+  FEN:        {}
+  Side        {}
+  En-passant: {}
+  Castling:   {}\n",
+            self.to_fen_string(),
             self.side,
             self.en_passant_sq,
             self.castling_rights
