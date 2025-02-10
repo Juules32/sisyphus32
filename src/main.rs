@@ -38,6 +38,7 @@ mod timer;
 mod perft;
 mod bit_twiddles;
 mod move_flag;
+mod search;
 
 fn main() {
     move_masks::init();

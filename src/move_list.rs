@@ -35,6 +35,11 @@ impl MoveList {
     pub fn iter(&self) -> impl Iterator<Item = &BitMove> {
         self.array[..self.size].iter()
     }
+
+    #[inline(always)]
+    pub fn len(&self) -> usize {
+        self.size
+    }
 }
 
 impl<'a> rayon::iter::IntoParallelRefIterator<'a> for MoveList {

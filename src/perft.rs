@@ -92,7 +92,7 @@ pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftRe
     let mut position_copy = position.clone();
     let old_castling_rights = position.castling_rights;
     
-    for mv in position.generate_moves().iter() {
+    for mv in position.generate_pseudo_legal_moves().iter() {
         if position_copy.make_move(*mv) {
             current_nodes += perft_driver(&position_copy, depth - 1);
         }
@@ -134,7 +134,7 @@ pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftRe
 
     if print_result { pl!("\n  Performance Test\n"); }
 
-    for mv in position.generate_moves().iter() {
+    for mv in position.generate_pseudo_legal_moves().iter() {
         let mut position_copy = position.clone();
 
         if position_copy.make_move(*mv) {
@@ -177,7 +177,7 @@ pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftRe
         pl!("\n  Performance Test\n");
     }
 
-    let move_list = position.generate_moves();
+    let move_list = position.generate_pseudo_legal_moves();
 
     // Thread-safe clone of position
     let position_arc = Arc::new(position.clone());
@@ -228,7 +228,7 @@ fn perft_driver(position: &Position, depth: u8) -> u64 {
         let mut position_copy = position.clone();
         let old_castling_rights = position.castling_rights;
         
-        for mv in position.generate_moves().iter() {
+        for mv in position.generate_pseudo_legal_moves().iter() {
             if position_copy.make_move(*mv) {
                 nodes += perft_driver(&position_copy, depth - 1);
             }
@@ -245,7 +245,7 @@ fn perft_driver(position: &Position, depth: u8) -> u64 {
         1
     } else {
         position
-            .generate_moves()
+            .generate_pseudo_legal_moves()
             .iter()
             .map(|mv| {
                 let mut position_copy = position.clone();
@@ -266,7 +266,7 @@ fn perft_driver(position_arc: Arc<Position>, depth: u8) -> u64 {
         1
     } else if depth <= 2 {
         // Recursively counts nodes sequentially
-        position_arc.generate_moves()
+        position_arc.generate_pseudo_legal_moves()
             .iter()
             .map(|mv| {
                 let mut position_arc_copy = (*position_arc).clone();
@@ -279,7 +279,7 @@ fn perft_driver(position_arc: Arc<Position>, depth: u8) -> u64 {
             .sum()
     } else {
         // Recursively counts nodes in parallel
-        position_arc.generate_moves()
+        position_arc.generate_pseudo_legal_moves()
             .par_iter()
             .map(|mv| {
                 let mut position_arc_copy = (*position_arc).clone();
