@@ -1,12 +1,19 @@
 #[macro_export]
 macro_rules! pl {
     () => {
-        println!();
+        println!()
     };
 
     ($($x:expr),*) => {
         $(
-            println!("{}", $x);
+            println!("{}", $x)
         )*
+    };
+}
+
+#[macro_export]
+macro_rules! pli {
+    ($($x:expr),*) => {
+        pl!($x)
     };
 }

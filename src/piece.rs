@@ -112,6 +112,26 @@ impl From<char> for PieceType {
     }
 }
 
+impl Into<char> for PieceType {
+    fn into(self) -> char {
+        match self {
+            PieceType::WP => 'P',
+            PieceType::WN => 'N',
+            PieceType::WB => 'B',
+            PieceType::WR => 'R',
+            PieceType::WQ => 'Q',
+            PieceType::WK => 'K',
+            PieceType::BP => 'p',
+            PieceType::BN => 'n',
+            PieceType::BB => 'b',
+            PieceType::BR => 'r',
+            PieceType::BQ => 'q',
+            PieceType::BK => 'k',
+            PieceType::None => panic!("Can't convert none piece type to char!"),
+        }
+    }
+}
+
 impl fmt::Display for PieceType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s = match self {

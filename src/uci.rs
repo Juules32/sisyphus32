@@ -4,9 +4,14 @@ use crate::{bit_move::BitMove, fen::{self, FenParseError}, move_flag::MoveFlag, 
 
 pub struct UciParseError(pub &'static str);
 
-#[derive(Default)]
 pub struct Uci {
     pub position: Position
+}
+
+impl Default for Uci {
+    fn default() -> Self {
+        Self { position: Position::starting_position() }
+    }
 }
 
 impl Uci {
@@ -15,7 +20,9 @@ impl Uci {
 
         let mut lines = io::stdin().lock().lines();
         while let Some(Ok(line)) = lines.next() {
-            self.parse_line(line);
+            if let Err(UciParseError(msg)) = self.parse_line(line) {
+                eprintln!("{msg}");
+            };
         }
     }
 
@@ -25,32 +32,28 @@ impl Uci {
         pl!("uciok");
     }
     
-    fn parse_line(&mut self, line: String) {
+    fn parse_line(&mut self, line: String) -> Result<(), UciParseError> {
         let mut words = line.split_whitespace();
-        let result: Result<(), UciParseError> = match words.next() {
+        match words.next() {
             Some(keyword) => {
                 match keyword {
                     "quit" | "exit" => exit(0),
                     "go" => self.parse_go(words),
                     "position" => self.parse_position(&line),
                     "ucinewgame" => self.parse_position("position startpos"),
-                    "isready" => {
-                        pl!("readyok");
-                        Ok(())
-                    },
+                    "isready" => Ok(pl!("readyok")),
                     "uci" => {
-                        Self::print_uci_info();
-                        Ok(())
-                    }
-                    "" => Ok(()),
-                    _ => Err(UciParseError("Found unknown keyword!")),
+                        Ok(Self::print_uci_info())
+                    },
+                    "d" => {
+                        Ok(pl!(self.position))
+                    },
+                    "bench" | "benchmain" => Ok(perft::main_perft_tests()),
+                    "benchshort" => Ok(perft::short_perft_tests()),
+                    _ => return Err(UciParseError("Found unknown keyword!")),
                 }
             }
-            None => Ok(()),
-        };
-
-        if let Err(UciParseError(msg)) = result {
-            eprintln!("{msg}");
+            None => return Ok(()),
         }
     }
 
@@ -120,7 +123,6 @@ impl Uci {
             }
         }
 
-        pl!(self.position);
         Ok(())
     }
     
@@ -145,6 +147,7 @@ impl Uci {
                     _ => Err(UciParseError("Unknown go command found!"))
                 }
             },
+            // TODO: Make default "go" command, like Stockfish does
             None => Err(UciParseError("Couldn't find go command!"))
         }
     }
