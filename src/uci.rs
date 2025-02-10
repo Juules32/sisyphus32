@@ -1,6 +1,6 @@
 use std::{error::Error, io::{self, BufRead}, num::ParseIntError, process::exit};
 
-use crate::{bit_move::BitMove, fen::{self, FenParseError}, move_flag::MoveFlag, perft, pl, position::Position, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, fen::{self, FenParseError}, move_flag::MoveFlag, perft, pl, position::Position, search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
@@ -27,7 +27,7 @@ impl Uci {
     }
 
     fn print_uci_info() {
-        pl!("id name unnamed-chess-engine");
+        pl!("id name Sisyphus32");
         pl!("id author Juules32");
         pl!("uciok");
     }
@@ -41,16 +41,14 @@ impl Uci {
                     "go" => self.parse_go(words),
                     "position" => self.parse_position(&line),
                     "ucinewgame" => self.parse_position("position startpos"),
+                    "uci" => Ok(Self::print_uci_info()),
                     "isready" => Ok(pl!("readyok")),
-                    "uci" => {
-                        Ok(Self::print_uci_info())
-                    },
                     "d" => {
                         Ok(pl!(self.position))
                     },
                     "bench" | "benchmain" => Ok(perft::main_perft_tests()),
                     "benchshort" => Ok(perft::short_perft_tests()),
-                    _ => return Err(UciParseError("Found unknown keyword!")),
+                    _ => return Err(UciParseError("Couldn't parse keyword!")),
                 }
             }
             None => return Ok(()),
@@ -67,7 +65,7 @@ impl Uci {
                 None
             };
 
-            let ms = self.position.generate_moves();
+            let ms = self.position.generate_pseudo_legal_moves();
             for m in ms.iter() {
                 let s = m.source();
                 let t = m.target();
@@ -141,14 +139,27 @@ impl Uci {
                                     Err(_) => Err(UciParseError("Couldn't parse depth string!")),
                                 }
                             },
-                            None => Err(UciParseError("Couldn't find perft depth!")),
+                            None => Err(UciParseError("Didn't find perft depth!")),
                         }
-                    }
-                    _ => Err(UciParseError("Unknown go command found!"))
+                    },
+                    "depth" => {
+                        match words.next() {
+                            Some(depth_string) => {
+                                match depth_string.parse::<u8>() {
+                                    Ok(depth) => Ok(search::go(&mut self.position.clone(), depth)),
+                                    Err(_) => Err(UciParseError("Couldn't parse depth string!"))
+                                }
+                            },
+                            None => Err(UciParseError("Didn't find depth string!")),
+                        }
+                    },
+                    _ => {
+                        search::go(&mut self.position.clone(), 3);
+                        Err(UciParseError("Couldn't parse go command! Calculated go depth 3 instead."))
+                    },
                 }
             },
-            // TODO: Make default "go" command, like Stockfish does
-            None => Err(UciParseError("Couldn't find go command!"))
+            None => Ok(search::go(&mut self.position.clone(), 255))
         }
     }
 }
