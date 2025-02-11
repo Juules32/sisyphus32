@@ -202,6 +202,8 @@ Nodes: {}
 
 #[cfg(feature = "perft_parallelize")]
 pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftResult {
+    use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
+
     let timer = Timer::new();
 
     if print_result {
@@ -292,7 +294,9 @@ fn perft_driver(position: &Position, depth: u8) -> u64 {
 
 #[cfg(feature = "perft_parallelize")]
 #[inline(always)]
-fn perft_driver(position_arc: Arc<Position>, depth: u8) -> u64 {
+fn perft_driver(position_arc: std::sync::Arc<Position>, depth: u8) -> u64 {
+    use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
+
     if depth == 0 {
         1
     } else if depth <= 2 {

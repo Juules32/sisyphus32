@@ -1,4 +1,4 @@
-use crate::{move_flag::MoveFlag, piece::PieceType, square::Square};
+use crate::{move_flag::MoveFlag, square::Square, piece::PieceType};
 use core::fmt;
 use std::{cmp::Ordering, fmt::Display, hash::Hash};
 
