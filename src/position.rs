@@ -840,3 +840,15 @@ impl fmt::Display for Position {
         f.pad(&s)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generate_pseudo_legal_moves_returns_unique_moves() {
+        let move_list = Position::starting_position().generate_pseudo_legal_moves();
+        let mut seen = HashSet::new();
+        assert!(move_list.iter().all(|&m| seen.insert(m)));
+    }
+}
