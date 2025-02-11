@@ -851,9 +851,4 @@ mod tests {
         let mut seen = HashSet::new();
         assert!(move_list.iter().all(|&m| seen.insert(m)));
     }
-
-    #[test]
-    fn false_test() {
-        assert!(false)
-    }
 }
