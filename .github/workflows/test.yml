@@ -2,7 +2,7 @@ name: Test
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -11,9 +11,9 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: Run tests
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      name: Run Tests
       run: cargo test --verbose
