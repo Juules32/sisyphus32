@@ -1,6 +1,4 @@
-use crate::{bit_move::{BitMove, Move}, fen, pl, position::Position, timer::Timer, move_masks};
-use std::sync::Arc;
-use rayon::prelude::*;
+use crate::{fen, pl, position::Position, timer::Timer};
 
 pub struct PerftResult {
     depth: u8,
@@ -15,7 +13,7 @@ struct PerftPosition {
     target_nodes: u64
 }
 
-static MAIN_PERFT_POSITIONS: [PerftPosition; 5] = [
+static LONG_PERFT_POSITIONS: [PerftPosition; 5] = [
     PerftPosition {
         name: "Starting Position",
         fen: fen::STARTING_POSITION,
@@ -48,7 +46,7 @@ static MAIN_PERFT_POSITIONS: [PerftPosition; 5] = [
     },
 ];
 
-static SHORT_PERFT_POSITIONS: [PerftPosition; 5] = [
+static MEDIUM_PERFT_POSITIONS: [PerftPosition; 5] = [
     PerftPosition {
         name: "Starting Position",
         fen: fen::STARTING_POSITION,
@@ -78,6 +76,39 @@ static SHORT_PERFT_POSITIONS: [PerftPosition; 5] = [
         fen: fen::TRICKY_POSITION_2,
         depth: 4,
         target_nodes: 2_103_487
+    },
+];
+
+static SHORT_PERFT_POSITIONS: [PerftPosition; 5] = [
+    PerftPosition {
+        name: "Starting Position",
+        fen: fen::STARTING_POSITION,
+        depth: 4,
+        target_nodes: 197_281
+    },
+    PerftPosition {
+        name: "Kiwipete Position",
+        fen: fen::KIWIPETE_POSITION,
+        depth: 3,
+        target_nodes: 97_862
+    },
+    PerftPosition {
+        name: "Rook Position",
+        fen: fen::ROOK_POSITION,
+        depth: 5,
+        target_nodes: 674_624
+    },
+    PerftPosition {
+        name: "Tricky Position",
+        fen: fen::TRICKY_POSITION,
+        depth: 4,
+        target_nodes: 422_333
+    },
+    PerftPosition {
+        name: "Tricky Position 2",
+        fen: fen::TRICKY_POSITION_2,
+        depth: 3,
+        target_nodes: 62_379
     },
 ];
 
@@ -319,10 +350,27 @@ fn perft_tests(perft_positions: &[PerftPosition; 5]) {
     println!("  |-----------------------------------------------------------------|");
 }
 
-pub fn main_perft_tests() {
-    perft_tests(&MAIN_PERFT_POSITIONS);
+pub fn long_perft_tests() {
+    perft_tests(&LONG_PERFT_POSITIONS);
+}
+
+pub fn medium_perft_tests() {
+    perft_tests(&MEDIUM_PERFT_POSITIONS);
 }
 
 pub fn short_perft_tests() {
     perft_tests(&SHORT_PERFT_POSITIONS);
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::move_masks;
+
+    use super::*;
+
+    #[test]
+    fn short_perft_tests_are_correct() {
+        move_masks::init();
+        short_perft_tests();
+    }
 }

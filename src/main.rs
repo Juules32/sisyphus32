@@ -1,23 +1,4 @@
-#![allow(dead_code, unused_imports, unused_assignments)]
-
-use position::Position;
-use uci::Uci;
-
-// NOTE: The following pairs of features are not allowed to be used together:
-#[cfg(all(feature = "perft_parallelize", feature = "perft_single_thread"))]
-compile_error!("feature \"perft_parallelize\" and feature \"perft_single_thread\" cannot be enabled at the same time!");
-
-#[cfg(all(feature = "board_representation_bitboard", feature = "board_representation_array"))]
-compile_error!("feature \"board_representation_bitboard\" and feature \"board_representation_array\" cannot be enabled at the same time!");
-
-#[cfg(all(feature = "revert_with_clone", feature = "revert_with_undo_move"))]
-compile_error!("feature \"revert_with_clone\" and feature \"revert_with_undo_move\" cannot be enabled at the same time!");
-
-#[cfg(all(feature = "sliders_magic_bitboards", feature = "sliders_on_the_fly"))]
-compile_error!("feature \"sliders_magic_bitboards\" and feature \"sliders_on_the_fly\" cannot be enabled at the same time!");
-
-#[cfg(all(feature = "revert_with_undo_move", feature = "board_representation_array"))]
-compile_error!("feature \"revert_with_undo_move\" and feature \"board_representation_array\" cannot be enabled at the same time!");
+#![allow(dead_code, unused_assignments)]
 
 mod bit_move;
 mod bitboard;
@@ -40,6 +21,24 @@ mod bit_twiddles;
 mod move_flag;
 mod search;
 mod eval;
+
+use uci::Uci;
+
+// NOTE: The following pairs of features are not allowed to be used together:
+#[cfg(all(feature = "perft_parallelize", feature = "perft_single_thread"))]
+compile_error!("feature \"perft_parallelize\" and feature \"perft_single_thread\" cannot be enabled at the same time!");
+
+#[cfg(all(feature = "board_representation_bitboard", feature = "board_representation_array"))]
+compile_error!("feature \"board_representation_bitboard\" and feature \"board_representation_array\" cannot be enabled at the same time!");
+
+#[cfg(all(feature = "revert_with_clone", feature = "revert_with_undo_move"))]
+compile_error!("feature \"revert_with_clone\" and feature \"revert_with_undo_move\" cannot be enabled at the same time!");
+
+#[cfg(all(feature = "sliders_magic_bitboards", feature = "sliders_on_the_fly"))]
+compile_error!("feature \"sliders_magic_bitboards\" and feature \"sliders_on_the_fly\" cannot be enabled at the same time!");
+
+#[cfg(all(feature = "revert_with_undo_move", feature = "board_representation_array"))]
+compile_error!("feature \"revert_with_undo_move\" and feature \"board_representation_array\" cannot be enabled at the same time!");
 
 fn main() {
     move_masks::init();

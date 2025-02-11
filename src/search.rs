@@ -1,7 +1,7 @@
 extern crate rand;
 use rand::Rng;
 
-use crate::{bit_move::{BitMove, Move, ScoringMove}, eval, pl, position::Position, timer::Timer};
+use crate::{bit_move::ScoringMove, eval, pl, position::Position, timer::Timer};
 
 fn random_best_move(position: &Position, _depth: u8) -> ScoringMove {
     let moves = position.generate_legal_moves();
