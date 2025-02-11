@@ -1,6 +1,6 @@
 use core::fmt;
 use std::collections::HashSet;
-use crate::{bit_move::{BitMove, Move, ScoringMove}, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, fen, move_flag::MoveFlag, move_list::MoveList, move_masks, piece::{self, PieceType}, rank::Rank, square::Square};
+use crate::{bit_move::{BitMove, Move, ScoringMove}, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, move_flag::MoveFlag, move_list::MoveList, move_masks, piece::PieceType, rank::Rank, square::Square};
 
 #[derive(Clone)]
 pub struct Position {
@@ -342,7 +342,7 @@ impl Position {
     // Based on side, relevant pieces and occupancies can be selected
     #[inline]
     pub fn generate_moves<T: Move>(&self, add: fn(&Position, &mut MoveList<T>, BitMove)) -> MoveList<T> {
-        let mut move_list = MoveList::default();
+        let mut move_list = MoveList::new();
         
         let side = self.side;
         let en_passant_sq = self.en_passant_sq;
@@ -693,7 +693,7 @@ impl Position {
 
     #[inline(always)]
     #[cfg(feature = "board_representation_bitboard")]
-    fn get_piece(&self, square: Square) -> PieceType {
+    pub fn get_piece(&self, square: Square) -> PieceType {
         for piece_type in PieceType::ALL_PIECES {
             if self.bbs[piece_type].is_set_sq(square) {
                 return piece_type
@@ -704,7 +704,7 @@ impl Position {
 
     #[inline(always)]
     #[cfg(feature = "board_representation_array")]
-    fn get_piece(&self, square: Square) -> PieceType {
+    pub fn get_piece(&self, square: Square) -> PieceType {
         self.pps[square]
     }
 

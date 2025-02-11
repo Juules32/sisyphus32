@@ -16,4 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Run Tests
-      run: cargo test --verbose
+      run: |
+        cargo test --verbose --release --no-default-features --features "board_representation_bitboard, perft_single_thread, revert_with_clone, sliders_magic_bitboards, search_minimax"
+        cargo test --verbose --release --no-default-features --features "board_representation_bitboard, perft_parallelize, revert_with_clone, sliders_magic_bitboards, search_minimax"
+        cargo test --verbose --release --no-default-features --features "board_representation_array, perft_single_thread, revert_with_clone, sliders_magic_bitboards, search_minimax"

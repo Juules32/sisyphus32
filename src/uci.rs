@@ -1,4 +1,4 @@
-use std::{error::Error, io::{self, BufRead}, num::ParseIntError, process::exit};
+use std::{io::{self, BufRead}, process::exit};
 
 use crate::{bit_move::BitMove, eval, fen::{self, FenParseError}, move_flag::MoveFlag, perft, pl, position::Position, search, square::{Square, SquareParseError}};
 
@@ -57,10 +57,14 @@ impl Uci {
                         pl!(self.position);
                         Ok(())
                     },
-                    "bench" | "benchmain" => {
-                        perft::main_perft_tests();
+                    "bench" | "benchlong" => {
+                        perft::long_perft_tests();
                         Ok(())
                     },
+                    "benchmedium" => {
+                        perft::medium_perft_tests();
+                        Ok(())
+                    }
                     "benchshort" => {
                         perft::short_perft_tests();
                         Ok(())

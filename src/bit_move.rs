@@ -1,6 +1,6 @@
 use crate::{move_flag::MoveFlag, piece::PieceType, square::Square};
 use core::fmt;
-use std::{cmp::Ordering, fmt::Display, hash::Hash, mem::transmute};
+use std::{cmp::Ordering, fmt::Display, hash::Hash};
 
 #[cfg(feature = "board_representation_bitboard")]
 const SOURCE_MASK: u32 =  0b0000_0000_0000_0000_0000_0000_0011_1111;
@@ -26,12 +26,12 @@ impl Move for BitMove {}
 impl Move for ScoringMove {}
 
 #[cfg(feature = "board_representation_bitboard")]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct BitMove(u32);
 
 // NOTE: Maintaining an array of piece positions allows moves to use only two bytes
 #[cfg(feature = "board_representation_array")]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct BitMove(u16);
 
 impl BitMove {
@@ -163,7 +163,7 @@ impl Default for BitMove {
 }
 
 #[cfg(feature = "board_representation_bitboard")]
-impl fmt::Display for BitMove {
+impl Display for BitMove {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.pad(&format!(
             "
@@ -184,7 +184,7 @@ impl fmt::Display for BitMove {
 }
 
 #[cfg(feature = "board_representation_array")]
-impl fmt::Display for BitMove {
+impl Display for BitMove {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.pad(&format!(
             "
@@ -200,7 +200,7 @@ impl fmt::Display for BitMove {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ScoringMove {
     pub bit_move: BitMove,
     pub score: i16,
@@ -242,5 +242,34 @@ impl Ord for ScoringMove {
 impl PartialOrd for ScoringMove {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[cfg(feature = "board_representation_bitboard")]
+    fn encode_and_decode_works() {
+        let bit_move = BitMove::encode(Square::A1, Square::B1, PieceType::WP, PieceType::None, MoveFlag::None);
+        let (source, target, piece, capture, flag) = bit_move.decode();
+
+        assert_eq!(source, Square::A1);
+        assert_eq!(target, Square::B1);
+        assert_eq!(piece, PieceType::WP);
+        assert_eq!(capture, PieceType::None);
+        assert_eq!(flag, MoveFlag::None);
+    }
+
+    #[test]
+    #[cfg(feature = "board_representation_array")]
+    fn encode_and_decode_works() {
+        let bit_move = BitMove::encode(Square::A1, Square::B1, MoveFlag::None);
+        let (source, target, flag) = bit_move.decode();
+
+        assert_eq!(source, Square::A1);
+        assert_eq!(target, Square::B1);
+        assert_eq!(flag, MoveFlag::None);
     }
 }
