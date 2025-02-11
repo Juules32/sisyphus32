@@ -34,3 +34,13 @@ fn get_lsb_manual(data: u64) -> u8 {
 fn get_lsb_rust(data: u64) -> u8 {
     data.trailing_zeros() as u8
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn count_bits_manual_counts_correctly() {
+        assert_eq!(count_bits_manual(0b0011010101111001), 9)
+    }
+}
