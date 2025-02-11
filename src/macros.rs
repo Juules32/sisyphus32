@@ -10,10 +10,3 @@ macro_rules! pl {
         )*
     };
 }
-
-#[macro_export]
-macro_rules! pli {
-    ($($x:expr),*) => {
-        pl!($x)
-    };
-}

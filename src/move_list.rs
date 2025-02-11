@@ -1,27 +1,27 @@
-use crate::bit_move::BitMove;
+use crate::bit_move::{BitMove, Move};
 use core::fmt;
 use std::ops::{Index, IndexMut};
 
 pub const MAX_MOVES: usize = 255;
 
-pub struct MoveList {
-    array: [BitMove; MAX_MOVES],
+pub struct MoveList<T> {
+    array: [T; MAX_MOVES],
     size: usize,
 }
 
-impl Default for MoveList {
+impl<T: Move> Default for MoveList<T> {
     #[inline]
     fn default() -> Self {
         MoveList {
-            array: [BitMove::EMPTY; MAX_MOVES],
+            array: [T::default(); MAX_MOVES],
             size: 0,
         }
     }
 }
 
-impl MoveList {
+impl<T> MoveList<T> {
     #[inline(always)]
-    pub fn add(&mut self, mv: BitMove) {
+    pub fn add(&mut self, mv: T) {
         debug_assert!(self.size < MAX_MOVES);
 
         unsafe {
@@ -32,7 +32,7 @@ impl MoveList {
     }
 
     #[inline(always)]
-    pub fn iter(&self) -> impl Iterator<Item = &BitMove> {
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.array[..self.size].iter()
     }
 
@@ -42,32 +42,67 @@ impl MoveList {
     }
 }
 
-impl<'a> rayon::iter::IntoParallelRefIterator<'a> for MoveList {
-    type Item = &'a BitMove;
-    type Iter = rayon::slice::Iter<'a, BitMove>;
+pub struct MoveListIntoIter<T> {
+    move_list: MoveList<T>,
+    idx: usize,
+}
+
+impl<T: Move> Iterator for MoveListIntoIter<T> {
+    type Item = T;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.idx >= self.move_list.size {
+            None
+        } else {
+            unsafe {
+                let m = *self.move_list.array.get_unchecked(self.idx);
+                self.idx += 1;
+                Some(m)
+            }
+        }
+    }
+}
+
+impl<T: Move> IntoIterator for MoveList<T> {
+    type Item = T;
+
+    type IntoIter = MoveListIntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        MoveListIntoIter {
+            move_list: self,
+            idx: 0,
+        }
+    }
+}
+
+impl<'a, T: Move + Sync + 'a> rayon::iter::IntoParallelRefIterator<'a> for MoveList<T> {
+    type Item = &'a T;
+    type Iter = rayon::slice::Iter<'a, T>;
 
     fn par_iter(&'a self) -> Self::Iter {
         self.array[..self.size].par_iter()
     }
 }
 
-impl Index<usize> for MoveList {
-    type Output = BitMove;
+impl<T> Index<usize> for MoveList<T> {
+    type Output = T;
 
     #[inline(always)]
-    fn index(&self, index: usize) -> &BitMove {
+    fn index(&self, index: usize) -> &T {
         &self.array[index]
     }
 }
 
-impl IndexMut<usize> for MoveList {
+impl<T> IndexMut<usize> for MoveList<T> {
     #[inline(always)]
-    fn index_mut(&mut self, index: usize) -> &mut BitMove {
+    fn index_mut(&mut self, index: usize) -> &mut T {
         &mut self.array[index]
     }
 }
 
-impl fmt::Display for MoveList {
+impl fmt::Display for MoveList<BitMove> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = format!("
     Printing move data for {} moves:

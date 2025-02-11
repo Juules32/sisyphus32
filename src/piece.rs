@@ -112,9 +112,9 @@ impl From<char> for PieceType {
     }
 }
 
-impl Into<char> for PieceType {
-    fn into(self) -> char {
-        match self {
+impl From<PieceType> for char {
+    fn from(piece_type: PieceType) -> char {
+        match piece_type {
             PieceType::WP => 'P',
             PieceType::WN => 'N',
             PieceType::WB => 'B',

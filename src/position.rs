@@ -1,6 +1,6 @@
 use core::fmt;
 use std::collections::HashSet;
-use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, fen, move_flag::MoveFlag, move_list::MoveList, move_masks, piece::{self, PieceType}, rank::Rank, square::Square};
+use crate::{bit_move::{BitMove, Move, ScoringMove}, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, fen, move_flag::MoveFlag, move_list::MoveList, move_masks, piece::{self, PieceType}, rank::Rank, square::Square};
 
 #[derive(Clone)]
 pub struct Position {
@@ -331,10 +331,17 @@ impl Position {
         }
         false
     }
+
+    pub fn in_check(&self) -> bool {
+        match self.side {
+            Color::White => self.is_square_attacked(self.bbs[PieceType::WK].to_sq(), Color::White, &PieceType::BLACK_PIECES),
+            Color::Black => self.is_square_attacked(self.bbs[PieceType::BK].to_sq(), Color::Black, &PieceType::WHITE_PIECES),
+        }
+    }
     
     // Based on side, relevant pieces and occupancies can be selected
     #[inline]
-    pub fn generate_moves(&self, add: fn(&Position, &mut MoveList, BitMove)) -> MoveList {
+    pub fn generate_moves<T: Move>(&self, add: fn(&Position, &mut MoveList<T>, BitMove)) -> MoveList<T> {
         let mut move_list = MoveList::default();
         
         let side = self.side;
@@ -641,7 +648,7 @@ impl Position {
         
         // Checks that all moves are unique
         debug_assert!({
-            let mut seen: HashSet<BitMove> = HashSet::new();
+            let mut seen: HashSet<T> = HashSet::new();
             move_list.iter().all(|&m| seen.insert(m))
         });
         
@@ -649,8 +656,8 @@ impl Position {
     }
 
     #[inline]
-    pub fn generate_pseudo_legal_moves(&self) -> MoveList {
-        self.generate_moves(|_position, move_list, bit_move| {
+    pub fn generate_pseudo_legal_moves(&self) -> MoveList<BitMove> {
+        self.generate_moves::<BitMove>(|_position, move_list, bit_move| {
             move_list.add(bit_move);
         })
     }
@@ -658,8 +665,8 @@ impl Position {
     // NOTE: This function is inefficient for perft and move ordering.
     // generate_pseudo_legal_moves() is faster in those cases.
     #[inline]
-    pub fn generate_legal_moves(&self) -> MoveList {
-        self.generate_moves(|position, move_list, bit_move| {
+    pub fn generate_legal_moves(&self) -> MoveList<BitMove> {
+        self.generate_moves::<BitMove>(|position, move_list, bit_move| {
             let mut position_copy = position.clone();
             if position_copy.make_move(bit_move) {
                 move_list.add(bit_move);
@@ -667,14 +674,38 @@ impl Position {
         })
     }
 
+    #[inline]
+    pub fn generate_pseudo_legal_scoring_moves(&self) -> MoveList<ScoringMove> {
+        self.generate_moves::<ScoringMove>(|_position, move_list, bit_move| {
+            move_list.add(ScoringMove::from(bit_move));
+        })
+    }
+
+    #[inline]
+    pub fn generate_legal_scoring_moves(&self) -> MoveList<ScoringMove> {
+        self.generate_moves::<ScoringMove>(|position, move_list, bit_move| {
+            let mut position_copy = position.clone();
+            if position_copy.make_move(bit_move) {
+                move_list.add(ScoringMove::from(bit_move));
+            }
+        })
+    }
+
     #[inline(always)]
-    fn get_piece_type(&self, square: Square) -> PieceType {
+    #[cfg(feature = "board_representation_bitboard")]
+    fn get_piece(&self, square: Square) -> PieceType {
         for piece_type in PieceType::ALL_PIECES {
             if self.bbs[piece_type].is_set_sq(square) {
                 return piece_type
             }
         }
         PieceType::None
+    }
+
+    #[inline(always)]
+    #[cfg(feature = "board_representation_array")]
+    fn get_piece(&self, square: Square) -> PieceType {
+        self.pps[square]
     }
 
     #[inline(always)]
@@ -704,7 +735,7 @@ impl Position {
         for square in Square::ALL_SQUARES {
             curr_width += 1;
 
-            let piece_type = self.get_piece_type(square);
+            let piece_type = self.get_piece(square);
             match piece_type {
                 PieceType::None => curr_empty += 1,
                 _ => {

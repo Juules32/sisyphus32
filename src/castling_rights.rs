@@ -54,7 +54,7 @@ impl CastlingRights {
 impl fmt::Display for CastlingRights {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            CastlingRights::NONE => f.pad(&format!("-")),
+            CastlingRights::NONE => f.pad("-"),
             _ => {
                 let wk = if self.wk() { "K" } else { "" };
                 let wq = if self.wq() { "Q" } else { "" };

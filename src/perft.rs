@@ -1,4 +1,4 @@
-use crate::{bit_move::BitMove, fen, pl, position::Position, timer::Timer, move_masks};
+use crate::{bit_move::{BitMove, Move}, fen, pl, position::Position, timer::Timer, move_masks};
 use std::sync::Arc;
 use rayon::prelude::*;
 

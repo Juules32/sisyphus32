@@ -1,6 +1,6 @@
 use crate::{move_flag::MoveFlag, piece::PieceType, square::Square};
 use core::fmt;
-use std::mem::transmute;
+use std::{cmp::Ordering, fmt::Display, hash::Hash, mem::transmute};
 
 #[cfg(feature = "board_representation_bitboard")]
 const SOURCE_MASK: u32 =  0b0000_0000_0000_0000_0000_0000_0011_1111;
@@ -19,6 +19,11 @@ const SOURCE_MASK: u16 =  0b0000_0000_0011_1111;
 const TARGET_MASK: u16 =  0b0000_1111_1100_0000;
 #[cfg(feature = "board_representation_array")]
 const FLAG_MASK: u16 =    0b1111_0000_0000_0000;
+
+pub trait Move: Copy + Default + Eq + Hash { }
+
+impl Move for BitMove {}
+impl Move for ScoringMove {}
 
 #[cfg(feature = "board_representation_bitboard")]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -151,6 +156,12 @@ impl BitMove {
     }
 }
 
+impl Default for BitMove {
+    fn default() -> Self {
+        Self::EMPTY
+    }
+}
+
 #[cfg(feature = "board_representation_bitboard")]
 impl fmt::Display for BitMove {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -186,5 +197,50 @@ impl fmt::Display for BitMove {
             self.target(),
             self.flag()
         ))
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ScoringMove {
+    pub bit_move: BitMove,
+    pub score: i16,
+}
+
+impl ScoringMove {
+    #[inline(always)]
+    pub fn blank(score: i16) -> Self {
+        ScoringMove {
+            bit_move: BitMove::EMPTY,
+            score
+        }
+    }
+}
+
+impl Default for ScoringMove {
+    #[inline(always)]
+    fn default() -> Self {
+        ScoringMove {
+            bit_move: BitMove::EMPTY,
+            score: 0,
+        }
+    }
+}
+
+impl From<BitMove> for ScoringMove {
+    #[inline(always)]
+    fn from(bm: BitMove) -> Self {
+        ScoringMove { bit_move: bm, score: 0 }
+    }
+}
+
+impl Ord for ScoringMove {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.score.cmp(&other.score)
+    }
+}
+
+impl PartialOrd for ScoringMove {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
