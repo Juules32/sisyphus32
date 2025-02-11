@@ -1,6 +1,6 @@
 use std::{error::Error, io::{self, BufRead}, num::ParseIntError, process::exit};
 
-use crate::{bit_move::BitMove, fen::{self, FenParseError}, move_flag::MoveFlag, perft, pl, position::Position, search, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, eval, fen::{self, FenParseError}, move_flag::MoveFlag, perft, pl, position::Position, search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
@@ -41,17 +41,34 @@ impl Uci {
                     "go" => self.parse_go(words),
                     "position" => self.parse_position(&line),
                     "ucinewgame" => self.parse_position("position startpos"),
-                    "uci" => Ok(Self::print_uci_info()),
-                    "isready" => Ok(pl!("readyok")),
-                    "d" => {
-                        Ok(pl!(self.position))
+                    "uci" => {
+                        Self::print_uci_info();
+                        Ok(())
                     },
-                    "bench" | "benchmain" => Ok(perft::main_perft_tests()),
-                    "benchshort" => Ok(perft::short_perft_tests()),
-                    _ => return Err(UciParseError("Couldn't parse keyword!")),
+                    "eval" => {
+                        pl!(eval::basic(&self.position).score);
+                        Ok(())
+                    },
+                    "isready" => {
+                        pl!("readyok");
+                        Ok(())
+                    },
+                    "d" => {
+                        pl!(self.position);
+                        Ok(())
+                    },
+                    "bench" | "benchmain" => {
+                        perft::main_perft_tests();
+                        Ok(())
+                    },
+                    "benchshort" => {
+                        perft::short_perft_tests();
+                        Ok(())
+                    },
+                    _ => Err(UciParseError("Couldn't parse keyword!")),
                 }
             }
-            None => return Ok(()),
+            None => Ok(()),
         }
     }
 
@@ -146,7 +163,10 @@ impl Uci {
                         match words.next() {
                             Some(depth_string) => {
                                 match depth_string.parse::<u8>() {
-                                    Ok(depth) => Ok(search::go(&mut self.position.clone(), depth)),
+                                    Ok(depth) => {
+                                        search::go(&mut self.position.clone(), depth);
+                                        Ok(())
+                                    },
                                     Err(_) => Err(UciParseError("Couldn't parse depth string!"))
                                 }
                             },
@@ -154,12 +174,15 @@ impl Uci {
                         }
                     },
                     _ => {
-                        search::go(&mut self.position.clone(), 3);
-                        Err(UciParseError("Couldn't parse go command! Calculated go depth 3 instead."))
+                        search::go(&mut self.position.clone(), 5);
+                        Err(UciParseError("Couldn't parse go command! Calculated go depth 5 instead."))
                     },
                 }
             },
-            None => Ok(search::go(&mut self.position.clone(), 255))
+            None => {
+                search::go(&mut self.position.clone(), 255);
+                Ok(())
+            },
         }
     }
 }
