@@ -1,4 +1,7 @@
-use crate::{fen::Fen, pl, position::Position, timer::Timer};
+use crate::{fen::Fen, pl, position::Position, timer::Timer, move_generation::MoveGeneration};
+
+#[cfg(feature = "perft_parallelize")]
+use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
 
 pub struct PerftResult {
     depth: u8,
@@ -126,9 +129,9 @@ impl Perft {
         let mut position_copy = position.clone();
         let old_castling_rights = position.castling_rights;
         
-        for mv in position.generate_pseudo_legal_moves().iter() {
+        for mv in MoveGeneration::generate_pseudo_legal_moves(position).iter() {
             if position_copy.make_move(*mv) {
-                current_nodes += perft_driver(&position_copy, depth - 1);
+                current_nodes += Self::perft_driver(&position_copy, depth - 1);
             }
             position_copy.undo_move(*mv, old_castling_rights);
 
@@ -168,7 +171,7 @@ impl Perft {
 
         if print_result { pl!("\n  Performance Test\n"); }
 
-        for mv in position.generate_pseudo_legal_moves().iter() {
+        for mv in MoveGeneration::generate_pseudo_legal_moves(position).iter() {
             let mut position_copy = position.clone();
 
             if position_copy.make_move(*mv) {
@@ -205,7 +208,6 @@ impl Perft {
 
     #[cfg(feature = "perft_parallelize")]
     pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftResult {
-        use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
 
         let timer = Timer::new();
 
@@ -213,7 +215,7 @@ impl Perft {
             pl!("\n  Performance Test\n");
         }
 
-        let move_list = position.generate_pseudo_legal_moves();
+        let move_list = MoveGeneration::generate_pseudo_legal_moves(position);
 
         // Thread-safe clone of position
         let position_arc = Arc::new(position.clone());
@@ -224,7 +226,7 @@ impl Perft {
             .map(|&mv| {
                 let mut position_arc_copy = (*position_arc).clone();
                 if position_arc_copy.make_move(mv) {
-                    let nodes = perft_driver(Arc::new(position_arc_copy), depth - 1);
+                    let nodes = Self::perft_driver(Arc::new(position_arc_copy), depth - 1);
                     if print_result {
                         pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), nodes));
                     }
@@ -264,9 +266,9 @@ impl Perft {
             let mut position_copy = position.clone();
             let old_castling_rights = position.castling_rights;
             
-            for mv in position.generate_pseudo_legal_moves().iter() {
+            for mv in MoveGeneration::generate_pseudo_legal_moves(position).iter() {
                 if position_copy.make_move(*mv) {
-                    nodes += perft_driver(&position_copy, depth - 1);
+                    nodes += Self::perft_driver(&position_copy, depth - 1);
                 }
                 position_copy.undo_move(*mv, old_castling_rights);
             }
@@ -280,8 +282,7 @@ impl Perft {
         if depth == 0 {
             1
         } else {
-            position
-                .generate_pseudo_legal_moves()
+            MoveGeneration::generate_pseudo_legal_moves(position)
                 .iter()
                 .map(|mv| {
                     let mut position_copy = position.clone();
@@ -298,18 +299,16 @@ impl Perft {
     #[cfg(feature = "perft_parallelize")]
     #[inline(always)]
     fn perft_driver(position_arc: std::sync::Arc<Position>, depth: u8) -> u64 {
-        use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
-
         if depth == 0 {
             1
         } else if depth <= 2 {
             // Recursively counts nodes sequentially
-            position_arc.generate_pseudo_legal_moves()
+            MoveGeneration::generate_pseudo_legal_moves(&position_arc)
                 .iter()
                 .map(|mv| {
                     let mut position_arc_copy = (*position_arc).clone();
                     if position_arc_copy.make_move(*mv) {
-                        perft_driver(Arc::new(position_arc_copy), depth - 1)
+                        Self::perft_driver(Arc::new(position_arc_copy), depth - 1)
                     } else {
                         0
                     }
@@ -317,12 +316,12 @@ impl Perft {
                 .sum()
         } else {
             // Recursively counts nodes in parallel
-            position_arc.generate_pseudo_legal_moves()
+            MoveGeneration::generate_pseudo_legal_moves(&position_arc)
                 .par_iter()
                 .map(|mv| {
                     let mut position_arc_copy = (*position_arc).clone();
                     if position_arc_copy.make_move(*mv) {
-                        perft_driver(Arc::new(position_arc_copy), depth - 1)
+                        Self::perft_driver(Arc::new(position_arc_copy), depth - 1)
                     } else {
                         0
                     }

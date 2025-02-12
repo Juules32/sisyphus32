@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit};
 
-use crate::{bit_move::BitMove, eval::Eval, fen::{Fen, FenParseError}, move_flag::MoveFlag, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, eval::Eval, fen::{Fen, FenParseError}, move_flag::MoveFlag, move_generation::MoveGeneration, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
@@ -86,7 +86,7 @@ impl Uci {
                 None
             };
 
-            let ms = self.position.generate_pseudo_legal_moves();
+            let ms = MoveGeneration::generate_pseudo_legal_moves(&self.position);
             for m in ms.iter() {
                 let s = m.source();
                 let t = m.target();
@@ -168,7 +168,7 @@ impl Uci {
                             Some(depth_string) => {
                                 match depth_string.parse::<u8>() {
                                     Ok(depth) => {
-                                        Search::go(&mut self.position.clone(), depth);
+                                        Search::new(u128::max_value()).go(&mut self.position.clone(), depth);
                                         Ok(())
                                     },
                                     Err(_) => Err(UciParseError("Couldn't parse depth string!"))
@@ -178,13 +178,13 @@ impl Uci {
                         }
                     },
                     _ => {
-                        Search::go(&mut self.position.clone(), 5);
+                        Search::new(u128::max_value()).go(&mut self.position.clone(), 5);
                         Err(UciParseError("Couldn't parse go command! Calculated go depth 5 instead."))
                     },
                 }
             },
             None => {
-                Search::go(&mut self.position.clone(), 255);
+                Search::new(u128::max_value()).go(&mut self.position.clone(), 255);
                 Ok(())
             },
         }

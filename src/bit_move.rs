@@ -1,6 +1,9 @@
-use crate::{move_flag::MoveFlag, square::Square, piece::PieceType};
+use crate::{move_flag::MoveFlag, square::Square};
 use core::fmt;
 use std::{cmp::Ordering, fmt::Display, hash::Hash};
+
+#[cfg(feature = "board_representation_bitboard")]
+use crate::piece::PieceType;
 
 #[cfg(feature = "board_representation_bitboard")]
 const SOURCE_MASK: u32 =  0b0000_0000_0000_0000_0000_0000_0011_1111;

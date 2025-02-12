@@ -21,6 +21,7 @@ mod bit_twiddles;
 mod move_flag;
 mod search;
 mod eval;
+mod move_generation;
 
 use uci::Uci;
 
