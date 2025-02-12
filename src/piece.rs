@@ -5,7 +5,7 @@ use std::ops::{Index, IndexMut};
 use crate::{bitboard::Bitboard, color::Color};
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum PieceType {
     WP = 0b0,
     WN = 0b1,

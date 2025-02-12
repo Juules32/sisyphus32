@@ -1,4 +1,4 @@
-use crate::{bit_move::BitMove, move_flag::MoveFlag, bitboard::Bitboard, position::Position, color::Color, move_list::MoveList, piece::PieceType, rank::Rank, square::Square, file::File};
+use crate::{bitboard::Bitboard, color::Color, rank::Rank, square::Square, file::File};
 
 pub static mut PAWN_QUIET_MASKS: [[Bitboard; 64]; 2] = [[Bitboard::EMPTY; 64]; 2];
 pub static mut PAWN_CAPTURE_MASKS: [[Bitboard; 64]; 2] = [[Bitboard::EMPTY; 64]; 2];

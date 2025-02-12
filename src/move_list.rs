@@ -9,17 +9,15 @@ pub struct MoveList<T> {
     size: usize,
 }
 
-impl<T: Move> Default for MoveList<T> {
+impl<T: Move> MoveList<T> {
     #[inline]
-    fn default() -> Self {
+    pub fn new() -> Self {
         MoveList {
             array: [T::default(); MAX_MOVES],
             size: 0,
         }
     }
-}
 
-impl<T> MoveList<T> {
     #[inline(always)]
     pub fn add(&mut self, mv: T) {
         debug_assert!(self.size < MAX_MOVES);
@@ -117,5 +115,27 @@ impl fmt::Display for MoveList<BitMove> {
         s += "  |-----------------------------------------------------------------|";
 
         f.pad(&s)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::bit_move::ScoringMove;
+
+    use super::*;
+
+    #[test]
+    fn move_list_of_scoring_moves_finds_max() {
+        let mut move_list = MoveList::<ScoringMove>::new();
+
+        move_list.add(ScoringMove::blank(-2));
+        move_list.add(ScoringMove::blank(-1));
+        move_list.add(ScoringMove::blank(0));
+        move_list.add(ScoringMove::blank(1));
+        move_list.add(ScoringMove::blank(2));
+
+        assert_eq!(move_list.iter().max().unwrap().score, 2);
+        assert_eq!(move_list.iter().min().unwrap().score, -2);
     }
 }

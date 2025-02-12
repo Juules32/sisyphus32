@@ -1,6 +1,6 @@
-use std::{error::Error, io::{self, BufRead}, num::ParseIntError, process::exit};
+use std::{io::{self, BufRead}, process::exit};
 
-use crate::{bit_move::BitMove, eval, fen::{self, FenParseError}, move_flag::MoveFlag, perft, pl, position::Position, search, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, color::Color, eval::Eval, fen::{Fen, FenParseError}, move_flag::MoveFlag, move_generation::MoveGeneration, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
@@ -38,7 +38,7 @@ impl Uci {
             Some(keyword) => {
                 match keyword {
                     "quit" | "exit" => exit(0),
-                    "go" => self.parse_go(words),
+                    "go" => self.parse_go(&line),
                     "position" => self.parse_position(&line),
                     "ucinewgame" => self.parse_position("position startpos"),
                     "uci" => {
@@ -46,7 +46,7 @@ impl Uci {
                         Ok(())
                     },
                     "eval" => {
-                        pl!(eval::basic(&self.position).score);
+                        pl!(Eval::basic(&self.position).score);
                         Ok(())
                     },
                     "isready" => {
@@ -57,12 +57,16 @@ impl Uci {
                         pl!(self.position);
                         Ok(())
                     },
-                    "bench" | "benchmain" => {
-                        perft::main_perft_tests();
+                    "bench" | "benchlong" => {
+                        Perft::long_perft_tests();
                         Ok(())
                     },
+                    "benchmedium" => {
+                        Perft::medium_perft_tests();
+                        Ok(())
+                    }
                     "benchshort" => {
-                        perft::short_perft_tests();
+                        Perft::short_perft_tests();
                         Ok(())
                     },
                     _ => Err(UciParseError("Couldn't parse keyword!")),
@@ -82,7 +86,7 @@ impl Uci {
                 None
             };
 
-            let ms = self.position.generate_pseudo_legal_moves();
+            let ms = MoveGeneration::generate_pseudo_legal_moves(&self.position);
             for m in ms.iter() {
                 let s = m.source();
                 let t = m.target();
@@ -122,9 +126,9 @@ impl Uci {
                     None => &line[fen_index + 3..].trim(),
                 }
             };
-            self.position = fen::parse(fen_string).map_err(|FenParseError(msg)| UciParseError(msg))?;
+            self.position = Fen::parse(fen_string).map_err(|FenParseError(msg)| UciParseError(msg))?;
         } else if startpos_index_option.is_some() {
-            self.position = fen::parse(fen::STARTING_POSITION).map_err(|FenParseError(msg)| UciParseError(msg))?;
+            self.position = Fen::parse(Fen::STARTING_POSITION).map_err(|FenParseError(msg)| UciParseError(msg))?;
         } else {
             return Err(UciParseError("Neither fen nor startpos found!"));
         }
@@ -141,48 +145,77 @@ impl Uci {
         Ok(())
     }
     
-    fn parse_go<'a, I>(&self, mut words: I) -> Result<(), UciParseError> where I: Iterator<Item = &'a str> {
-        match words.next() {
-            Some(word) => {
-                match word {
-                    "perft" => {
-                        match words.next() {
-                            Some(depth_string) => {
-                                match depth_string.parse::<u8>() {
-                                    Ok(depth) => {
-                                        perft::perft_test(&self.position, depth, true);
-                                        Ok(())
-                                    },
-                                    Err(_) => Err(UciParseError("Couldn't parse depth string!")),
-                                }
-                            },
-                            None => Err(UciParseError("Didn't find perft depth!")),
-                        }
-                    },
-                    "depth" => {
-                        match words.next() {
-                            Some(depth_string) => {
-                                match depth_string.parse::<u8>() {
-                                    Ok(depth) => {
-                                        search::go(&mut self.position.clone(), depth);
-                                        Ok(())
-                                    },
-                                    Err(_) => Err(UciParseError("Couldn't parse depth string!"))
-                                }
-                            },
-                            None => Err(UciParseError("Didn't find depth string!")),
-                        }
-                    },
-                    _ => {
-                        search::go(&mut self.position.clone(), 5);
-                        Err(UciParseError("Couldn't parse go command! Calculated go depth 5 instead."))
-                    },
+    fn parse_go(&self, line: &str) -> Result<(), UciParseError> {
+        let words: Vec<_> = line.split_whitespace().collect();
+        if let Some(perft_index) = words.iter().position(|&word| word == "perft") {
+            match words.get(perft_index + 1) {
+                Some(depth_string) => {
+                    match depth_string.parse::<u8>() {
+                        Ok(depth) => {
+                            Perft::perft_test(&self.position, depth, true);
+                            Ok(())
+                        },
+                        Err(_) => Err(UciParseError("Couldn't parse depth string!")),
+                    }
+                },
+                None => Err(UciParseError("Didn't find perft depth!")),
+            }
+        } else if let Some(depth_index) = words.iter().position(|&word| word == "depth") {
+            match words.get(depth_index + 1) {
+                Some(depth_string) => {
+                    match depth_string.parse::<u8>() {
+                        Ok(depth) => {
+                            Search::new(u128::max_value()).go(&mut self.position.clone(), depth);
+                            Ok(())
+                        },
+                        Err(_) => Err(UciParseError("Couldn't parse depth string!"))
+                    }
+                },
+                None => Err(UciParseError("Didn't find depth string!")),
+            }
+        } else {
+            let mut total_time = 1_000_000;
+            if let Some(time_index) = words.iter().position(|&word| {
+                word == match self.position.side {
+                    Color::White => "wtime",
+                    Color::Black => "btime",
                 }
-            },
-            None => {
-                search::go(&mut self.position.clone(), 255);
-                Ok(())
-            },
+            }) {
+                match words.get(time_index + 1) {
+                    Some(time_string) => {
+                        match time_string.parse::<u128>() {
+                            Ok(time) => {
+                                total_time = time
+                            },
+                            Err(_) => return Err(UciParseError("Couldn't parse time string!")),
+                        }
+                    },
+                    None => return Err(UciParseError("Didn't find time string!")),
+                }
+            }
+
+            let mut increment = 0;
+            if let Some(inc_index) = words.iter().position(|&word| {
+                word == match self.position.side {
+                    Color::White => "winc",
+                    Color::Black => "binc",
+                }
+            }) {
+                match words.get(inc_index + 1) {
+                    Some(inc_string) => {
+                        match inc_string.parse::<u128>() {
+                            Ok(inc) => {
+                                increment = inc
+                            },
+                            Err(_) => return Err(UciParseError("Couldn't parse increment string!")),
+                        }
+                    },
+                    None => return Err(UciParseError("Didn't find increment string!")),
+                }
+            }
+
+            Search::new(Search::calculate_stop_time(total_time, increment)).go(&mut self.position.clone(), 255);
+            Ok(())
         }
     }
 }
