@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit};
 
-use crate::{bit_move::BitMove, eval, fen::{self, FenParseError}, move_flag::MoveFlag, perft, pl, position::Position, search, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, eval::Eval, fen::{Fen, FenParseError}, move_flag::MoveFlag, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
@@ -46,7 +46,7 @@ impl Uci {
                         Ok(())
                     },
                     "eval" => {
-                        pl!(eval::basic(&self.position).score);
+                        pl!(Eval::basic(&self.position).score);
                         Ok(())
                     },
                     "isready" => {
@@ -58,15 +58,15 @@ impl Uci {
                         Ok(())
                     },
                     "bench" | "benchlong" => {
-                        perft::long_perft_tests();
+                        Perft::long_perft_tests();
                         Ok(())
                     },
                     "benchmedium" => {
-                        perft::medium_perft_tests();
+                        Perft::medium_perft_tests();
                         Ok(())
                     }
                     "benchshort" => {
-                        perft::short_perft_tests();
+                        Perft::short_perft_tests();
                         Ok(())
                     },
                     _ => Err(UciParseError("Couldn't parse keyword!")),
@@ -126,9 +126,9 @@ impl Uci {
                     None => &line[fen_index + 3..].trim(),
                 }
             };
-            self.position = fen::parse(fen_string).map_err(|FenParseError(msg)| UciParseError(msg))?;
+            self.position = Fen::parse(fen_string).map_err(|FenParseError(msg)| UciParseError(msg))?;
         } else if startpos_index_option.is_some() {
-            self.position = fen::parse(fen::STARTING_POSITION).map_err(|FenParseError(msg)| UciParseError(msg))?;
+            self.position = Fen::parse(Fen::STARTING_POSITION).map_err(|FenParseError(msg)| UciParseError(msg))?;
         } else {
             return Err(UciParseError("Neither fen nor startpos found!"));
         }
@@ -154,7 +154,7 @@ impl Uci {
                             Some(depth_string) => {
                                 match depth_string.parse::<u8>() {
                                     Ok(depth) => {
-                                        perft::perft_test(&self.position, depth, true);
+                                        Perft::perft_test(&self.position, depth, true);
                                         Ok(())
                                     },
                                     Err(_) => Err(UciParseError("Couldn't parse depth string!")),
@@ -168,7 +168,7 @@ impl Uci {
                             Some(depth_string) => {
                                 match depth_string.parse::<u8>() {
                                     Ok(depth) => {
-                                        search::go(&mut self.position.clone(), depth);
+                                        Search::go(&mut self.position.clone(), depth);
                                         Ok(())
                                     },
                                     Err(_) => Err(UciParseError("Couldn't parse depth string!"))
@@ -178,13 +178,13 @@ impl Uci {
                         }
                     },
                     _ => {
-                        search::go(&mut self.position.clone(), 5);
+                        Search::go(&mut self.position.clone(), 5);
                         Err(UciParseError("Couldn't parse go command! Calculated go depth 5 instead."))
                     },
                 }
             },
             None => {
-                search::go(&mut self.position.clone(), 255);
+                Search::go(&mut self.position.clone(), 255);
                 Ok(())
             },
         }
