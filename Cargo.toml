@@ -8,7 +8,14 @@ rand = "0.9.0"
 rayon = "1.10.0"
 
 [features]
-default = ["board_representation_array", "perft_single_thread", "revert_with_clone", "sliders_magic_bitboards", "search_minimax"]
+default = ["single_thread_array"]
+
+basic =                 ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_on_the_fly", "search_random"]
+magic_bitboards =       ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_magic_bitboards", "search_random"]
+single_thread_bb =      ["board_representation_bitboard", "perft_single_thread", "revert_with_clone", "sliders_magic_bitboards", "search_minimax"]
+parallel_bb =           ["board_representation_bitboard", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards", "search_minimax"]
+single_thread_array =   ["board_representation_array", "perft_single_thread", "revert_with_clone", "sliders_magic_bitboards", "search_minimax"]
+parallel_array =        ["board_representation_array", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards", "search_minimax"]
 
 board_representation_bitboard = []
 board_representation_array = []
