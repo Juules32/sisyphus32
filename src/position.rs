@@ -1,5 +1,5 @@
 use core::fmt;
-use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, move_flag::MoveFlag, move_masks, piece::PieceType, square::Square};
+use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, fen::FenString, move_flag::MoveFlag, move_masks, piece::PieceType, square::Square};
 
 #[derive(Clone)]
 pub struct Position {
@@ -343,64 +343,6 @@ impl Position {
     pub fn get_piece(&self, square: Square) -> PieceType {
         self.pps[square]
     }
-
-    fn to_fen_string(&self) -> String {
-        let mut fen_str = String::new();
-        let mut curr_width = 0;
-        let mut curr_empty = 0;
-        for square in Square::ALL_SQUARES {
-            curr_width += 1;
-
-            let piece_type = self.get_piece(square);
-            match piece_type {
-                PieceType::None => curr_empty += 1,
-                _ => {
-                    if curr_empty != 0 {
-                        fen_str.push_str(&curr_empty.to_string());
-                        curr_empty = 0;
-                    }
-                    fen_str.push(piece_type.into())
-                }
-            }
-
-
-            if curr_width == 8 {
-                if curr_empty != 0 {
-                    fen_str.push_str(&curr_empty.to_string());
-                }
-
-                if square != *Square::ALL_SQUARES.last().unwrap() {
-                    fen_str.push('/');
-                }
-
-                curr_empty = 0;
-                curr_width = 0;
-            }
-        }
-
-        fen_str.push(' ');
-
-        fen_str.push(
-            match self.side {
-                Color::White => 'w',
-                Color::Black => 'b',
-            }
-        );
-
-        fen_str.push(' ');
-
-        fen_str.push_str(&self.castling_rights.to_string());
-
-        fen_str.push(' ');
-
-        fen_str.push_str(
-            &match self.en_passant_sq {
-                Square::None => "-".to_owned(),
-                _ => self.en_passant_sq.to_string(),
-            }
-        );
-        fen_str
-    }
 }
 
 impl Default for Position {
@@ -448,7 +390,7 @@ impl fmt::Display for Position {
   Side        {}
   En-passant: {}
   Castling:   {}\n",
-            self.to_fen_string(),
+            FenString::from(self),
             self.side,
             self.en_passant_sq,
             self.castling_rights

@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use crate::{bit_move::BitMove, color::Color, eval::Eval, fen::{Fen, FenParseError}, move_flag::MoveFlag, move_generation::MoveGeneration, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, color::Color, eval::Eval, fen::{FenString, FenParseError}, move_flag::MoveFlag, move_generation::MoveGeneration, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
@@ -139,14 +139,14 @@ impl Uci {
 
         if let Some(fen_index) = fen_index_option {
             let fen_string = {
-                match moves_index_option {
-                    Some(moves_index) => &line[fen_index + 3..moves_index].trim(),
-                    None => &line[fen_index + 3..].trim(),
-                }
+                FenString::from(match moves_index_option {
+                    Some(moves_index) => line[fen_index + 3..moves_index].trim(),
+                    None => line[fen_index + 3..].trim(),
+                })
             };
-            self.position = Fen::parse(fen_string).map_err(|FenParseError(msg)| UciParseError(msg))?;
+            self.position = fen_string.parse().map_err(|FenParseError(msg)| UciParseError(msg))?;
         } else if startpos_index_option.is_some() {
-            self.position = Fen::parse(Fen::STARTING_POSITION).map_err(|FenParseError(msg)| UciParseError(msg))?;
+            self.position = Position::starting_position();
         } else {
             return Err(UciParseError("Neither fen nor startpos found!"));
         }
@@ -183,7 +183,7 @@ impl Uci {
                 Some(depth_string) => {
                     match depth_string.parse::<u8>() {
                         Ok(depth) => {
-                            self.search.go(&mut self.position, depth, u128::max_value(), u128::max_value());
+                            self.search.go(&self.position, depth, u128::MAX, u128::MAX);
                             Ok(())
                         },
                         Err(_) => Err(UciParseError("Couldn't parse depth string!"))
@@ -232,7 +232,7 @@ impl Uci {
                 }
             }
 
-            self.search.go(&mut self.position, 255, total_time, increment);
+            self.search.go(&self.position, 255, total_time, increment);
             Ok(())
         }
     }

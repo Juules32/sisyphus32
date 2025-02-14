@@ -23,3 +23,9 @@ impl Timer {
         Instant::now().duration_since(self.start_time).as_secs_f64()
     }
 }
+
+impl Default for Timer {
+    fn default() -> Self {
+        Self::new()
+    }
+}

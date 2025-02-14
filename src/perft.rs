@@ -1,4 +1,4 @@
-use crate::{fen::Fen, pl, position::Position, timer::Timer, move_generation::MoveGeneration};
+use crate::{fen::FenString, pl, position::Position, timer::Timer, move_generation::MoveGeneration};
 
 #[cfg(feature = "perft_parallelize")]
 use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
@@ -11,109 +11,10 @@ pub struct PerftResult {
 
 struct PerftPosition {
     name: &'static str,
-    fen: &'static str,
+    fen: FenString,
     depth: u8,
     target_nodes: u64
 }
-
-static LONG_PERFT_POSITIONS: [PerftPosition; 5] = [
-    PerftPosition {
-        name: "Starting Position",
-        fen: Fen::STARTING_POSITION,
-        depth: 6,
-        target_nodes: 119_060_324
-    },
-    PerftPosition {
-        name: "Kiwipete Position",
-        fen: Fen::KIWIPETE_POSITION,
-        depth: 5,
-        target_nodes: 193_690_690
-    },
-    PerftPosition {
-        name: "Rook Position",
-        fen: Fen::ROOK_POSITION,
-        depth: 7,
-        target_nodes: 178_633_661
-    },
-    PerftPosition {
-        name: "Tricky Position",
-        fen: Fen::TRICKY_POSITION,
-        depth: 6,
-        target_nodes: 706_045_033
-    },
-    PerftPosition {
-        name: "Tricky Position 2",
-        fen: Fen::TRICKY_POSITION_2,
-        depth: 5,
-        target_nodes: 89_941_194
-    },
-];
-
-static MEDIUM_PERFT_POSITIONS: [PerftPosition; 5] = [
-    PerftPosition {
-        name: "Starting Position",
-        fen: Fen::STARTING_POSITION,
-        depth: 5,
-        target_nodes: 4_865_609
-    },
-    PerftPosition {
-        name: "Kiwipete Position",
-        fen: Fen::KIWIPETE_POSITION,
-        depth: 4,
-        target_nodes: 4_085_603
-    },
-    PerftPosition {
-        name: "Rook Position",
-        fen: Fen::ROOK_POSITION,
-        depth: 6,
-        target_nodes: 11_030_083
-    },
-    PerftPosition {
-        name: "Tricky Position",
-        fen: Fen::TRICKY_POSITION,
-        depth: 5,
-        target_nodes: 15_833_292
-    },
-    PerftPosition {
-        name: "Tricky Position 2",
-        fen: Fen::TRICKY_POSITION_2,
-        depth: 4,
-        target_nodes: 2_103_487
-    },
-];
-
-static SHORT_PERFT_POSITIONS: [PerftPosition; 5] = [
-    PerftPosition {
-        name: "Starting Position",
-        fen: Fen::STARTING_POSITION,
-        depth: 4,
-        target_nodes: 197_281
-    },
-    PerftPosition {
-        name: "Kiwipete Position",
-        fen: Fen::KIWIPETE_POSITION,
-        depth: 3,
-        target_nodes: 97_862
-    },
-    PerftPosition {
-        name: "Rook Position",
-        fen: Fen::ROOK_POSITION,
-        depth: 5,
-        target_nodes: 674_624
-    },
-    PerftPosition {
-        name: "Tricky Position",
-        fen: Fen::TRICKY_POSITION,
-        depth: 4,
-        target_nodes: 422_333
-    },
-    PerftPosition {
-        name: "Tricky Position 2",
-        fen: Fen::TRICKY_POSITION_2,
-        depth: 3,
-        target_nodes: 62_379
-    },
-];
 
 pub struct Perft { }
 
@@ -330,7 +231,7 @@ impl Perft {
         }
     }
 
-    fn perft_tests(perft_positions: &[PerftPosition; 5]) {
+    fn perft_tests(perft_positions: [PerftPosition; 5]) {
         let mut performances: Vec<u128> = vec![];
 
         println!("\n    Printing performance test results:");
@@ -339,7 +240,7 @@ impl Perft {
         println!("  |-----------------------------------------------------------------|");
 
         for perft_position in perft_positions {
-            let position = Fen::parse(perft_position.fen).expect("FEN parser could not parse given position!");
+            let position = perft_position.fen.parse().expect("FEN parser could not parse given position!");
             let perft_result = Self::perft_test(&position, perft_position.depth, false);
             if perft_result.nodes != perft_position.target_nodes {
                 panic!("Perft test of {} did not get the target nodes!", perft_position.name);
@@ -357,15 +258,108 @@ impl Perft {
     }
 
     pub fn long_perft_tests() {
-        Self::perft_tests(&LONG_PERFT_POSITIONS);
+        Self::perft_tests([
+            PerftPosition {
+                name: "Starting Position",
+                fen: FenString::starting(),
+                depth: 6,
+                target_nodes: 119_060_324
+            },
+            PerftPosition {
+                name: "Kiwipete Position",
+                fen: FenString::kiwipete(),
+                depth: 5,
+                target_nodes: 193_690_690
+            },
+            PerftPosition {
+                name: "Rook Position",
+                fen: FenString::rook(),
+                depth: 7,
+                target_nodes: 178_633_661
+            },
+            PerftPosition {
+                name: "Tricky Position",
+                fen: FenString::tricky(),
+                depth: 6,
+                target_nodes: 706_045_033
+            },
+            PerftPosition {
+                name: "Tricky Position 2",
+                fen: FenString::tricky2(),
+                depth: 5,
+                target_nodes: 89_941_194
+            },
+        ]);
     }
 
     pub fn medium_perft_tests() {
-        Self::perft_tests(&MEDIUM_PERFT_POSITIONS);
+        Self::perft_tests([
+            PerftPosition {
+                name: "Starting Position",
+                fen: FenString::starting(),
+                depth: 5,
+                target_nodes: 4_865_609
+            },
+            PerftPosition {
+                name: "Kiwipete Position",
+                fen: FenString::kiwipete(),
+                depth: 4,
+                target_nodes: 4_085_603
+            },
+            PerftPosition {
+                name: "Rook Position",
+                fen: FenString::rook(),
+                depth: 6,
+                target_nodes: 11_030_083
+            },
+            PerftPosition {
+                name: "Tricky Position",
+                fen: FenString::tricky(),
+                depth: 5,
+                target_nodes: 15_833_292
+            },
+            PerftPosition {
+                name: "Tricky Position 2",
+                fen: FenString::tricky2(),
+                depth: 4,
+                target_nodes: 2_103_487
+            },
+        ]);
     }
 
     pub fn short_perft_tests() {
-        Self::perft_tests(&SHORT_PERFT_POSITIONS);
+        Self::perft_tests([
+            PerftPosition {
+                name: "Starting Position",
+                fen: FenString::starting(),
+                depth: 4,
+                target_nodes: 197_281
+            },
+            PerftPosition {
+                name: "Kiwipete Position",
+                fen: FenString::kiwipete(),
+                depth: 3,
+                target_nodes: 97_862
+            },
+            PerftPosition {
+                name: "Rook Position",
+                fen: FenString::rook(),
+                depth: 5,
+                target_nodes: 674_624
+            },
+            PerftPosition {
+                name: "Tricky Position",
+                fen: FenString::tricky(),
+                depth: 4,
+                target_nodes: 422_333
+            },
+            PerftPosition {
+                name: "Tricky Position 2",
+                fen: FenString::tricky2(),
+                depth: 3,
+                target_nodes: 62_379
+            },
+        ]);
     }
 }
 
