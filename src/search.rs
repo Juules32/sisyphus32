@@ -71,12 +71,51 @@ impl Search {
             })
     }
 
+    fn negamax_best_move(&mut self, position: &Position, depth: u8, mut alpha: i16, beta: i16) -> ScoringMove {
+        self.nodes += 1;
+
+        if depth == 0 {
+            return Eval::basic(position);
+        }
+
+        // NOTE: Generating legal moves immediately doesn't seem to cause a
+        // drop in performance!
+        let mut moves = MoveGeneration::generate_legal_scoring_moves(position);
+
+        if moves.is_empty() {
+            if position.in_check() {
+                return ScoringMove::blank(-10000);
+            } else {
+                return ScoringMove::blank(0)
+            }
+        }
+
+        let mut best_move = ScoringMove::blank(alpha);
+        for scoring_move in moves.iter_mut() {
+            let mut position_copy = position.clone();
+            position_copy.make_move(scoring_move.bit_move);
+            scoring_move.score = -self.negamax_best_move(&position_copy, depth - 1, -beta, -alpha).score;
+            if scoring_move.score > alpha {
+                alpha = scoring_move.score;
+                if alpha >= beta {
+                    return *scoring_move;
+                }
+                best_move = *scoring_move;
+            }
+        }
+
+        best_move
+    }
+
     fn best_move(&mut self, position: &mut Position, depth: u8) -> ScoringMove {
         #[cfg(feature = "search_random")]
         return self.random_best_move(position, depth);
         
         #[cfg(feature = "search_minimax")]
         return self.minimax_best_move(position, depth);
+
+        #[cfg(feature = "search_negamax")]
+        return self.negamax_best_move(position, depth, -32001, 32001);
     }
 
     pub fn go(&mut self, position: &mut Position, depth: u8, total_time: u128, increment: u128) {
