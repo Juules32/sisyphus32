@@ -35,8 +35,18 @@ impl<T: Move> MoveList<T> {
     }
 
     #[inline(always)]
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.array[..self.size].iter_mut()
+    }
+
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.size
+    }
+
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
