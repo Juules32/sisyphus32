@@ -17,9 +17,9 @@ jobs:
     - uses: actions/checkout@v4
     - name: Run Tests
       run: |
-        cargo test --verbose --release --no-default-features --features basic
-        cargo test --verbose --release --no-default-features --features magic_bitboard
-        cargo test --verbose --release --no-default-features --features single_thread_bb
-        cargo test --verbose --release --no-default-features --features parallel_bb
-        cargo test --verbose --release --no-default-features --features single_thread_array
-        cargo test --verbose --release --no-default-features --features parallel_array
+        cargo test --verbose --lib --release --no-default-features --features basic
+        cargo test --verbose --lib --release --no-default-features --features magic_bitboard
+        cargo test --verbose --lib --release --no-default-features --features single_thread_bb
+        cargo test --verbose --lib --release --no-default-features --features parallel_bb
+        cargo test --verbose --lib --release --no-default-features --features single_thread_array
+        cargo test --verbose --lib --release --no-default-features --features parallel_array
