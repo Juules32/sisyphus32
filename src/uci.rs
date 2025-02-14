@@ -1,16 +1,20 @@
-use std::{io::{self, BufRead}, process::exit};
+use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
 use crate::{bit_move::BitMove, color::Color, eval::Eval, fen::{Fen, FenParseError}, move_flag::MoveFlag, move_generation::MoveGeneration, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
 pub struct Uci {
-    pub position: Position
+    pub position: Position,
+    pub search: Search,
 }
 
 impl Default for Uci {
     fn default() -> Self {
-        Self { position: Position::starting_position() }
+        Self {
+            position: Position::starting_position(),
+            search: Search::default(),
+        }
     }
 }
 
@@ -18,8 +22,22 @@ impl Uci {
     pub fn init(&mut self) {
         Self::print_uci_info();
 
-        let mut lines = io::stdin().lock().lines();
-        while let Some(Ok(line)) = lines.next() {
+        let (uci_command_tx, uci_command_rx) = mpsc::channel();
+
+        let stop_calculating = self.search.stop_calculating.clone();
+        
+        thread::spawn(move || {
+            let mut lines = io::stdin().lock().lines();
+            while let Some(Ok(line)) = lines.next() {
+                if line.starts_with("stop") {
+                    stop_calculating.store(true, Ordering::Relaxed);
+                } else if uci_command_tx.send(line).is_err() {
+                    break;
+                }
+            }
+        });
+
+        for line in uci_command_rx {
             if let Err(UciParseError(msg)) = self.parse_line(line) {
                 eprintln!("{msg}");
             };
@@ -145,7 +163,7 @@ impl Uci {
         Ok(())
     }
     
-    fn parse_go(&self, line: &str) -> Result<(), UciParseError> {
+    fn parse_go(&mut self, line: &str) -> Result<(), UciParseError> {
         let words: Vec<_> = line.split_whitespace().collect();
         if let Some(perft_index) = words.iter().position(|&word| word == "perft") {
             match words.get(perft_index + 1) {
@@ -165,7 +183,7 @@ impl Uci {
                 Some(depth_string) => {
                     match depth_string.parse::<u8>() {
                         Ok(depth) => {
-                            Search::new(u128::max_value()).go(&mut self.position.clone(), depth);
+                            self.search.go(&mut self.position.clone(), depth, u128::max_value(), u128::max_value());
                             Ok(())
                         },
                         Err(_) => Err(UciParseError("Couldn't parse depth string!"))
@@ -214,7 +232,7 @@ impl Uci {
                 }
             }
 
-            Search::new(Search::calculate_stop_time(total_time, increment)).go(&mut self.position.clone(), 255);
+            self.search.go(&mut self.position.clone(), 255, total_time, increment);
             Ok(())
         }
     }
