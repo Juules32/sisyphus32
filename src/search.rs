@@ -107,7 +107,7 @@ impl Search {
         best_move
     }
 
-    fn best_move(&mut self, position: &mut Position, depth: u8) -> ScoringMove {
+    fn best_move(&mut self, position: &Position, depth: u8) -> ScoringMove {
         #[cfg(feature = "search_random")]
         return self.random_best_move(position, depth);
         
@@ -118,7 +118,7 @@ impl Search {
         return self.negamax_best_move(position, depth, -32001, 32001);
     }
 
-    pub fn go(&mut self, position: &mut Position, depth: u8, total_time: u128, increment: u128) {
+    pub fn go(&mut self, position: &Position, depth: u8, total_time: u128, increment: u128) {
         self.stop_time = Self::calculate_stop_time(total_time, increment);
         self.nodes = 0;
         self.timer.reset();

@@ -183,7 +183,7 @@ impl Uci {
                 Some(depth_string) => {
                     match depth_string.parse::<u8>() {
                         Ok(depth) => {
-                            self.search.go(&mut self.position.clone(), depth, u128::max_value(), u128::max_value());
+                            self.search.go(&mut self.position, depth, u128::max_value(), u128::max_value());
                             Ok(())
                         },
                         Err(_) => Err(UciParseError("Couldn't parse depth string!"))
@@ -232,7 +232,7 @@ impl Uci {
                 }
             }
 
-            self.search.go(&mut self.position.clone(), 255, total_time, increment);
+            self.search.go(&mut self.position, 255, total_time, increment);
             Ok(())
         }
     }

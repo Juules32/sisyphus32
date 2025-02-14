@@ -14,45 +14,20 @@ impl MoveGeneration {
         let en_passant_sq = position.en_passant_sq;
         let inv_all_occupancies = !position.ao;
         
-        let ([pawn, knight, bishop, rook, queen, king], enemy_pieces) = match side {
-            Color::White => (PieceType::WHITE_PIECES, PieceType::BLACK_PIECES),
-            Color::Black => (PieceType::BLACK_PIECES, PieceType::WHITE_PIECES)
-        };
-
-        let (inv_own_occupancies, enemy_occupancies) = match side {
-            Color::White => (!position.wo, position.bo),
-            Color::Black => (!position.bo, position.wo)
-        };
-        
-        let (pawn_promotion_rank, pawn_starting_rank, en_passant_rank, pawn_double_push_rank) = match side {
-            Color::White => (Rank::R7, Rank::R2, Rank::R5, Rank::R4),
-            Color::Black => (Rank::R2, Rank::R7, Rank::R4, Rank::R5)
-        };
-        
-        let (double_pawn_flag, en_passant_flag, king_side_castling_flag, queen_side_castling_flag) = match side {
-            Color::White => (MoveFlag::WDoublePawn, MoveFlag::WEnPassant, MoveFlag::WKCastle, MoveFlag::WQCastle),
-            Color::Black => (MoveFlag::BDoublePawn, MoveFlag::BEnPassant, MoveFlag::BKCastle, MoveFlag::BQCastle)
-        };
-
-        let (king_side_castling_mask, queen_side_castling_mask) = match side {
-            Color::White => (Bitboard::W_KING_SIDE_MASK, Bitboard::W_QUEEN_SIDE_MASK),
-            Color::Black => (Bitboard::B_KING_SIDE_MASK, Bitboard::B_QUEEN_SIDE_MASK)
-        };
-
-        let (king_side_castling_right, queen_side_castling_right) = match side {
-            Color::White => (position.castling_rights.wk(), position.castling_rights.wq()),
-            Color::Black => (position.castling_rights.bk(), position.castling_rights.bq())
-        };
-
-        let (castling_square_c, castling_square_d, castling_square_e, castling_square_f, castling_square_g) = match side {
-            Color::White => (Square::C1, Square::D1, Square::E1, Square::F1, Square::G1),
-            Color::Black => (Square::C8, Square::D8, Square::E8, Square::F8, Square::G8)
+        let ([pawn, knight, bishop, rook, queen, king], inv_own_occupancies) = match side {
+            Color::White => (PieceType::WHITE_PIECES, !position.wo),
+            Color::Black => (PieceType::BLACK_PIECES, !position.bo),
         };
 
         {
             /*------------------------------*\ 
                         Pawn moves
             \*------------------------------*/
+            let (pawn_promotion_rank, pawn_starting_rank, en_passant_rank, pawn_double_push_rank, double_pawn_flag, en_passant_flag, enemy_occupancies) = match side {
+                Color::White => (Rank::R7, Rank::R2, Rank::R5, Rank::R4, MoveFlag::WDoublePawn, MoveFlag::WEnPassant, position.bo),
+                Color::Black => (Rank::R2, Rank::R7, Rank::R4, Rank::R5, MoveFlag::BDoublePawn, MoveFlag::BEnPassant, position.wo),
+            };
+
             let mut pawn_bb = position.bbs[pawn];
             while pawn_bb.is_not_empty() {
                 let source = pawn_bb.pop_lsb();
@@ -64,7 +39,7 @@ impl MoveGeneration {
                     let target = capture_mask.pop_lsb();
 
                     #[cfg(feature = "board_representation_bitboard")]
-                    let target_piece = position.get_target_piece(enemy_pieces, target);
+                    let target_piece = position.get_piece(target);
 
                     if source_rank == pawn_promotion_rank {
                         
@@ -179,7 +154,7 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "board_representation_bitboard")]
-                    let target_piece = position.get_target_piece_if_any(enemy_pieces, enemy_occupancies, target);
+                    let target_piece = position.get_piece(target);
                     
                     #[cfg(feature = "board_representation_bitboard")]
                     add(position, &mut move_list, BitMove::encode(source, target, knight, target_piece, MoveFlag::None));
@@ -194,6 +169,26 @@ impl MoveGeneration {
             /*------------------------------*\ 
                         King moves
             \*------------------------------*/
+            let (
+                king_side_castling_flag, queen_side_castling_flag,
+                king_side_castling_mask, queen_side_castling_mask,
+                king_side_castling_right, queen_side_castling_right,
+                castling_square_c, castling_square_d, castling_square_e, castling_square_f, castling_square_g
+            ) = match side {
+                Color::White => (
+                    MoveFlag::WKCastle, MoveFlag::WQCastle,
+                    Bitboard::W_KING_SIDE_MASK, Bitboard::W_QUEEN_SIDE_MASK,
+                    position.castling_rights.wk(), position.castling_rights.wq(),
+                    Square::C1, Square::D1, Square::E1, Square::F1, Square::G1
+                ),
+                Color::Black => (
+                    MoveFlag::BKCastle, MoveFlag::BQCastle,
+                    Bitboard::B_KING_SIDE_MASK, Bitboard::B_QUEEN_SIDE_MASK,
+                    position.castling_rights.bk(), position.castling_rights.bq(),
+                    Square::C8, Square::D8, Square::E8, Square::F8, Square::G8
+                ),
+            };
+
             let mut king_bb = position.bbs[king];
             let source = king_bb.pop_lsb();
             let mut move_mask = move_masks::get_king_mask(source) & inv_own_occupancies;
@@ -201,7 +196,7 @@ impl MoveGeneration {
                 let target = move_mask.pop_lsb();
 
                 #[cfg(feature = "board_representation_bitboard")]
-                let target_piece = position.get_target_piece_if_any(enemy_pieces, enemy_occupancies, target);
+                let target_piece = position.get_piece(target);
                 
                 #[cfg(feature = "board_representation_bitboard")]
                 add(position, &mut move_list, BitMove::encode(source, target, king, target_piece, MoveFlag::None));
@@ -213,9 +208,9 @@ impl MoveGeneration {
             // Kingside Castling
             #[allow(clippy::collapsible_if)]
             if king_side_castling_right && (position.ao & king_side_castling_mask).is_empty() {
-                if !position.is_square_attacked(castling_square_e, position.side, &enemy_pieces) &&
-                !position.is_square_attacked(castling_square_f, position.side, &enemy_pieces) &&
-                !position.is_square_attacked(castling_square_g, position.side, &enemy_pieces)
+                if !position.is_square_attacked(castling_square_e) &&
+                !position.is_square_attacked(castling_square_f) &&
+                !position.is_square_attacked(castling_square_g)
                 {
                     
                     #[cfg(feature = "board_representation_bitboard")]
@@ -229,9 +224,9 @@ impl MoveGeneration {
             // Queenside Castling
             #[allow(clippy::collapsible_if)]
             if queen_side_castling_right && (position.ao & queen_side_castling_mask).is_empty() {
-                if !position.is_square_attacked(castling_square_e, position.side, &enemy_pieces) &&
-                !position.is_square_attacked(castling_square_d, position.side, &enemy_pieces) &&
-                !position.is_square_attacked(castling_square_c, position.side, &enemy_pieces)
+                if !position.is_square_attacked(castling_square_e) &&
+                !position.is_square_attacked(castling_square_d) &&
+                !position.is_square_attacked(castling_square_c)
                 {
                     
                     #[cfg(feature = "board_representation_bitboard")]
@@ -255,7 +250,7 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "board_representation_bitboard")]
-                    let target_piece = position.get_target_piece_if_any(enemy_pieces, enemy_occupancies, target);
+                    let target_piece = position.get_piece(target);
                     
                     #[cfg(feature = "board_representation_bitboard")]
                     add(position, &mut move_list, BitMove::encode(source, target, bishop, target_piece, MoveFlag::None));
@@ -278,7 +273,7 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "board_representation_bitboard")]
-                    let target_piece = position.get_target_piece_if_any(enemy_pieces, enemy_occupancies, target);
+                    let target_piece = position.get_piece(target);
                     
                     #[cfg(feature = "board_representation_bitboard")]
                     add(position, &mut move_list, BitMove::encode(source, target, rook, target_piece, MoveFlag::None));
@@ -301,7 +296,7 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "board_representation_bitboard")]
-                    let target_piece = position.get_target_piece_if_any(enemy_pieces, enemy_occupancies, target);
+                    let target_piece = position.get_piece(target);
                     
                     #[cfg(feature = "board_representation_bitboard")]
                     add(position, &mut move_list, BitMove::encode(source, target, queen, target_piece, MoveFlag::None));

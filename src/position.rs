@@ -193,25 +193,14 @@ impl Position {
         };
 
         self.castling_rights.update(source, target);
-        self.side.switch();
         self.populate_occupancies();
 
-        if self.is_square_attacked(
-            if self.side == Color::White {
-                self.bbs[PieceType::BK].to_sq()
-            } else {
-                self.bbs[PieceType::WK].to_sq()
-            },
-            self.side.opposite(),
-            if self.side == Color::White {
-                &PieceType::WHITE_PIECES
-            } else {
-                &PieceType::BLACK_PIECES
-            },
-        ) {
+        if self.in_check() {
+            self.side.switch();
             return false;
         }
 
+        self.side.switch();
         true
     }
 
@@ -304,13 +293,13 @@ impl Position {
     }
 
     #[inline(always)]
-    pub fn is_square_attacked(
-        &self,
-        square: Square,
-        defending_side: Color,
-        [enemy_pawn, enemy_knight, enemy_bishop, enemy_rook, enemy_queen, enemy_king]: &[PieceType; 6]
-    ) -> bool {
-        if (move_masks::get_pawn_capture_mask(defending_side, square) & self.bbs[*enemy_pawn]).is_not_empty() {
+    pub fn is_square_attacked(&self, square: Square) -> bool {
+        let [enemy_pawn, enemy_knight, enemy_bishop, enemy_rook, enemy_queen, enemy_king] = match self.side {
+            Color::White => &PieceType::BLACK_PIECES,
+            Color::Black => &PieceType::WHITE_PIECES,
+        };
+
+        if (move_masks::get_pawn_capture_mask(self.side, square) & self.bbs[*enemy_pawn]).is_not_empty() {
             return true;
         }
         if (move_masks::get_knight_mask(square) & self.bbs[*enemy_knight]).is_not_empty() {
@@ -333,8 +322,8 @@ impl Position {
 
     pub fn in_check(&self) -> bool {
         match self.side {
-            Color::White => self.is_square_attacked(self.bbs[PieceType::WK].to_sq(), Color::White, &PieceType::BLACK_PIECES),
-            Color::Black => self.is_square_attacked(self.bbs[PieceType::BK].to_sq(), Color::Black, &PieceType::WHITE_PIECES),
+            Color::White => self.is_square_attacked(self.bbs[PieceType::WK].to_sq()),
+            Color::Black => self.is_square_attacked(self.bbs[PieceType::BK].to_sq()),
         }
     }
 
@@ -353,26 +342,6 @@ impl Position {
     #[cfg(feature = "board_representation_array")]
     pub fn get_piece(&self, square: Square) -> PieceType {
         self.pps[square]
-    }
-
-    #[inline(always)]
-    pub fn get_target_piece(&self, enemy_piece_types: [PieceType; 6], target: Square) -> PieceType {
-        for piece_type in enemy_piece_types {
-            if self.bbs[piece_type].is_set_sq(target) {
-                return piece_type;
-            }
-        }
-
-        panic!("There seems to be something wrong with the occupancy bitboards!")
-    }
-
-    #[inline(always)]
-    pub fn get_target_piece_if_any(&self, enemy_piece_types: [PieceType; 6], enemy_occupancies: Bitboard, target: Square) -> PieceType {
-        if (enemy_occupancies & target.to_bb()).is_empty() {
-            return PieceType::None;
-        }
-        
-        self.get_target_piece(enemy_piece_types, target)
     }
 
     fn to_fen_string(&self) -> String {
