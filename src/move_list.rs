@@ -50,6 +50,12 @@ impl<T: Move> MoveList<T> {
     }
 }
 
+impl<T: Move> Default for MoveList<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct MoveListIntoIter<T> {
     move_list: MoveList<T>,
     idx: usize,

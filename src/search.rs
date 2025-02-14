@@ -130,11 +130,9 @@ impl Search {
         {
             let mut best_scoring_move = ScoringMove::blank(13243);
             for current_depth in 1..=depth {
-                if current_depth != 1 {
-                    if self.timer.get_time_passed_millis() * Self::AVERAGE_AMOUNT_OF_MOVES > self.stop_time {
-                        pl!("info string ended iterative search early based on time prediction");
-                        break
-                    }
+                if current_depth != 1 && self.timer.get_time_passed_millis() * Self::AVERAGE_AMOUNT_OF_MOVES > self.stop_time {
+                    pl!("info string ended iterative search early based on time prediction");
+                    break
                 }
                 self.nodes = 0;
                 let new_best_move = self.best_move(position, current_depth);
