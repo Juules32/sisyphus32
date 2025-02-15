@@ -4,6 +4,8 @@ use rand::Rng;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
+use crate::bit_move::BitMove;
+use crate::move_generation::{Legal, PseudoLegal};
 use crate::{bit_move::ScoringMove, eval::Eval, move_generation::MoveGeneration, pl, position::Position, timer::Timer};
 
 pub struct Search {
@@ -26,7 +28,7 @@ const TIME_OFFSET: u128 = 100;
 impl Search {
     #[inline(always)]
     fn random_best_move(&self, position: &Position, _depth: u8) -> ScoringMove {
-        let moves = MoveGeneration::generate_legal_moves(position);
+        let moves = MoveGeneration::generate_moves::<BitMove, Legal>(position);
         ScoringMove::from(moves[rand::rng().random_range(0..moves.len())])
     }
     
@@ -46,7 +48,7 @@ impl Search {
             return Eval::eval(position);
         }
     
-        MoveGeneration::generate_pseudo_legal_scoring_moves(position)
+        MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position)
             .into_iter()
             .filter_map(|mut m: ScoringMove| {
                 let mut position_copy = position.clone();
@@ -85,7 +87,7 @@ impl Search {
 
         // NOTE: Generating legal moves immediately doesn't seem to cause a
         // drop in performance!
-        let mut moves = MoveGeneration::generate_legal_scoring_moves(position);
+        let mut moves = MoveGeneration::generate_moves::<ScoringMove, Legal>(position);
 
         if moves.is_empty() {
             if position.in_check() {

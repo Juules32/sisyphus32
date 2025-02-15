@@ -1,4 +1,4 @@
-use crate::{fen::FenString, pl, position::Position, timer::Timer, move_generation::MoveGeneration};
+use crate::{bit_move::BitMove, fen::FenString, move_generation::{MoveGeneration, PseudoLegal}, pl, position::Position, timer::Timer};
 
 use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
 
@@ -43,16 +43,16 @@ impl Perft {
         #[cfg(feature = "revert_with_undo_move")]
         let old_castling_rights = position.castling_rights;
         
-        for mv in MoveGeneration::generate_pseudo_legal_moves(position).iter() {
-            if position_copy.make_move(*mv) {
+        for bit_move in MoveGeneration::generate_moves::<BitMove, PseudoLegal>(position).iter() {
+            if position_copy.make_move(*bit_move) {
                 current_nodes += Self::perft_driver_single_thread_undo_move(&position_copy, depth - 1);
             }
 
             #[cfg(feature = "revert_with_undo_move")]
-            position_copy.undo_move(*mv, old_castling_rights);
+            position_copy.undo_move(*bit_move, old_castling_rights);
 
             if print_result {
-                pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), current_nodes));
+                pl!(format!("  Move: {:<5} Nodes: {}", bit_move.to_uci_string(), current_nodes));
             }
 
             cumulative_nodes += current_nodes;
@@ -87,15 +87,15 @@ impl Perft {
 
         if print_result { pl!("\n  Performance Test\n"); }
 
-        for mv in MoveGeneration::generate_pseudo_legal_moves(position).iter() {
+        for bit_move in MoveGeneration::generate_moves::<BitMove, PseudoLegal>(position).iter() {
             let mut position_copy = position.clone();
 
-            if position_copy.make_move(*mv) {
+            if position_copy.make_move(*bit_move) {
                 current_nodes += Self::perft_driver_single_thread_clone(&position_copy, depth - 1);
             }
 
             if print_result {
-                pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), current_nodes));
+                pl!(format!("  Move: {:<5} Nodes: {}", bit_move.to_uci_string(), current_nodes));
             }
 
             cumulative_nodes += current_nodes;
@@ -130,20 +130,18 @@ impl Perft {
             pl!("\n  Performance Test\n");
         }
 
-        let move_list = MoveGeneration::generate_pseudo_legal_moves(position);
-
         // Thread-safe clone of position
         let position_arc = Arc::new(position.clone());
 
         // Computes nodes reached in parallel
-        let cumulative_nodes = move_list
+        let cumulative_nodes = MoveGeneration::generate_moves::<BitMove, PseudoLegal>(position)
             .par_iter()
-            .map(|&mv| {
+            .map(|&bit_move| {
                 let mut position_arc_copy = (*position_arc).clone();
-                if position_arc_copy.make_move(mv) {
+                if position_arc_copy.make_move(bit_move) {
                     let nodes = Self::perft_driver_parallelize(Arc::new(position_arc_copy), depth - 1);
                     if print_result {
-                        pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), nodes));
+                        pl!(format!("  Move: {:<5} Nodes: {}", bit_move.to_uci_string(), nodes));
                     }
                     nodes
                 } else {
@@ -182,13 +180,13 @@ impl Perft {
             #[cfg(feature = "revert_with_undo_move")]
             let old_castling_rights = position.castling_rights;
             
-            for mv in MoveGeneration::generate_pseudo_legal_moves(position).iter() {
-                if position_copy.make_move(*mv) {
+            for bit_move in MoveGeneration::generate_moves::<BitMove, PseudoLegal>(position).iter() {
+                if position_copy.make_move(*bit_move) {
                     nodes += Self::perft_driver_single_thread_undo_move(&position_copy, depth - 1);
                 }
 
                 #[cfg(feature = "revert_with_undo_move")]
-                position_copy.undo_move(*mv, old_castling_rights);
+                position_copy.undo_move(*bit_move, old_castling_rights);
             }
             nodes
         }
@@ -199,11 +197,11 @@ impl Perft {
         if depth == 0 {
             1
         } else {
-            MoveGeneration::generate_pseudo_legal_moves(position)
+            MoveGeneration::generate_moves::<BitMove, PseudoLegal>(position)
                 .iter()
-                .map(|mv| {
+                .map(|bit_move| {
                     let mut position_copy = position.clone();
-                    if position_copy.make_move(*mv) {
+                    if position_copy.make_move(*bit_move) {
                         Self::perft_driver_single_thread_clone(&position_copy, depth - 1)
                     } else {
                         0
@@ -219,11 +217,11 @@ impl Perft {
             1
         } else if depth <= 2 {
             // Recursively counts nodes sequentially
-            MoveGeneration::generate_pseudo_legal_moves(&position_arc)
+            MoveGeneration::generate_moves::<BitMove, PseudoLegal>(&position_arc)
                 .iter()
-                .map(|mv| {
+                .map(|bit_move| {
                     let mut position_arc_copy = (*position_arc).clone();
-                    if position_arc_copy.make_move(*mv) {
+                    if position_arc_copy.make_move(*bit_move) {
                         Self::perft_driver_parallelize(Arc::new(position_arc_copy), depth - 1)
                     } else {
                         0
@@ -232,11 +230,11 @@ impl Perft {
                 .sum()
         } else {
             // Recursively counts nodes in parallel
-            MoveGeneration::generate_pseudo_legal_moves(&position_arc)
+            MoveGeneration::generate_moves::<BitMove, PseudoLegal>(&position_arc)
                 .par_iter()
-                .map(|mv| {
+                .map(|bit_move| {
                     let mut position_arc_copy = (*position_arc).clone();
-                    if position_arc_copy.make_move(*mv) {
+                    if position_arc_copy.make_move(*bit_move) {
                         Self::perft_driver_parallelize(Arc::new(position_arc_copy), depth - 1)
                     } else {
                         0

@@ -23,10 +23,23 @@ const TARGET_MASK: u16 =  0b0000_1111_1100_0000;
 #[cfg(feature = "board_representation_array")]
 const FLAG_MASK: u16 =    0b1111_0000_0000_0000;
 
-pub trait Move: Copy + Default + Eq + Hash { }
+pub trait Move: Copy + Default + Eq + Hash + From<BitMove> {
+    fn get_bit_move(self) -> BitMove;
+}
 
-impl Move for BitMove {}
-impl Move for ScoringMove {}
+impl Move for BitMove {
+    #[inline(always)]
+    fn get_bit_move(self) -> BitMove {
+        self
+    }
+}
+
+impl Move for ScoringMove {
+    #[inline(always)]
+    fn get_bit_move(self) -> BitMove {
+        self.bit_move
+    }
+}
 
 #[cfg(feature = "board_representation_bitboard")]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
