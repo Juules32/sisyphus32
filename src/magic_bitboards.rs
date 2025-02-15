@@ -1,5 +1,7 @@
 use crate::{bitboard::Bitboard, move_masks, square::Square};
 
+const MAX_SLIDER_MOVE_PERMUTATIONS: usize = 4096;
+
 pub struct MagicBitboardGenerator {
     pub seed: u32
 }
@@ -9,7 +11,6 @@ impl MagicBitboardGenerator {
         self.seed ^= self.seed << 13; 
         self.seed ^= self.seed >> 17; 
         self.seed ^= self.seed << 5;
-
         self.seed
     }
 
@@ -27,8 +28,8 @@ impl MagicBitboardGenerator {
     }
 
     pub fn generate_magic_bitboard(&mut self, square: Square, num_relevant_bits: u8, is_bishop: bool) -> Bitboard {
-        let mut occupancies = [Bitboard::EMPTY; 4096];
-        let mut moves = [Bitboard::EMPTY; 4096];
+        let mut occupancies = [Bitboard::EMPTY; MAX_SLIDER_MOVE_PERMUTATIONS];
+        let mut moves = [Bitboard::EMPTY; MAX_SLIDER_MOVE_PERMUTATIONS];
         let mask = unsafe { if is_bishop { move_masks::BISHOP_MASKS[square] } else { move_masks::ROOK_MASKS[square] } };
         let max_occupancy_index = 1 << num_relevant_bits;
 
@@ -50,7 +51,7 @@ impl MagicBitboardGenerator {
                 continue;
             }
 
-            let mut used_moves = [Bitboard::EMPTY; 4096];
+            let mut used_moves = [Bitboard::EMPTY; MAX_SLIDER_MOVE_PERMUTATIONS];
 
             let mut failed = false;
             for i in 0..max_occupancy_index {

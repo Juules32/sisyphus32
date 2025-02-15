@@ -197,11 +197,11 @@ impl Position {
 
         if self.in_check() {
             self.side.switch();
-            return false;
+            false
+        } else {
+            self.side.switch();
+            true
         }
-
-        self.side.switch();
-        true
     }
 
     #[inline]
