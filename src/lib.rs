@@ -1,5 +1,37 @@
 #![allow(dead_code)]
 
+// NOTE: The following pairs of features are not allowed to be used together:
+#[cfg(all(feature = "perft_parallelize", feature = "perft_single_thread"))]
+compile_error!("feature \"perft_parallelize\" and feature \"perft_single_thread\" cannot be enabled at the same time!");
+
+#[cfg(all(feature = "board_representation_bitboard", feature = "board_representation_array"))]
+compile_error!("feature \"board_representation_bitboard\" and feature \"board_representation_array\" cannot be enabled at the same time!");
+
+#[cfg(all(feature = "revert_with_clone", feature = "revert_with_undo_move"))]
+compile_error!("feature \"revert_with_clone\" and feature \"revert_with_undo_move\" cannot be enabled at the same time!");
+
+#[cfg(all(feature = "sliders_magic_bitboards", feature = "sliders_on_the_fly"))]
+compile_error!("feature \"sliders_magic_bitboards\" and feature \"sliders_on_the_fly\" cannot be enabled at the same time!");
+
+#[cfg(
+    any(
+        all(feature = "search_minimax", feature = "search_negamax"),
+        all(feature = "search_minimax", feature = "search_random"),
+        all(feature = "search_negamax", feature = "search_random")
+    )
+)]
+compile_error!("only one of the following features can be enabled at the same time: \"search_minimax\", \"search_negamax\", \"search_random\"!");
+
+#[cfg(all(feature = "no_iterative_deepening", feature = "iterative_deepening"))]
+compile_error!("feature \"no_iterative_deepening\" and feature \"iterative_deepening\" cannot be enabled at the same time!");
+
+#[cfg(all(feature = "eval_basic", feature = "eval_piece_positions"))]
+compile_error!("feature \"eval_basic\" and feature \"eval_piece_positions\" cannot be enabled at the same time!");
+
+// NOTE: The following pairs of features are too unpractical to be used together:
+#[cfg(all(feature = "revert_with_undo_move", feature = "board_representation_array"))]
+compile_error!("feature \"revert_with_undo_move\" and feature \"board_representation_array\" cannot be enabled at the same time!");
+
 pub mod bit_move;
 pub mod bitboard;
 pub mod position;

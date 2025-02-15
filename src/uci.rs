@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use crate::{bit_move::BitMove, color::Color, eval::Eval, fen::{Fen, FenParseError}, move_flag::MoveFlag, move_generation::MoveGeneration, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, color::Color, eval::Eval, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
@@ -64,7 +64,7 @@ impl Uci {
                         Ok(())
                     },
                     "eval" => {
-                        pl!(Eval::basic(&self.position).score);
+                        pl!(Eval::eval(&self.position).score);
                         Ok(())
                     },
                     "isready" => {
@@ -104,8 +104,7 @@ impl Uci {
                 None
             };
 
-            let ms = MoveGeneration::generate_pseudo_legal_moves(&self.position);
-            for m in ms.iter() {
+            for m in MoveGeneration::generate_moves::<BitMove, Legal>(&self.position) {
                 let s = m.source();
                 let t = m.target();
                 let f = m.flag();
@@ -114,14 +113,14 @@ impl Uci {
                     match promotion_piece_option {
                         Some(promotion_piece_string) => {
                             match promotion_piece_string {
-                                "q" => if f == MoveFlag::PromoQ { return Ok(*m) },
-                                "r" => if f == MoveFlag::PromoR { return Ok(*m) },
-                                "b" => if f == MoveFlag::PromoB { return Ok(*m) },
-                                "n" => if f == MoveFlag::PromoN { return Ok(*m) },
+                                "q" => if f == MoveFlag::PromoQ { return Ok(m) },
+                                "r" => if f == MoveFlag::PromoR { return Ok(m) },
+                                "b" => if f == MoveFlag::PromoB { return Ok(m) },
+                                "n" => if f == MoveFlag::PromoN { return Ok(m) },
                                 _ => return Err(UciParseError("Found illegal promotion piece string!"))
                             }
                         },
-                        None => return Ok(*m),
+                        None => return Ok(m),
                     }
                 }
             }
@@ -139,14 +138,14 @@ impl Uci {
 
         if let Some(fen_index) = fen_index_option {
             let fen_string = {
-                match moves_index_option {
-                    Some(moves_index) => &line[fen_index + 3..moves_index].trim(),
-                    None => &line[fen_index + 3..].trim(),
-                }
+                FenString::from(match moves_index_option {
+                    Some(moves_index) => line[fen_index + 3..moves_index].trim(),
+                    None => line[fen_index + 3..].trim(),
+                })
             };
-            self.position = Fen::parse(fen_string).map_err(|FenParseError(msg)| UciParseError(msg))?;
+            self.position = fen_string.parse().map_err(|FenParseError(msg)| UciParseError(msg))?;
         } else if startpos_index_option.is_some() {
-            self.position = Fen::parse(Fen::STARTING_POSITION).map_err(|FenParseError(msg)| UciParseError(msg))?;
+            self.position = Position::starting_position();
         } else {
             return Err(UciParseError("Neither fen nor startpos found!"));
         }
@@ -154,9 +153,7 @@ impl Uci {
         if let Some(moves_index) = moves_index_option {
             for move_string in line[moves_index + 5..].split_whitespace() {
                 let pseudo_legal_move = self.parse_move_string(move_string)?;
-                if !self.position.make_move(pseudo_legal_move) {
-                    return Err(UciParseError("Found illegal move while parsing moves!"))
-                }
+                self.position.make_move(pseudo_legal_move);
             }
         }
 
@@ -183,7 +180,7 @@ impl Uci {
                 Some(depth_string) => {
                     match depth_string.parse::<u8>() {
                         Ok(depth) => {
-                            self.search.go(&mut self.position.clone(), depth, u128::max_value(), u128::max_value());
+                            self.search.go(&self.position, depth, u128::MAX, u128::MAX);
                             Ok(())
                         },
                         Err(_) => Err(UciParseError("Couldn't parse depth string!"))
@@ -232,7 +229,7 @@ impl Uci {
                 }
             }
 
-            self.search.go(&mut self.position.clone(), 255, total_time, increment);
+            self.search.go(&self.position, 255, total_time, increment);
             Ok(())
         }
     }
