@@ -1,4 +1,4 @@
-use crate::{bitboard::Bitboard, move_masks, square::Square};
+use crate::{bitboard::Bitboard, move_masks::{self, MoveMasks}, square::Square};
 
 const MAX_SLIDER_MOVE_PERMUTATIONS: usize = 4096;
 
@@ -34,12 +34,12 @@ impl MagicBitboardGenerator {
         let max_occupancy_index = 1 << num_relevant_bits;
 
         for i in 0..max_occupancy_index {
-            occupancies[i] = move_masks::generate_occupancy_permutation(i as u32, num_relevant_bits, mask);
+            occupancies[i] = MoveMasks::generate_occupancy_permutation(i as u32, num_relevant_bits, mask);
             
             if is_bishop {
-                moves[i] = move_masks::generate_bishop_moves_on_the_fly(square, occupancies[i]);
+                moves[i] = MoveMasks::generate_bishop_moves_on_the_fly(square, occupancies[i]);
             } else {
-                moves[i] = move_masks::generate_rook_moves_on_the_fly(square, occupancies[i]);
+                moves[i] = MoveMasks::generate_rook_moves_on_the_fly(square, occupancies[i]);
             }
         }
 

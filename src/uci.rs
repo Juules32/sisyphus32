@@ -104,8 +104,7 @@ impl Uci {
                 None
             };
 
-            let ms = MoveGeneration::generate_moves::<BitMove, Legal>(&self.position);
-            for m in ms.iter() {
+            for m in MoveGeneration::generate_moves::<BitMove, Legal>(&self.position) {
                 let s = m.source();
                 let t = m.target();
                 let f = m.flag();
@@ -114,14 +113,14 @@ impl Uci {
                     match promotion_piece_option {
                         Some(promotion_piece_string) => {
                             match promotion_piece_string {
-                                "q" => if f == MoveFlag::PromoQ { return Ok(*m) },
-                                "r" => if f == MoveFlag::PromoR { return Ok(*m) },
-                                "b" => if f == MoveFlag::PromoB { return Ok(*m) },
-                                "n" => if f == MoveFlag::PromoN { return Ok(*m) },
+                                "q" => if f == MoveFlag::PromoQ { return Ok(m) },
+                                "r" => if f == MoveFlag::PromoR { return Ok(m) },
+                                "b" => if f == MoveFlag::PromoB { return Ok(m) },
+                                "n" => if f == MoveFlag::PromoN { return Ok(m) },
                                 _ => return Err(UciParseError("Found illegal promotion piece string!"))
                             }
                         },
-                        None => return Ok(*m),
+                        None => return Ok(m),
                     }
                 }
             }
