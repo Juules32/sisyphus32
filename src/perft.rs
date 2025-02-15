@@ -1,6 +1,5 @@
 use crate::{fen::FenString, pl, position::Position, timer::Timer, move_generation::MoveGeneration};
 
-#[cfg(feature = "perft_parallelize")]
 use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
 
 pub struct PerftResult {
@@ -19,8 +18,20 @@ struct PerftPosition {
 pub struct Perft { }
 
 impl Perft {
-    #[cfg(all(feature = "perft_single_thread", feature = "revert_with_undo_move"))]
+    #[inline(always)]
     pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftResult {
+        #[cfg(all(feature = "perft_single_thread", feature = "revert_with_undo_move"))]
+        return Self::perft_test_single_thread_undo_move(position, depth, print_result);
+
+        #[cfg(all(feature = "perft_single_thread", feature = "revert_with_clone"))]
+        return Self::perft_test_single_thread_clone(position, depth, print_result);
+
+        #[cfg(feature = "perft_parallelize")]
+        return Self::perft_test_parallelize(position, depth, print_result);
+    }
+
+    #[inline(always)]
+    pub fn perft_test_single_thread_undo_move(position: &Position, depth: u8, print_result: bool) -> PerftResult {
         let mut current_nodes = 0_u64;
         let mut cumulative_nodes = 0_u64;
         let timer = Timer::new();
@@ -28,12 +39,16 @@ impl Perft {
         if print_result { pl!("\n  Performance Test\n"); }
 
         let mut position_copy = position.clone();
+
+        #[cfg(feature = "revert_with_undo_move")]
         let old_castling_rights = position.castling_rights;
         
         for mv in MoveGeneration::generate_pseudo_legal_moves(position).iter() {
             if position_copy.make_move(*mv) {
-                current_nodes += Self::perft_driver(&position_copy, depth - 1);
+                current_nodes += Self::perft_driver_single_thread_undo_move(&position_copy, depth - 1);
             }
+
+            #[cfg(feature = "revert_with_undo_move")]
             position_copy.undo_move(*mv, old_castling_rights);
 
             if print_result {
@@ -64,8 +79,8 @@ impl Perft {
         perft_result
     }
 
-    #[cfg(all(feature = "perft_single_thread", feature = "revert_with_clone"))]
-    pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftResult {
+    #[inline(always)]
+    pub fn perft_test_single_thread_clone(position: &Position, depth: u8, print_result: bool) -> PerftResult {
         let mut current_nodes = 0_u64;
         let mut cumulative_nodes = 0_u64;
         let timer = Timer::new();
@@ -76,7 +91,7 @@ impl Perft {
             let mut position_copy = position.clone();
 
             if position_copy.make_move(*mv) {
-                current_nodes += Self::perft_driver(&position_copy, depth - 1);
+                current_nodes += Self::perft_driver_single_thread_clone(&position_copy, depth - 1);
             }
 
             if print_result {
@@ -107,9 +122,8 @@ impl Perft {
         perft_result
     }
 
-    #[cfg(feature = "perft_parallelize")]
-    pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftResult {
-
+    #[inline(always)]
+    pub fn perft_test_parallelize(position: &Position, depth: u8, print_result: bool) -> PerftResult {
         let timer = Timer::new();
 
         if print_result {
@@ -127,7 +141,7 @@ impl Perft {
             .map(|&mv| {
                 let mut position_arc_copy = (*position_arc).clone();
                 if position_arc_copy.make_move(mv) {
-                    let nodes = Self::perft_driver(Arc::new(position_arc_copy), depth - 1);
+                    let nodes = Self::perft_driver_parallelize(Arc::new(position_arc_copy), depth - 1);
                     if print_result {
                         pl!(format!("  Move: {:<5} Nodes: {}", mv.to_uci_string(), nodes));
                     }
@@ -157,29 +171,31 @@ impl Perft {
         }
     }
 
-    #[cfg(all(feature = "perft_single_thread", feature = "revert_with_undo_move"))]
     #[inline(always)]
-    fn perft_driver(position: &Position, depth: u8) -> u64 {
+    fn perft_driver_single_thread_undo_move(position: &Position, depth: u8) -> u64 {
         if depth == 0 {
             1
         } else {
             let mut nodes = 0;
             let mut position_copy = position.clone();
+
+            #[cfg(feature = "revert_with_undo_move")]
             let old_castling_rights = position.castling_rights;
             
             for mv in MoveGeneration::generate_pseudo_legal_moves(position).iter() {
                 if position_copy.make_move(*mv) {
-                    nodes += Self::perft_driver(&position_copy, depth - 1);
+                    nodes += Self::perft_driver_single_thread_undo_move(&position_copy, depth - 1);
                 }
+
+                #[cfg(feature = "revert_with_undo_move")]
                 position_copy.undo_move(*mv, old_castling_rights);
             }
             nodes
         }
     }
 
-    #[cfg(all(feature = "perft_single_thread", feature = "revert_with_clone"))]
     #[inline(always)]
-    fn perft_driver(position: &Position, depth: u8) -> u64 {
+    fn perft_driver_single_thread_clone(position: &Position, depth: u8) -> u64 {
         if depth == 0 {
             1
         } else {
@@ -188,7 +204,7 @@ impl Perft {
                 .map(|mv| {
                     let mut position_copy = position.clone();
                     if position_copy.make_move(*mv) {
-                        Self::perft_driver(&position_copy, depth - 1)
+                        Self::perft_driver_single_thread_clone(&position_copy, depth - 1)
                     } else {
                         0
                     }
@@ -197,9 +213,8 @@ impl Perft {
         }
     }
 
-    #[cfg(feature = "perft_parallelize")]
     #[inline(always)]
-    fn perft_driver(position_arc: std::sync::Arc<Position>, depth: u8) -> u64 {
+    fn perft_driver_parallelize(position_arc: std::sync::Arc<Position>, depth: u8) -> u64 {
         if depth == 0 {
             1
         } else if depth <= 2 {
@@ -209,7 +224,7 @@ impl Perft {
                 .map(|mv| {
                     let mut position_arc_copy = (*position_arc).clone();
                     if position_arc_copy.make_move(*mv) {
-                        Self::perft_driver(Arc::new(position_arc_copy), depth - 1)
+                        Self::perft_driver_parallelize(Arc::new(position_arc_copy), depth - 1)
                     } else {
                         0
                     }
@@ -222,7 +237,7 @@ impl Perft {
                 .map(|mv| {
                     let mut position_arc_copy = (*position_arc).clone();
                     if position_arc_copy.make_move(*mv) {
-                        Self::perft_driver(Arc::new(position_arc_copy), depth - 1)
+                        Self::perft_driver_parallelize(Arc::new(position_arc_copy), depth - 1)
                     } else {
                         0
                     }
