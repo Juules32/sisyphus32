@@ -64,7 +64,7 @@ impl Uci {
                         Ok(())
                     },
                     "eval" => {
-                        pl!(Eval::basic(&self.position).score);
+                        pl!(Eval::eval(&self.position).score);
                         Ok(())
                     },
                     "isready" => {
