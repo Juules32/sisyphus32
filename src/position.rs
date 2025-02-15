@@ -1,5 +1,5 @@
 use core::fmt;
-use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, fen::FenString, move_flag::MoveFlag, move_masks, piece::PieceType, square::Square};
+use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, fen::FenString, move_flag::MoveFlag, move_masks::MoveMasks, piece::PieceType, square::Square};
 
 #[derive(Clone)]
 pub struct Position {
@@ -299,22 +299,22 @@ impl Position {
             Color::Black => &PieceType::WHITE_PIECES,
         };
 
-        if (move_masks::get_pawn_capture_mask(self.side, square) & self.bbs[*enemy_pawn]).is_not_empty() {
+        if (MoveMasks::get_pawn_capture_mask(self.side, square) & self.bbs[*enemy_pawn]).is_not_empty() {
             return true;
         }
-        if (move_masks::get_knight_mask(square) & self.bbs[*enemy_knight]).is_not_empty() {
+        if (MoveMasks::get_knight_mask(square) & self.bbs[*enemy_knight]).is_not_empty() {
             return true;
         }
-        if (move_masks::get_bishop_mask(square, self.ao) & self.bbs[*enemy_bishop]).is_not_empty() {
+        if (MoveMasks::get_bishop_mask(square, self.ao) & self.bbs[*enemy_bishop]).is_not_empty() {
             return true;
         }
-        if (move_masks::get_rook_mask(square, self.ao) & self.bbs[*enemy_rook]).is_not_empty() {
+        if (MoveMasks::get_rook_mask(square, self.ao) & self.bbs[*enemy_rook]).is_not_empty() {
             return true;
         }
-        if (move_masks::get_queen_mask(square, self.ao) & self.bbs[*enemy_queen]).is_not_empty() {
+        if (MoveMasks::get_queen_mask(square, self.ao) & self.bbs[*enemy_queen]).is_not_empty() {
             return true;
         }
-        if (move_masks::get_king_mask(square) & self.bbs[*enemy_king]).is_not_empty() {
+        if (MoveMasks::get_king_mask(square) & self.bbs[*enemy_king]).is_not_empty() {
             return true;
         }
         false

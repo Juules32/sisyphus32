@@ -1,4 +1,4 @@
-use crate::{bit_move::{BitMove, Move}, bitboard::Bitboard, color::Color, move_flag::MoveFlag, move_list::MoveList, move_masks, piece::PieceType, position::Position, rank::Rank, square::Square};
+use crate::{bit_move::{BitMove, Move}, bitboard::Bitboard, color::Color, move_flag::MoveFlag, move_list::MoveList, move_masks::MoveMasks, piece::PieceType, position::Position, rank::Rank, square::Square};
 
 pub trait Filter {
     fn should_add(position: &Position, bit_move: BitMove) -> bool;
@@ -52,7 +52,7 @@ impl MoveGeneration {
                 let source_rank = source.rank();
 
                 // Captures
-                let mut capture_mask = move_masks::get_pawn_capture_mask(side, source) & enemy_occupancies;
+                let mut capture_mask = MoveMasks::get_pawn_capture_mask(side, source) & enemy_occupancies;
                 while capture_mask.is_not_empty() {
                     let target = capture_mask.pop_lsb();
 
@@ -95,13 +95,13 @@ impl MoveGeneration {
                 }
 
                 // Quiet moves
-                let mut quiet_mask = move_masks::get_pawn_quiet_mask(side, source) & inv_all_occupancies;
+                let mut quiet_mask = MoveMasks::get_pawn_quiet_mask(side, source) & inv_all_occupancies;
                 while quiet_mask.is_not_empty() {
                     let target = quiet_mask.pop_lsb();
                     
                     if source_rank == pawn_starting_rank && target.rank() == pawn_double_push_rank {
                         // Making sure both squares in front of the pawn are empty
-                        if (move_masks::get_pawn_quiet_mask(side, source) & position.ao).is_empty() {
+                        if (MoveMasks::get_pawn_quiet_mask(side, source) & position.ao).is_empty() {
                             
                             #[cfg(feature = "board_representation_bitboard")]
                             Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, PieceType::None, double_pawn_flag));
@@ -144,7 +144,7 @@ impl MoveGeneration {
                 
                 // En-passant
                 if en_passant_sq != Square::None && source_rank == en_passant_rank {
-                    let mut en_passant_mask = move_masks::get_pawn_capture_mask(side, source);
+                    let mut en_passant_mask = MoveMasks::get_pawn_capture_mask(side, source);
                     while en_passant_mask.is_not_empty() {
                         let target = en_passant_mask.pop_lsb();
                         if target == en_passant_sq {
@@ -167,7 +167,7 @@ impl MoveGeneration {
             while knight_bb.is_not_empty() {
                 let source = knight_bb.pop_lsb();
                 
-                let mut move_mask = move_masks::get_knight_mask(source) & inv_own_occupancies;
+                let mut move_mask = MoveMasks::get_knight_mask(source) & inv_own_occupancies;
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
@@ -209,7 +209,7 @@ impl MoveGeneration {
 
             let mut king_bb = position.bbs[king];
             let source = king_bb.pop_lsb();
-            let mut move_mask = move_masks::get_king_mask(source) & inv_own_occupancies;
+            let mut move_mask = MoveMasks::get_king_mask(source) & inv_own_occupancies;
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
 
@@ -263,7 +263,7 @@ impl MoveGeneration {
             let mut bishop_bb = position.bbs[bishop];
             while bishop_bb.is_not_empty() {
                 let source = bishop_bb.pop_lsb();
-                let mut move_mask = move_masks::get_bishop_mask(source, position.ao) & inv_own_occupancies;
+                let mut move_mask = MoveMasks::get_bishop_mask(source, position.ao) & inv_own_occupancies;
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
@@ -286,7 +286,7 @@ impl MoveGeneration {
             let mut rook_bb = position.bbs[rook];
             while rook_bb.is_not_empty() {
                 let source = rook_bb.pop_lsb();
-                let mut move_mask = move_masks::get_rook_mask(source, position.ao) & inv_own_occupancies;
+                let mut move_mask = MoveMasks::get_rook_mask(source, position.ao) & inv_own_occupancies;
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
@@ -309,7 +309,7 @@ impl MoveGeneration {
             let mut queen_bb = position.bbs[queen];
             while queen_bb.is_not_empty() {
                 let source = queen_bb.pop_lsb();
-                let mut move_mask = move_masks::get_queen_mask(source, position.ao) & inv_own_occupancies;
+                let mut move_mask = MoveMasks::get_queen_mask(source, position.ao) & inv_own_occupancies;
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
@@ -361,7 +361,7 @@ impl MoveGeneration {
                 let source_rank = source.rank();
 
                 // Captures
-                let mut capture_mask = move_masks::get_pawn_capture_mask(side, source) & enemy_occupancies;
+                let mut capture_mask = MoveMasks::get_pawn_capture_mask(side, source) & enemy_occupancies;
                 while capture_mask.is_not_empty() {
                     let target = capture_mask.pop_lsb();
 
@@ -405,7 +405,7 @@ impl MoveGeneration {
 
                 // En-passant
                 if en_passant_sq != Square::None && source_rank == en_passant_rank {
-                    let mut en_passant_mask = move_masks::get_pawn_capture_mask(side, source);
+                    let mut en_passant_mask = MoveMasks::get_pawn_capture_mask(side, source);
                     while en_passant_mask.is_not_empty() {
                         let target = en_passant_mask.pop_lsb();
                         if target == en_passant_sq {
@@ -428,7 +428,7 @@ impl MoveGeneration {
             while knight_bb.is_not_empty() {
                 let source = knight_bb.pop_lsb();
                 
-                let mut move_mask = move_masks::get_knight_mask(source) & enemy_occupancies;
+                let mut move_mask = MoveMasks::get_knight_mask(source) & enemy_occupancies;
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
@@ -450,7 +450,7 @@ impl MoveGeneration {
             \*------------------------------*/
             let mut king_bb = position.bbs[king];
             let source = king_bb.pop_lsb();
-            let mut move_mask = move_masks::get_king_mask(source) & enemy_occupancies;
+            let mut move_mask = MoveMasks::get_king_mask(source) & enemy_occupancies;
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
 
@@ -472,7 +472,7 @@ impl MoveGeneration {
             let mut bishop_bb = position.bbs[bishop];
             while bishop_bb.is_not_empty() {
                 let source = bishop_bb.pop_lsb();
-                let mut move_mask = move_masks::get_bishop_mask(source, position.ao) & enemy_occupancies;
+                let mut move_mask = MoveMasks::get_bishop_mask(source, position.ao) & enemy_occupancies;
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
@@ -495,7 +495,7 @@ impl MoveGeneration {
             let mut rook_bb = position.bbs[rook];
             while rook_bb.is_not_empty() {
                 let source = rook_bb.pop_lsb();
-                let mut move_mask = move_masks::get_rook_mask(source, position.ao) & enemy_occupancies;
+                let mut move_mask = MoveMasks::get_rook_mask(source, position.ao) & enemy_occupancies;
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
@@ -518,7 +518,7 @@ impl MoveGeneration {
             let mut queen_bb = position.bbs[queen];
             while queen_bb.is_not_empty() {
                 let source = queen_bb.pop_lsb();
-                let mut move_mask = move_masks::get_queen_mask(source, position.ao) & enemy_occupancies;
+                let mut move_mask = MoveMasks::get_queen_mask(source, position.ao) & enemy_occupancies;
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 

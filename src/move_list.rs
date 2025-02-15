@@ -10,12 +10,16 @@ pub struct MoveList<T> {
 }
 
 impl<T: Move> MoveList<T> {
-    #[inline]
+    #[inline(always)]
     pub fn new() -> Self {
         MoveList {
             array: [T::default(); MAX_MOVES],
             size: 0,
         }
+    }
+
+    pub fn contains(&self, mv: &T) -> bool {
+        self.array.contains(mv)
     }
 
     #[inline(always)]
