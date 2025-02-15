@@ -18,7 +18,7 @@ impl Color {
     #[inline(always)]
     pub fn opposite(self) -> Color {
         debug_assert!(self == Color::White || self == Color::Black);
-        Color::from(self as u8 ^ 0b1)
+        Color::from(self as u8 ^ 1)
     }
 }
 

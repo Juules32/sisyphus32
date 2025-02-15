@@ -1,13 +1,16 @@
 use crate::{bitboard::Bitboard, color::Color, rank::Rank, square::Square, file::File};
 
+const NUM_ROOK_MOVE_PERMUTATIONS: usize = 4096;
+const NUM_BISHOP_MOVE_PERMUTATIONS: usize = 512;
+
 pub static mut PAWN_QUIET_MASKS: [[Bitboard; 64]; 2] = [[Bitboard::EMPTY; 64]; 2];
 pub static mut PAWN_CAPTURE_MASKS: [[Bitboard; 64]; 2] = [[Bitboard::EMPTY; 64]; 2];
 pub static mut KNIGHT_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
 pub static mut KING_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
 pub static mut BISHOP_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
 pub static mut ROOK_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-pub static mut ROOK_MOVE_CONFIGURATIONS: [[Bitboard; 4096]; 64] = [[Bitboard::EMPTY; 4096]; 64];
-pub static mut BISHOP_MOVE_CONFIGURATIONS: [[Bitboard; 512]; 64] = [[Bitboard::EMPTY; 512]; 64];
+pub static mut ROOK_MOVE_CONFIGURATIONS: [[Bitboard; NUM_ROOK_MOVE_PERMUTATIONS]; 64] = [[Bitboard::EMPTY; NUM_ROOK_MOVE_PERMUTATIONS]; 64];
+pub static mut BISHOP_MOVE_CONFIGURATIONS: [[Bitboard; NUM_BISHOP_MOVE_PERMUTATIONS]; 64] = [[Bitboard::EMPTY; NUM_BISHOP_MOVE_PERMUTATIONS]; 64];
 
 pub static BISHOP_RELEVANT_BITS: [u8; 64] = [
     6, 5, 5, 5, 5, 5, 5, 6,
@@ -165,383 +168,389 @@ pub static ROOK_MAGIC_BITBOARDS: [Bitboard; 64] = [
     Bitboard(0x1004081002402),
 ];
 
-pub fn init() {
-    unsafe {
-        init_masks();
-        init_slider_configurations();
-    }
-}
+pub struct MoveMasks { }
 
-unsafe fn init_masks() {
-    for square in Square::ALL_SQUARES {
-        PAWN_QUIET_MASKS[Color::White][square] = generate_pawn_quiet_mask(Color::White, square);
-        PAWN_CAPTURE_MASKS[Color::White][square] = generate_pawn_capture_mask(Color::White, square);
-        PAWN_QUIET_MASKS[Color::Black][square] = generate_pawn_quiet_mask(Color::Black, square);
-        PAWN_CAPTURE_MASKS[Color::Black][square] = generate_pawn_capture_mask(Color::Black, square);
-        KNIGHT_MASKS[square] = generate_knight_mask(square);
-        KING_MASKS[square] = generate_king_mask(square);
-        BISHOP_MASKS[square] = generate_bishop_mask(square);
-        ROOK_MASKS[square] = generate_rook_mask(square);
 
-        debug_assert_eq!(BISHOP_MASKS[square].count_bits(), BISHOP_RELEVANT_BITS[square]);
-        debug_assert_eq!(ROOK_MASKS[square].count_bits(), ROOK_RELEVANT_BITS[square]);
-    }
-}
+impl MoveMasks {
 
-unsafe fn init_slider_configurations() {
-    for square in Square::ALL_SQUARES {
-        let bishop_mask = BISHOP_MASKS[square];
-        let rook_mask = ROOK_MASKS[square];
-
-        let num_bishop_relevant_bits = BISHOP_RELEVANT_BITS[square];
-        let num_rook_relevant_bits = ROOK_RELEVANT_BITS[square];
-
-        let max_bishop_occupancy_index = 1 << num_bishop_relevant_bits;
-        let max_rook_occupancy_index = 1 << num_rook_relevant_bits;
-
-        for occupancy_index in 0..max_bishop_occupancy_index {
-            let occupancy = generate_occupancy_permutation(occupancy_index, num_bishop_relevant_bits, bishop_mask);
-            let magic_index = occupancy.0.wrapping_mul(BISHOP_MAGIC_BITBOARDS[square].0) >> (64 - num_bishop_relevant_bits);
-            BISHOP_MOVE_CONFIGURATIONS[square][magic_index as usize] = generate_bishop_moves_on_the_fly(square, occupancy);
-        }
-
-        for occupancy_index in 0..max_rook_occupancy_index {
-            let occupancy = generate_occupancy_permutation(occupancy_index, num_rook_relevant_bits, rook_mask);
-            let magic_index = occupancy.0.wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> (64 - num_rook_relevant_bits);
-            ROOK_MOVE_CONFIGURATIONS[square][magic_index as usize] = generate_rook_moves_on_the_fly(square, occupancy);
+    pub fn init() {
+        unsafe {
+            Self::init_masks();
+            Self::init_slider_configurations();
         }
     }
-}
 
-fn generate_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
-    let mut bb_mask = Bitboard::EMPTY;
-    let square_bb = square.to_bb();
-    let square_rank = square.rank();
+    unsafe fn init_masks() {
+        for square in Square::ALL_SQUARES {
+            PAWN_QUIET_MASKS[Color::White][square] = Self::generate_pawn_quiet_mask(Color::White, square);
+            PAWN_CAPTURE_MASKS[Color::White][square] = Self::generate_pawn_capture_mask(Color::White, square);
+            PAWN_QUIET_MASKS[Color::Black][square] = Self::generate_pawn_quiet_mask(Color::Black, square);
+            PAWN_CAPTURE_MASKS[Color::Black][square] = Self::generate_pawn_capture_mask(Color::Black, square);
+            KNIGHT_MASKS[square] = Self::generate_knight_mask(square);
+            KING_MASKS[square] = Self::generate_king_mask(square);
+            BISHOP_MASKS[square] = Self::generate_bishop_mask(square);
+            ROOK_MASKS[square] = Self::generate_rook_mask(square);
 
-    match color {
-        Color::White => {
-            bb_mask |= square_bb.shift_upwards(8);
-
-            if square_rank == Rank::R2 {
-                bb_mask |= square_bb.shift_upwards(16);
-            }
+            debug_assert_eq!(BISHOP_MASKS[square].count_bits(), BISHOP_RELEVANT_BITS[square]);
+            debug_assert_eq!(ROOK_MASKS[square].count_bits(), ROOK_RELEVANT_BITS[square]);
         }
-        Color::Black => {
-            bb_mask |= square_bb.shift_downwards(8);
+    }
 
-            if square_rank == Rank::R7 {
-                bb_mask |= square_bb.shift_downwards(16);
-            }
-        }
-    };
+    unsafe fn init_slider_configurations() {
+        for square in Square::ALL_SQUARES {
+            let bishop_mask = BISHOP_MASKS[square];
+            let rook_mask = ROOK_MASKS[square];
 
-    bb_mask
-}
+            let num_bishop_relevant_bits = BISHOP_RELEVANT_BITS[square];
+            let num_rook_relevant_bits = ROOK_RELEVANT_BITS[square];
 
-fn generate_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
-    let mut bb_mask = Bitboard::EMPTY;
-    let square_bb = square.to_bb();
-    let square_file = square.file();
+            let max_bishop_occupancy_index = 1 << num_bishop_relevant_bits;
+            let max_rook_occupancy_index = 1 << num_rook_relevant_bits;
 
-    match color {
-        Color::White => {
-            if square_file != File::FA {
-                bb_mask |= square_bb.shift_upwards(9);
+            for occupancy_index in 0..max_bishop_occupancy_index {
+                let occupancy = Self::generate_occupancy_permutation(occupancy_index, num_bishop_relevant_bits, bishop_mask);
+                let magic_index = occupancy.0.wrapping_mul(BISHOP_MAGIC_BITBOARDS[square].0) >> (64 - num_bishop_relevant_bits);
+                BISHOP_MOVE_CONFIGURATIONS[square][magic_index as usize] = Self::generate_bishop_moves_on_the_fly(square, occupancy);
             }
 
-            if square_file != File::FH {
-                bb_mask |= square_bb.shift_upwards(7);
+            for occupancy_index in 0..max_rook_occupancy_index {
+                let occupancy = Self::generate_occupancy_permutation(occupancy_index, num_rook_relevant_bits, rook_mask);
+                let magic_index = occupancy.0.wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> (64 - num_rook_relevant_bits);
+                ROOK_MOVE_CONFIGURATIONS[square][magic_index as usize] = Self::generate_rook_moves_on_the_fly(square, occupancy);
             }
         }
-        Color::Black => {
-            if square_file != File::FA {
-                bb_mask |= square_bb.shift_downwards(7);
+    }
+
+    fn generate_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
+        let mut bb_mask = Bitboard::EMPTY;
+        let square_bb = square.to_bb();
+        let square_rank = square.rank();
+
+        match color {
+            Color::White => {
+                bb_mask |= square_bb.shift_upwards(8);
+
+                if square_rank == Rank::R2 {
+                    bb_mask |= square_bb.shift_upwards(16);
+                }
             }
+            Color::Black => {
+                bb_mask |= square_bb.shift_downwards(8);
 
-            if square_file != File::FH {
-                bb_mask |= square_bb.shift_downwards(9);
+                if square_rank == Rank::R7 {
+                    bb_mask |= square_bb.shift_downwards(16);
+                }
+            }
+        };
+
+        bb_mask
+    }
+
+    fn generate_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
+        let mut bb_mask = Bitboard::EMPTY;
+        let square_bb = square.to_bb();
+        let square_file = square.file();
+
+        match color {
+            Color::White => {
+                if square_file != File::FA {
+                    bb_mask |= square_bb.shift_upwards(9);
+                }
+
+                if square_file != File::FH {
+                    bb_mask |= square_bb.shift_upwards(7);
+                }
+            }
+            Color::Black => {
+                if square_file != File::FA {
+                    bb_mask |= square_bb.shift_downwards(7);
+                }
+
+                if square_file != File::FH {
+                    bb_mask |= square_bb.shift_downwards(9);
+                }
+            }
+        };
+
+        bb_mask
+    }
+
+    fn generate_knight_mask(square: Square) -> Bitboard {
+        let mut bb_mask = Bitboard::EMPTY;
+        let square_bb = square.to_bb();
+        let square_file = square.file();
+
+        if square_file != File::FA {
+            bb_mask |= square_bb.shift_upwards(17);
+            bb_mask |= square_bb.shift_downwards(15);
+
+            if square_file != File::FB {
+                bb_mask |= square_bb.shift_upwards(10);
+                bb_mask |= square_bb.shift_downwards(6);
             }
         }
-    };
 
-    bb_mask
-}
+        if square_file != File::FH {
+            bb_mask |= square_bb.shift_upwards(15);
+            bb_mask |= square_bb.shift_downwards(17);
 
-fn generate_knight_mask(square: Square) -> Bitboard {
-    let mut bb_mask = Bitboard::EMPTY;
-    let square_bb = square.to_bb();
-    let square_file = square.file();
+            if square_file != File::FG {
+                bb_mask |= square_bb.shift_upwards(6);
+                bb_mask |= square_bb.shift_downwards(10);
+            }
+        }
 
-    if square_file != File::FA {
-        bb_mask |= square_bb.shift_upwards(17);
-        bb_mask |= square_bb.shift_downwards(15);
+        bb_mask
+    }
 
-        if square_file != File::FB {
-            bb_mask |= square_bb.shift_upwards(10);
-            bb_mask |= square_bb.shift_downwards(6);
+    fn generate_king_mask(square: Square) -> Bitboard {
+        let mut bb_mask = Bitboard::EMPTY;
+        let square_bb = square.to_bb();
+        let square_file = square.file();
+
+        bb_mask |= square_bb.shift_upwards(8);
+        bb_mask |= square_bb.shift_downwards(8);
+
+        if square_file != File::FA {
+            bb_mask |= square_bb.shift_upwards(1);
+            bb_mask |= square_bb.shift_upwards(9);
+            bb_mask |= square_bb.shift_downwards(7);
+        }
+
+        if square_file != File::FH {
+            bb_mask |= square_bb.shift_upwards(7);
+            bb_mask |= square_bb.shift_downwards(1);
+            bb_mask |= square_bb.shift_downwards(9);
+        }
+
+        bb_mask
+    }
+
+    fn generate_bishop_mask(square: Square) -> Bitboard {
+        use std::cmp::min;
+
+        let mut bb_mask = Bitboard::EMPTY;
+        let square_bb = square.to_bb();
+        let rank_u8 = square.rank_as_u8();
+        let file_u8 = square.file_as_u8();
+
+        // Bottom right
+        for i in 1..=min(6_u8.saturating_sub(rank_u8), 6_u8.saturating_sub(file_u8)) as usize {
+            let ray = square_bb.shift_downwards(i * 9);
+            bb_mask |= ray;
+        }
+        
+        // Top right
+        for i in 1..=min(rank_u8.saturating_sub(1), 6_u8.saturating_sub(file_u8)) as usize {
+            let ray = square_bb.shift_upwards(i * 7);
+            bb_mask |= ray;
+        }
+
+        // Bottom left
+        for i in 1..=min(6_u8.saturating_sub(rank_u8), file_u8.saturating_sub(1)) as usize {
+            let ray = square_bb.shift_downwards(i * 7);
+            bb_mask |= ray;
+        }
+
+        // Top left
+        for i in 1..=min(rank_u8.saturating_sub(1), file_u8.saturating_sub(1)) as usize {
+            let ray = square_bb.shift_upwards(i * 9);
+            bb_mask |= ray;
+        }
+
+        bb_mask
+    }
+
+
+    fn generate_rook_mask(square: Square) -> Bitboard {
+        let mut bb_mask = Bitboard::EMPTY;
+        let square_bb = square.to_bb();
+        let rank_u8 = square.rank_as_u8();
+        let file_u8 = square.file_as_u8();
+
+        // Down
+        for i in 1..=(6_u8.saturating_sub(rank_u8)) as usize {
+            let ray = square_bb.shift_downwards(i * 8);
+            bb_mask |= ray;
+        }
+        
+        // Up
+        for i in 1..=(rank_u8.saturating_sub(1)) as usize {
+            let ray = square_bb.shift_upwards(i * 8);
+            bb_mask |= ray;
+        }
+
+        // Right
+        for i in 1..=(6_u8.saturating_sub(file_u8)) as usize {
+            let ray = square_bb.shift_downwards(i);
+            bb_mask |= ray;
+        }
+
+        // Left
+        for i in 1..=(file_u8.saturating_sub(1)) as usize {
+            let ray = square_bb.shift_upwards(i);
+            bb_mask |= ray;
+        }
+
+        bb_mask
+    }
+
+
+    pub fn generate_bishop_moves_on_the_fly(square: Square, occupancy: Bitboard) -> Bitboard {
+        use std::cmp::min;
+
+        let mut bb_mask = Bitboard::EMPTY;
+        let square_bb = square.to_bb();
+        let rank_u8 = square.rank_as_u8();
+        let file_u8 = square.file_as_u8();
+
+        // Bottom right
+        for i in 1..=min(7_u8.saturating_sub(rank_u8), 7_u8.saturating_sub(file_u8)) as usize {
+            let ray = square_bb.shift_downwards(i * 9);
+            bb_mask |= ray;
+            if (ray & occupancy).is_not_empty() { break; }
+        }
+        
+        // Top right
+        for i in 1..=min(rank_u8, 7_u8.saturating_sub(file_u8)) as usize {
+            let ray = square_bb.shift_upwards(i * 7);
+            bb_mask |= ray;
+            if (ray & occupancy).is_not_empty() { break; }
+        }
+
+        // Bottom left
+        for i in 1..=min(7_u8.saturating_sub(rank_u8), file_u8) as usize {
+            let ray = square_bb.shift_downwards(i * 7);
+            bb_mask |= ray;
+            if (ray & occupancy).is_not_empty() { break; }
+        }
+
+        // Top left
+        for i in 1..=min(rank_u8, file_u8) as usize {
+            let ray = square_bb.shift_upwards(i * 9);
+            bb_mask |= ray;
+            if (ray & occupancy).is_not_empty() { break; }
+        }
+
+        bb_mask
+    }
+
+    pub fn generate_rook_moves_on_the_fly(square: Square, occupancy: Bitboard) -> Bitboard {
+        let mut bb_mask = Bitboard::EMPTY;
+        let square_bb = square.to_bb();
+        let rank_u8 = square.rank_as_u8();
+        let file_u8 = square.file_as_u8();
+
+        // Down
+        for i in 1..=(7_u8.saturating_sub(rank_u8)) as usize {
+            let ray = square_bb.shift_downwards(i * 8);
+            bb_mask |= ray;
+            if (ray & occupancy).is_not_empty() { break; }
+        }
+        
+        // Up
+        for i in 1..=rank_u8 as usize {
+            let ray = square_bb.shift_upwards(i * 8);
+            bb_mask |= ray;
+            if (ray & occupancy).is_not_empty() { break; }
+        }
+
+        // Right
+        for i in 1..=(7_u8.saturating_sub(file_u8)) as usize {
+            let ray = square_bb.shift_downwards(i);
+            bb_mask |= ray;
+            if (ray & occupancy).is_not_empty() { break; }
+        }
+
+        // Left
+        for i in 1..=file_u8 as usize {
+            let ray = square_bb.shift_upwards(i);
+            bb_mask |= ray;
+            if (ray & occupancy).is_not_empty() { break; }
+        }
+
+        bb_mask
+    }
+
+    // Generates the relevant occupancy bitboard for a slider piece from an index,
+    // the number of relevant bits, and the relevant mask.
+    pub fn generate_occupancy_permutation(occupancy_index: u32, num_bits: u8, mut mask: Bitboard) -> Bitboard {
+        let mut occupancy = Bitboard::EMPTY;
+        for i in 0..num_bits {
+            let square = mask.pop_lsb();
+            if occupancy_index & (1 << i) != 0 {
+                occupancy.set_sq(square);
+            }
+        }
+
+        occupancy
+    }
+
+    #[inline(always)]
+    pub fn get_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
+        unsafe { PAWN_QUIET_MASKS[color][square] }
+    }
+
+    #[inline(always)]
+    pub fn get_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
+        unsafe { PAWN_CAPTURE_MASKS[color][square] }
+    }
+
+    #[inline(always)]
+    pub fn get_knight_mask(square: Square) -> Bitboard {
+        unsafe { KNIGHT_MASKS[square] }
+    }
+
+    #[inline(always)]
+    pub fn get_king_mask(square: Square) -> Bitboard {
+        unsafe { KING_MASKS[square] }
+    }
+
+    #[inline(always)]
+    #[cfg(feature = "sliders_on_the_fly")]
+    pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+        MoveMasks::generate_bishop_moves_on_the_fly(square, occupancy)
+    }
+
+    #[inline(always)]
+    #[cfg(feature = "sliders_magic_bitboards")]
+    pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+        unsafe {
+            let mut index = occupancy.0 & BISHOP_MASKS[square].0;
+            index = 
+                index.wrapping_mul(BISHOP_MAGIC_BITBOARDS[square].0) >> 
+                (64 - BISHOP_RELEVANT_BITS[square]);
+            BISHOP_MOVE_CONFIGURATIONS[square][index as usize]
         }
     }
 
-    if square_file != File::FH {
-        bb_mask |= square_bb.shift_upwards(15);
-        bb_mask |= square_bb.shift_downwards(17);
+    #[inline(always)]
+    #[cfg(feature = "sliders_on_the_fly")]
+    pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+        MoveMasks::generate_rook_moves_on_the_fly(square, occupancy)
+    }
 
-        if square_file != File::FG {
-            bb_mask |= square_bb.shift_upwards(6);
-            bb_mask |= square_bb.shift_downwards(10);
+    #[inline(always)]
+    #[cfg(feature = "sliders_magic_bitboards")]
+    pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+        unsafe {
+            let mut index = occupancy.0 & ROOK_MASKS[square].0;
+            index = 
+                index.wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> 
+                (64 - ROOK_RELEVANT_BITS[square]);
+            ROOK_MOVE_CONFIGURATIONS[square][index as usize]
         }
     }
 
-    bb_mask
-}
-
-fn generate_king_mask(square: Square) -> Bitboard {
-    let mut bb_mask = Bitboard::EMPTY;
-    let square_bb = square.to_bb();
-    let square_file = square.file();
-
-    bb_mask |= square_bb.shift_upwards(8);
-    bb_mask |= square_bb.shift_downwards(8);
-
-    if square_file != File::FA {
-        bb_mask |= square_bb.shift_upwards(1);
-        bb_mask |= square_bb.shift_upwards(9);
-        bb_mask |= square_bb.shift_downwards(7);
+    #[inline(always)]
+    #[cfg(feature = "sliders_on_the_fly")]
+    pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+        MoveMasks::get_bishop_mask(square, occupancy) | MoveMasks::get_rook_mask(square, occupancy)
     }
 
-    if square_file != File::FH {
-        bb_mask |= square_bb.shift_upwards(7);
-        bb_mask |= square_bb.shift_downwards(1);
-        bb_mask |= square_bb.shift_downwards(9);
+    #[inline(always)]
+    #[cfg(feature = "sliders_magic_bitboards")]
+    pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+        Self::get_bishop_mask(square, occupancy) | Self::get_rook_mask(square, occupancy)
     }
-
-    bb_mask
-}
-
-fn generate_bishop_mask(square: Square) -> Bitboard {
-    use std::cmp::min;
-
-    let mut bb_mask = Bitboard::EMPTY;
-    let square_bb = square.to_bb();
-    let rank_u8 = square.rank_as_u8();
-    let file_u8 = square.file_as_u8();
-
-    // Bottom right
-    for i in 1..=min(6_u8.saturating_sub(rank_u8), 6_u8.saturating_sub(file_u8)) as usize {
-        let ray = square_bb.shift_downwards(i * 9);
-        bb_mask |= ray;
-    }
-    
-    // Top right
-    for i in 1..=min(rank_u8.saturating_sub(1), 6_u8.saturating_sub(file_u8)) as usize {
-        let ray = square_bb.shift_upwards(i * 7);
-        bb_mask |= ray;
-    }
-
-    // Bottom left
-    for i in 1..=min(6_u8.saturating_sub(rank_u8), file_u8.saturating_sub(1)) as usize {
-        let ray = square_bb.shift_downwards(i * 7);
-        bb_mask |= ray;
-    }
-
-    // Top left
-    for i in 1..=min(rank_u8.saturating_sub(1), file_u8.saturating_sub(1)) as usize {
-        let ray = square_bb.shift_upwards(i * 9);
-        bb_mask |= ray;
-    }
-
-    bb_mask
-}
-
-
-fn generate_rook_mask(square: Square) -> Bitboard {
-    let mut bb_mask = Bitboard::EMPTY;
-    let square_bb = square.to_bb();
-    let rank_u8 = square.rank_as_u8();
-    let file_u8 = square.file_as_u8();
-
-    // Down
-    for i in 1..=(6_u8.saturating_sub(rank_u8)) as usize {
-        let ray = square_bb.shift_downwards(i * 8);
-        bb_mask |= ray;
-    }
-    
-    // Up
-    for i in 1..=(rank_u8.saturating_sub(1)) as usize {
-        let ray = square_bb.shift_upwards(i * 8);
-        bb_mask |= ray;
-    }
-
-    // Right
-    for i in 1..=(6_u8.saturating_sub(file_u8)) as usize {
-        let ray = square_bb.shift_downwards(i);
-        bb_mask |= ray;
-    }
-
-    // Left
-    for i in 1..=(file_u8.saturating_sub(1)) as usize {
-        let ray = square_bb.shift_upwards(i);
-        bb_mask |= ray;
-    }
-
-    bb_mask
-}
-
-
-pub fn generate_bishop_moves_on_the_fly(square: Square, occupancy: Bitboard) -> Bitboard {
-    use std::cmp::min;
-
-    let mut bb_mask = Bitboard::EMPTY;
-    let square_bb = square.to_bb();
-    let rank_u8 = square.rank_as_u8();
-    let file_u8 = square.file_as_u8();
-
-    // Bottom right
-    for i in 1..=min(7_u8.saturating_sub(rank_u8), 7_u8.saturating_sub(file_u8)) as usize {
-        let ray = square_bb.shift_downwards(i * 9);
-        bb_mask |= ray;
-        if (ray & occupancy).is_not_empty() { break; }
-    }
-    
-    // Top right
-    for i in 1..=min(rank_u8, 7_u8.saturating_sub(file_u8)) as usize {
-        let ray = square_bb.shift_upwards(i * 7);
-        bb_mask |= ray;
-        if (ray & occupancy).is_not_empty() { break; }
-    }
-
-    // Bottom left
-    for i in 1..=min(7_u8.saturating_sub(rank_u8), file_u8) as usize {
-        let ray = square_bb.shift_downwards(i * 7);
-        bb_mask |= ray;
-        if (ray & occupancy).is_not_empty() { break; }
-    }
-
-    // Top left
-    for i in 1..=min(rank_u8, file_u8) as usize {
-        let ray = square_bb.shift_upwards(i * 9);
-        bb_mask |= ray;
-        if (ray & occupancy).is_not_empty() { break; }
-    }
-
-    bb_mask
-}
-
-pub fn generate_rook_moves_on_the_fly(square: Square, occupancy: Bitboard) -> Bitboard {
-    let mut bb_mask = Bitboard::EMPTY;
-    let square_bb = square.to_bb();
-    let rank_u8 = square.rank_as_u8();
-    let file_u8 = square.file_as_u8();
-
-    // Down
-    for i in 1..=(7_u8.saturating_sub(rank_u8)) as usize {
-        let ray = square_bb.shift_downwards(i * 8);
-        bb_mask |= ray;
-        if (ray & occupancy).is_not_empty() { break; }
-    }
-    
-    // Up
-    for i in 1..=rank_u8 as usize {
-        let ray = square_bb.shift_upwards(i * 8);
-        bb_mask |= ray;
-        if (ray & occupancy).is_not_empty() { break; }
-    }
-
-    // Right
-    for i in 1..=(7_u8.saturating_sub(file_u8)) as usize {
-        let ray = square_bb.shift_downwards(i);
-        bb_mask |= ray;
-        if (ray & occupancy).is_not_empty() { break; }
-    }
-
-    // Left
-    for i in 1..=file_u8 as usize {
-        let ray = square_bb.shift_upwards(i);
-        bb_mask |= ray;
-        if (ray & occupancy).is_not_empty() { break; }
-    }
-
-    bb_mask
-}
-
-// Generates the relevant occupancy bitboard for a slider piece from an index,
-// the number of relevant bits, and the relevant mask.
-pub fn generate_occupancy_permutation(occupancy_index: u32, num_bits: u8, mut mask: Bitboard) -> Bitboard {
-    let mut occupancy = Bitboard::EMPTY;
-    for i in 0..num_bits {
-        let square = mask.pop_lsb();
-        if occupancy_index & (1 << i) != 0 {
-            occupancy.set_sq(square);
-        }
-    }
-
-    occupancy
-}
-
-#[inline(always)]
-pub fn get_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
-    unsafe { PAWN_QUIET_MASKS[color][square] }
-}
-
-#[inline(always)]
-pub fn get_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
-    unsafe { PAWN_CAPTURE_MASKS[color][square] }
-}
-
-#[inline(always)]
-pub fn get_knight_mask(square: Square) -> Bitboard {
-    unsafe { KNIGHT_MASKS[square] }
-}
-
-#[inline(always)]
-pub fn get_king_mask(square: Square) -> Bitboard {
-    unsafe { KING_MASKS[square] }
-}
-
-#[inline(always)]
-#[cfg(feature = "sliders_on_the_fly")]
-pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
-    generate_bishop_moves_on_the_fly(square, occupancy)
-}
-
-#[inline(always)]
-#[cfg(feature = "sliders_magic_bitboards")]
-pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
-    unsafe {
-        let mut index = occupancy.0 & BISHOP_MASKS[square].0;
-        index = 
-            index.wrapping_mul(BISHOP_MAGIC_BITBOARDS[square].0) >> 
-            (64 - BISHOP_RELEVANT_BITS[square]);
-        BISHOP_MOVE_CONFIGURATIONS[square][index as usize]
-    }
-}
-
-#[inline(always)]
-#[cfg(feature = "sliders_on_the_fly")]
-pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
-    generate_rook_moves_on_the_fly(square, occupancy)
-}
-
-#[inline(always)]
-#[cfg(feature = "sliders_magic_bitboards")]
-pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
-    unsafe {
-        let mut index = occupancy.0 & ROOK_MASKS[square].0;
-        index = 
-            index.wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> 
-            (64 - ROOK_RELEVANT_BITS[square]);
-        ROOK_MOVE_CONFIGURATIONS[square][index as usize]
-    }
-}
-
-#[inline(always)]
-#[cfg(feature = "sliders_on_the_fly")]
-pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
-    get_bishop_mask(square, occupancy) | get_rook_mask(square, occupancy)
-}
-
-#[inline(always)]
-#[cfg(feature = "sliders_magic_bitboards")]
-pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
-    get_bishop_mask(square, occupancy) | get_rook_mask(square, occupancy)
 }

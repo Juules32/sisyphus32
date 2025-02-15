@@ -1,20 +1,37 @@
+use core::fmt;
+
 use crate::{position::Position, castling_rights::CastlingRights, color::Color, piece::PieceType, square::{Square, SquareParseError}};
 
 #[derive(Debug)]
 pub struct FenParseError(pub &'static str);
-pub struct Fen { }
 
-impl Fen {
-    pub const STARTING_POSITION: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -";
-    pub const KIWIPETE_POSITION: &str = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
-    pub const ROOK_POSITION: &str = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -";
-    pub const TRICKY_POSITION: &str = "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ -";
-    pub const TRICKY_POSITION_2: &str = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
+pub struct FenString { string: String }
 
-    pub fn parse(fen_string: &str) -> Result<Position, FenParseError> {
+impl FenString {
+    pub fn starting() -> FenString {
+        FenString::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -")
+    }
+
+    pub fn kiwipete() -> FenString {
+        FenString::from("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -")
+    }
+
+    pub fn rook() -> FenString {
+        FenString::from("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -")
+    }
+
+    pub fn tricky() -> FenString {
+        FenString::from("r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ -")
+    }
+
+    pub fn tricky2() -> FenString {
+        FenString::from("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8")
+    }
+
+    pub fn parse(&self) -> Result<Position, FenParseError> {
         let mut pos = Position::default();
         
-        let mut fen_iter = fen_string.split_whitespace();
+        let mut fen_iter = self.string.split_whitespace();
         let pieces_str = fen_iter.next().ok_or(FenParseError("No pieces found!"))?;
         let side_str = fen_iter.next().ok_or(FenParseError("No side found!"))?;
         let castling_rights_str = fen_iter.next().ok_or(FenParseError("No castling rights found!"))?;
@@ -76,11 +93,98 @@ impl Fen {
     fn set_en_passant_sq(position: &mut Position, en_passant_sq_str: &str) -> Result<(), FenParseError> {
         match en_passant_sq_str {
             "-" => Ok(()),
-        _ => {
-            position.en_passant_sq = Square::try_from(en_passant_sq_str)
-            .map_err(|SquareParseError(msg)| FenParseError(msg))?;
-            Ok(())
+            _ => {
+                position.en_passant_sq = Square::try_from(en_passant_sq_str)
+                .map_err(|SquareParseError(msg)| FenParseError(msg))?;
+                Ok(())
             }
         }
+    }
+}
+
+impl TryInto<Position> for FenString {
+    type Error = FenParseError;
+
+    fn try_into(self) -> Result<Position, Self::Error> {
+        self.parse()
+    }
+}
+
+impl From<&str> for FenString {
+    fn from(string: &str) -> Self {
+        FenString { string: string.to_string() }
+    }
+}
+
+impl From<String> for FenString {
+    fn from(string: String) -> Self {
+        FenString { string }
+    }
+}
+
+impl From<&Position> for FenString {
+    fn from(position: &Position) -> Self {
+        let mut fen_str = String::new();
+        let mut curr_width = 0;
+        let mut curr_empty = 0;
+        for square in Square::ALL_SQUARES {
+            curr_width += 1;
+
+            let piece_type = position.get_piece(square);
+            match piece_type {
+                PieceType::None => curr_empty += 1,
+                _ => {
+                    if curr_empty != 0 {
+                        fen_str.push_str(&curr_empty.to_string());
+                        curr_empty = 0;
+                    }
+                    fen_str.push(piece_type.into())
+                }
+            }
+
+
+            if curr_width == 8 {
+                if curr_empty != 0 {
+                    fen_str.push_str(&curr_empty.to_string());
+                }
+
+                if square != *Square::ALL_SQUARES.last().unwrap() {
+                    fen_str.push('/');
+                }
+
+                curr_empty = 0;
+                curr_width = 0;
+            }
+        }
+
+        fen_str.push(' ');
+
+        fen_str.push(
+            match position.side {
+                Color::White => 'w',
+                Color::Black => 'b',
+            }
+        );
+
+        fen_str.push(' ');
+
+        fen_str.push_str(&position.castling_rights.to_string());
+
+        fen_str.push(' ');
+
+        fen_str.push_str(
+            &match position.en_passant_sq {
+                Square::None => "-".to_owned(),
+                _ => position.en_passant_sq.to_string(),
+            }
+        );
+        
+        fen_str.into()
+    }
+}
+
+impl fmt::Display for FenString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.pad(&self.string)
     }
 }
