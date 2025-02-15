@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use crate::{bit_move::BitMove, color::Color, eval::Eval, fen::{FenString, FenParseError}, move_flag::MoveFlag, move_generation::MoveGeneration, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, color::Color, eval::Eval, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
@@ -104,7 +104,7 @@ impl Uci {
                 None
             };
 
-            let ms = MoveGeneration::generate_pseudo_legal_moves(&self.position);
+            let ms = MoveGeneration::generate_moves::<BitMove, Legal>(&self.position);
             for m in ms.iter() {
                 let s = m.source();
                 let t = m.target();
@@ -154,9 +154,7 @@ impl Uci {
         if let Some(moves_index) = moves_index_option {
             for move_string in line[moves_index + 5..].split_whitespace() {
                 let pseudo_legal_move = self.parse_move_string(move_string)?;
-                if !self.position.make_move(pseudo_legal_move) {
-                    return Err(UciParseError("Found illegal move while parsing moves!"))
-                }
+                self.position.make_move(pseudo_legal_move);
             }
         }
 
