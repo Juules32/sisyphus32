@@ -107,7 +107,7 @@ impl Search {
     }
 
     #[inline(always)]
-    fn negamax_best_move(&mut self, position: &Position, depth: u8, mut alpha: i16, beta: i16) -> ScoringMove {
+    fn negamax_best_move(&mut self, position: &Position, mut alpha: i16, beta: i16, depth: u8) -> ScoringMove {
         if depth == 0 {
             #[cfg(feature = "no_quiescence")]
             return EvalPosition::eval(position);
@@ -143,7 +143,7 @@ impl Search {
         for scoring_move in moves.iter_mut() {
             let mut position_copy = position.clone();
             position_copy.make_move(scoring_move.bit_move);
-            scoring_move.score = -self.negamax_best_move(&position_copy, depth - 1, -beta, -alpha).score;
+            scoring_move.score = -self.negamax_best_move(&position_copy, -beta, -alpha, depth - 1).score;
             if scoring_move.score > alpha {
                 alpha = scoring_move.score;
                 if alpha >= beta {
@@ -165,7 +165,7 @@ impl Search {
         return self.minimax_best_move(position, depth);
 
         #[cfg(feature = "search_negamax")]
-        return self.negamax_best_move(position, depth, START_ALPHA, START_BETA);
+        return self.negamax_best_move(position, START_ALPHA, START_BETA, depth);
     }
 
     fn reset(&mut self, total_time: u128, increment: u128) {
