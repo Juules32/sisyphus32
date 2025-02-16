@@ -1,26 +1,5 @@
 use crate::{bit_move::{BitMove, Move}, bitboard::Bitboard, color::Color, move_flag::MoveFlag, move_list::MoveList, move_masks::MoveMasks, piece::PieceType, position::Position, rank::Rank, square::Square};
 
-pub trait Filter {
-    fn should_add(position: &Position, bit_move: BitMove) -> bool;
-}
-
-pub struct PseudoLegal { }
-impl Filter for PseudoLegal {
-    #[inline(always)]
-    fn should_add(_: &Position, _: BitMove) -> bool {
-        true
-    }
-}
-
-pub struct Legal;
-impl Filter for Legal {
-    #[inline(always)]
-    fn should_add(position: &Position, bit_move: BitMove) -> bool {
-        let mut position_copy = position.clone();
-        position_copy.make_move(bit_move.get_bit_move())
-    }
-}
-
 pub struct MoveGeneration { }
 
 impl MoveGeneration {
@@ -330,7 +309,7 @@ impl MoveGeneration {
 
     fn add_move<T: Move, F: Filter>(position: &Position, move_list: &mut MoveList<T>, bit_move: BitMove) {
         if F::should_add(position, bit_move) {
-            move_list.add(T::from(bit_move));
+            move_list.add(T::new(position, bit_move));
         }
     }
 
@@ -535,6 +514,27 @@ impl MoveGeneration {
         }
         
         move_list
+    }
+}
+
+pub trait Filter {
+    fn should_add(position: &Position, bit_move: BitMove) -> bool;
+}
+
+pub struct PseudoLegal { }
+impl Filter for PseudoLegal {
+    #[inline(always)]
+    fn should_add(_: &Position, _: BitMove) -> bool {
+        true
+    }
+}
+
+pub struct Legal;
+impl Filter for Legal {
+    #[inline(always)]
+    fn should_add(position: &Position, bit_move: BitMove) -> bool {
+        let mut position_copy = position.clone();
+        position_copy.make_move(bit_move.get_bit_move())
     }
 }
 

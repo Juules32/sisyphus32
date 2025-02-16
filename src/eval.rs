@@ -1,4 +1,4 @@
-use crate::{bit_move::ScoringMove, color::Color, piece::PieceType, position::Position, square::Square};
+use crate::{bit_move::{BitMove, ScoringMove}, color::Color, piece::PieceType, position::Position, square::Square};
 
 const PIECE_SCORES: [i16; 13] = [100, 300, 301, 500, 900, 10000, 100, 300, 301, 500, 900, 10000, 0];
 
@@ -140,9 +140,25 @@ const PIECE_POSITION_SCORES: [&[i16; 64]; 12] = [
     &BP_POSITION_SCORES, &BN_POSITION_SCORES, &BB_POSITION_SCORES, &BR_POSITION_SCORES, &BQ_POSITION_SCORES, &BK_POSITION_SCORES,
 ];
 
-pub struct Eval { }
+// Most valuable victim - least valuable attacker [attacker][victim]
+const MVV_LVA: [[i16; 12]; 12] = [
+    [105, 205, 305, 405, 505, 605, 105, 205, 305, 405, 505, 605],
+    [104, 204, 304, 404, 504, 604, 104, 204, 304, 404, 504, 604],
+    [103, 203, 303, 403, 503, 603, 103, 203, 303, 403, 503, 603],
+    [102, 202, 302, 402, 502, 602, 102, 202, 302, 402, 502, 602],
+    [101, 201, 301, 401, 501, 601, 101, 201, 301, 401, 501, 601],
+    [100, 200, 300, 400, 500, 600, 100, 200, 300, 400, 500, 600],
+    [105, 205, 305, 405, 505, 605, 105, 205, 305, 405, 505, 605],
+    [104, 204, 304, 404, 504, 604, 104, 204, 304, 404, 504, 604],
+    [103, 203, 303, 403, 503, 603, 103, 203, 303, 403, 503, 603],
+    [102, 202, 302, 402, 502, 602, 102, 202, 302, 402, 502, 602],
+    [101, 201, 301, 401, 501, 601, 101, 201, 301, 401, 501, 601],
+    [100, 200, 300, 400, 500, 600, 100, 200, 300, 400, 500, 600],
+];
 
-impl Eval {
+pub struct EvalPosition { }
+
+impl EvalPosition {
     #[inline(always)]
     fn basic(position: &Position) -> ScoringMove {
         ScoringMove::blank(Square::ALL_SQUARES.iter().fold(0, |acc, &sq| {
@@ -169,9 +185,18 @@ impl Eval {
     #[inline(always)]
     pub fn eval(position: &Position) -> ScoringMove {
         #[cfg(feature = "eval_basic")]
-        return Eval::basic(position);
+        return EvalPosition::basic(position);
 
         #[cfg(feature = "eval_piece_positions")]
-        return Eval::piece_positions(position);
+        return EvalPosition::piece_positions(position);
+    }
+}
+
+pub struct EvalMove { }
+
+impl EvalMove {
+    #[inline(always)]
+    pub fn eval(position: &Position, bit_move: BitMove) -> i16 {
+        if position.get_piece(bit_move.target()) == PieceType::None { 0 } else { MVV_LVA[position.get_piece(bit_move.source()) as usize][position.get_piece(bit_move.target()) as usize] }
     }
 }
