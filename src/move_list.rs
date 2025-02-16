@@ -1,4 +1,4 @@
-use crate::bit_move::{BitMove, Move};
+use crate::bit_move::{BitMove, Move, ScoringMove};
 use core::fmt;
 use std::ops::{Index, IndexMut};
 
@@ -57,6 +57,13 @@ impl<T: Move> MoveList<T> {
 impl<T: Move> Default for MoveList<T> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl MoveList<ScoringMove> {
+    #[inline(always)]
+    pub fn sort_by_score(&mut self) {
+        self.array[..self.size].sort_by(|a, b| b.cmp(a));
     }
 }
 

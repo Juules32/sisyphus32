@@ -1,4 +1,4 @@
-use crate::{move_flag::MoveFlag, square::Square};
+use crate::{eval::EvalMove, move_flag::MoveFlag, position::Position, square::Square};
 use core::fmt;
 use std::{cmp::Ordering, fmt::Display, hash::Hash};
 
@@ -23,24 +23,14 @@ const TARGET_MASK: u16 =  0b0000_1111_1100_0000;
 #[cfg(feature = "board_representation_array")]
 const FLAG_MASK: u16 =    0b1111_0000_0000_0000;
 
-pub trait Move: Copy + Default + Eq + Hash + From<BitMove> {
+pub trait Move: Copy + Default + Eq + Hash {
     fn get_bit_move(self) -> BitMove;
+    fn new(position: &Position, bit_move: BitMove) -> Self;
 }
 
-impl Move for BitMove {
-    #[inline(always)]
-    fn get_bit_move(self) -> BitMove {
-        self
-    }
-}
-
-impl Move for ScoringMove {
-    #[inline(always)]
-    fn get_bit_move(self) -> BitMove {
-        self.bit_move
-    }
-}
-
+/*------------------------------*\ 
+             BitMove
+\*------------------------------*/
 #[cfg(feature = "board_representation_bitboard")]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct BitMove(u32);
@@ -49,6 +39,17 @@ pub struct BitMove(u32);
 #[cfg(feature = "board_representation_array")]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct BitMove(u16);
+
+impl Move for BitMove {
+    #[inline(always)]
+    fn get_bit_move(self) -> BitMove {
+        self
+    }
+    
+    fn new(_position: &Position, bit_move: BitMove) -> Self {
+        bit_move
+    }
+}
 
 impl BitMove {
     pub const EMPTY: BitMove = BitMove(0);
@@ -216,17 +217,41 @@ impl Display for BitMove {
     }
 }
 
+/*------------------------------*\ 
+           ScoringMove
+\*------------------------------*/
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ScoringMove {
     pub bit_move: BitMove,
     pub score: i16,
 }
 
+impl Move for ScoringMove {
+    #[inline(always)]
+    fn get_bit_move(self) -> BitMove {
+        self.bit_move
+    }
+    
+    #[inline(always)]
+    fn new(position: &Position, bit_move: BitMove) -> Self {
+        let score = EvalMove::eval(position, bit_move);
+        Self { bit_move, score }
+    }
+}
+
 impl ScoringMove {
     #[inline(always)]
     pub fn blank(score: i16) -> Self {
-        ScoringMove {
+        Self {
             bit_move: BitMove::EMPTY,
+            score
+        }
+    }
+
+    #[inline(always)]
+    pub fn new(bit_move: BitMove, score: i16) -> Self {
+        Self {
+            bit_move,
             score
         }
     }
