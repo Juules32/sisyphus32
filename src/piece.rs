@@ -1,6 +1,5 @@
 use core::fmt;
-use std::mem::transmute;
-use std::ops::{Index, IndexMut};
+use std::{ops::{Index, IndexMut}, mem::transmute};
 
 use crate::{bitboard::Bitboard, color::Color};
 

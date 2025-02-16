@@ -1,9 +1,6 @@
-use crate::bitboard::Bitboard;
-use crate::file::{File, FileParseError};
-use crate::rank::{Rank, RankParseError};
+use crate::{rank::{Rank, RankParseError}, bitboard::Bitboard, file::{File, FileParseError}};
 use core::fmt;
-use std::mem::transmute;
-use std::ops::{Index, IndexMut};
+use std::{ops::{Index, IndexMut}, mem::transmute};
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug)]

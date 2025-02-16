@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use crate::{bit_move::BitMove, color::Color, eval::Eval, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, color::Color, eval::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
@@ -64,7 +64,7 @@ impl Uci {
                         Ok(())
                     },
                     "eval" => {
-                        pl!(Eval::eval(&self.position).score);
+                        pl!(EvalPosition::eval(&self.position).score);
                         Ok(())
                     },
                     "isready" => {
@@ -134,6 +134,10 @@ impl Uci {
     fn parse_position(&mut self, line: &str) -> Result<(), UciParseError> {
         let fen_index_option = line.find("fen");
         let startpos_index_option = line.find("startpos");
+        let kiwipete_index_option = line.find("kiwipete");
+        let rook_index_option = line.find("rook");
+        let tricky_index_option = line.find("tricky");
+        let tricky2_index_option = line.find("tricky2");
         let moves_index_option = line.find("moves");
 
         if let Some(fen_index) = fen_index_option {
@@ -146,6 +150,14 @@ impl Uci {
             self.position = fen_string.parse().map_err(|FenParseError(msg)| UciParseError(msg))?;
         } else if startpos_index_option.is_some() {
             self.position = Position::starting_position();
+        } else if kiwipete_index_option.is_some() {
+            self.position = FenString::kiwipete().parse().unwrap();
+        } else if rook_index_option.is_some() {
+            self.position = FenString::rook().parse().unwrap();
+        } else if tricky_index_option.is_some() {
+            self.position = FenString::tricky().parse().unwrap();
+        } else if tricky2_index_option.is_some() {
+            self.position = FenString::tricky2().parse().unwrap();
         } else {
             return Err(UciParseError("Neither fen nor startpos found!"));
         }

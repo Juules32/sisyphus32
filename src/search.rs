@@ -1,12 +1,9 @@
 extern crate rand;
 
 use rand::Rng;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::{sync::Arc, sync::atomic::{AtomicBool, Ordering}};
 
-use crate::bit_move::BitMove;
-use crate::move_generation::{Legal, PseudoLegal};
-use crate::{bit_move::ScoringMove, eval::Eval, move_generation::MoveGeneration, pl, position::Position, timer::Timer};
+use crate::{bit_move::{BitMove, ScoringMove}, eval::EvalPosition, move_generation::{Legal, PseudoLegal, MoveGeneration}, pl, position::Position, timer::Timer};
 
 pub struct Search {
     timer: Timer,
@@ -34,6 +31,10 @@ impl Search {
     
     #[inline(always)]
     fn minimax_best_move(&mut self, position: &Position, depth: u8) -> ScoringMove {
+        if depth == 0 {
+            return EvalPosition::eval(position);
+        }
+
         self.nodes += 1;
 
         if self.nodes % CHECK_STOP_INTERVAL == 0 && self.timer.get_time_passed_millis() > self.stop_time {
@@ -42,10 +43,6 @@ impl Search {
 
         if self.stop_calculating.load(Ordering::Relaxed) {
             return ScoringMove::blank(BLANK)
-        }
-        
-        if depth == 0 {
-            return Eval::eval(position);
         }
     
         MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position)
@@ -70,7 +67,7 @@ impl Search {
     }
 
     #[inline(always)]
-    fn negamax_best_move(&mut self, position: &Position, depth: u8, mut alpha: i16, beta: i16) -> ScoringMove {
+    fn quiescence(&mut self, position: &Position, mut alpha: i16, beta: i16) -> ScoringMove {
         self.nodes += 1;
 
         if self.nodes % CHECK_STOP_INTERVAL == 0 && self.timer.get_time_passed_millis() > self.stop_time {
@@ -81,13 +78,58 @@ impl Search {
             return ScoringMove::blank(BLANK)
         }
         
+        let evaluation = EvalPosition::eval(position);
+
+        if evaluation.score >= beta {
+            return ScoringMove::blank(beta);
+        } else if evaluation.score > alpha {
+            alpha = evaluation.score;
+        }
+
+        let mut best_move = ScoringMove::blank(evaluation.score);
+        let mut moves = MoveGeneration::generate_captures::<ScoringMove, Legal>(position);
+        moves.sort_by_score();
+
+        for scoring_capture in moves.iter_mut() {
+            let mut position_copy = position.clone();
+            position_copy.make_move(scoring_capture.bit_move);
+            scoring_capture.score = -self.quiescence(&position_copy, -beta, -alpha).score;
+            if scoring_capture.score > alpha {
+                alpha = scoring_capture.score;
+                if alpha >= beta {
+                    return *scoring_capture;
+                }
+                best_move = *scoring_capture;
+            }
+        }
+
+        best_move
+    }
+
+    #[inline(always)]
+    fn negamax_best_move(&mut self, position: &Position, depth: u8, mut alpha: i16, beta: i16) -> ScoringMove {
         if depth == 0 {
-            return Eval::eval(position);
+            #[cfg(feature = "no_quiescence")]
+            return EvalPosition::eval(position);
+            
+            #[cfg(feature = "quiescence")]
+            return self.quiescence(position, alpha, beta);
+        }
+
+        self.nodes += 1;
+
+        if self.nodes % CHECK_STOP_INTERVAL == 0 && self.timer.get_time_passed_millis() > self.stop_time {
+            self.stop_calculating.store(true, Ordering::Relaxed);
+        }
+
+        if self.stop_calculating.load(Ordering::Relaxed) {
+            return ScoringMove::blank(BLANK)
         }
 
         // NOTE: Generating legal moves immediately doesn't seem to cause a
         // drop in performance!
         let mut moves = MoveGeneration::generate_moves::<ScoringMove, Legal>(position);
+        moves.sort_by_score();
 
         if moves.is_empty() {
             if position.in_check() {
