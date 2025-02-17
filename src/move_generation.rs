@@ -382,6 +382,7 @@ impl MoveGeneration {
                     }
                 }
 
+                #[cfg(feature = "en_passant_in_quiescence")]
                 // En-passant
                 if en_passant_sq != Square::None && source_rank == en_passant_rank {
                     let mut en_passant_mask = MoveMasks::get_pawn_capture_mask(side, source);
