@@ -220,7 +220,7 @@ impl Search {
     #[inline(always)]
     fn go_iterative_deepening(&mut self, position: &Position, depth: u8) {
         let mut best_scoring_move = ScoringMove::blank(BLANK);
-        let mut candidate_pv_table = self.pv.table.clone();
+        let mut candidate_pv_table = self.pv.table;
 
         for current_depth in 1..=depth {
             if current_depth != 1 && self.timer.get_time_passed_millis() * AVERAGE_AMOUNT_OF_MOVES > self.stop_time {
@@ -235,7 +235,7 @@ impl Search {
             }
 
             // Copy the new PV table as it's valid
-            candidate_pv_table = self.pv.table.clone();
+            candidate_pv_table = self.pv.table;
             best_scoring_move = new_best_move;
 
             pl!(format!(
