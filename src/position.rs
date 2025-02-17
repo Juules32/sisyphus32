@@ -299,21 +299,12 @@ impl Position {
             Color::Black => &PieceType::WHITE_PIECES,
         };
 
-        if (MoveMasks::get_pawn_capture_mask(self.side, square) & self.bbs[enemy_pawn]).is_not_empty() {
-            true
-        } else if (MoveMasks::get_knight_mask(square) & self.bbs[enemy_knight]).is_not_empty() {
-            true
-        } else if (MoveMasks::get_bishop_mask(square, self.ao) & self.bbs[enemy_bishop]).is_not_empty() {
-            true
-        } else if (MoveMasks::get_rook_mask(square, self.ao) & self.bbs[enemy_rook]).is_not_empty() {
-            true
-        } else if (MoveMasks::get_queen_mask(square, self.ao) & self.bbs[enemy_queen]).is_not_empty() {
-            true
-        } else if (MoveMasks::get_king_mask(square) & self.bbs[enemy_king]).is_not_empty() {
-            true
-        } else {
-            false
-        }
+        (MoveMasks::get_pawn_capture_mask(self.side, square) & self.bbs[enemy_pawn]).is_not_empty() ||
+        (MoveMasks::get_knight_mask(square) & self.bbs[enemy_knight]).is_not_empty() ||
+        (MoveMasks::get_bishop_mask(square, self.ao) & self.bbs[enemy_bishop]).is_not_empty() ||
+        (MoveMasks::get_rook_mask(square, self.ao) & self.bbs[enemy_rook]).is_not_empty() ||
+        (MoveMasks::get_queen_mask(square, self.ao) & self.bbs[enemy_queen]).is_not_empty() ||
+        (MoveMasks::get_king_mask(square) & self.bbs[enemy_king]).is_not_empty()
     }
 
     pub fn in_check(&self) -> bool {
