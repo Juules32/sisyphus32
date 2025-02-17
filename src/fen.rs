@@ -57,7 +57,7 @@ impl FenString {
                     let piece_type = PieceType::from(pieces_char);
                     position.set_piece(piece_type, Square::from(sq_index));
                 }
-                _ => return Err(FenParseError("Invalid pieces!"))
+                _ => return Err(FenParseError("Invalid pieces!")),
             };
             if !pieces_char.is_ascii_digit() && pieces_char != '/' { sq_index += 1; }
         }

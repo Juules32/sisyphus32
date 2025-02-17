@@ -294,30 +294,26 @@ impl Position {
 
     #[inline(always)]
     pub fn is_square_attacked(&self, square: Square) -> bool {
-        let [enemy_pawn, enemy_knight, enemy_bishop, enemy_rook, enemy_queen, enemy_king] = match self.side {
+        let &[enemy_pawn, enemy_knight, enemy_bishop, enemy_rook, enemy_queen, enemy_king] = match self.side {
             Color::White => &PieceType::BLACK_PIECES,
             Color::Black => &PieceType::WHITE_PIECES,
         };
 
-        if (MoveMasks::get_pawn_capture_mask(self.side, square) & self.bbs[*enemy_pawn]).is_not_empty() {
-            return true;
+        if (MoveMasks::get_pawn_capture_mask(self.side, square) & self.bbs[enemy_pawn]).is_not_empty() {
+            true
+        } else if (MoveMasks::get_knight_mask(square) & self.bbs[enemy_knight]).is_not_empty() {
+            true
+        } else if (MoveMasks::get_bishop_mask(square, self.ao) & self.bbs[enemy_bishop]).is_not_empty() {
+            true
+        } else if (MoveMasks::get_rook_mask(square, self.ao) & self.bbs[enemy_rook]).is_not_empty() {
+            true
+        } else if (MoveMasks::get_queen_mask(square, self.ao) & self.bbs[enemy_queen]).is_not_empty() {
+            true
+        } else if (MoveMasks::get_king_mask(square) & self.bbs[enemy_king]).is_not_empty() {
+            true
+        } else {
+            false
         }
-        if (MoveMasks::get_knight_mask(square) & self.bbs[*enemy_knight]).is_not_empty() {
-            return true;
-        }
-        if (MoveMasks::get_bishop_mask(square, self.ao) & self.bbs[*enemy_bishop]).is_not_empty() {
-            return true;
-        }
-        if (MoveMasks::get_rook_mask(square, self.ao) & self.bbs[*enemy_rook]).is_not_empty() {
-            return true;
-        }
-        if (MoveMasks::get_queen_mask(square, self.ao) & self.bbs[*enemy_queen]).is_not_empty() {
-            return true;
-        }
-        if (MoveMasks::get_king_mask(square) & self.bbs[*enemy_king]).is_not_empty() {
-            return true;
-        }
-        false
     }
 
     pub fn in_check(&self) -> bool {
@@ -332,7 +328,7 @@ impl Position {
     pub fn get_piece(&self, square: Square) -> PieceType {
         for piece_type in PieceType::ALL_PIECES {
             if self.bbs[piece_type].is_set_sq(square) {
-                return piece_type
+                return piece_type;
             }
         }
         PieceType::None

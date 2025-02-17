@@ -10,12 +10,12 @@ rayon = "1.10.0"
 [features]
 default = ["single_thread_array"]
 
-basic =                 ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_on_the_fly", "search_random", "iterative_deepening", "eval_piece_positions", "quiescence"]
-magic_bitboard =        ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_magic_bitboards", "search_random", "iterative_deepening", "eval_piece_positions", "quiescence"]
-single_thread_bb =      ["board_representation_bitboard", "perft_single_thread", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "iterative_deepening", "eval_piece_positions", "quiescence"]
-parallel_bb =           ["board_representation_bitboard", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "iterative_deepening", "eval_piece_positions", "quiescence"]
-single_thread_array =   ["board_representation_array", "perft_single_thread", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "iterative_deepening", "eval_piece_positions", "quiescence"]
-parallel_array =        ["board_representation_array", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "iterative_deepening", "eval_piece_positions", "quiescence"]
+basic =                 ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_on_the_fly", "search_random", "iterative_deepening", "eval_piece_positions", "quiescence", "move_sort", "en_passant_in_quiescence"]
+magic_bitboard =        ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_magic_bitboards", "search_random", "iterative_deepening", "eval_piece_positions", "quiescence", "move_sort", "en_passant_in_quiescence"]
+single_thread_bb =      ["board_representation_bitboard", "perft_single_thread", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "iterative_deepening", "eval_piece_positions", "quiescence", "move_sort", "en_passant_in_quiescence"]
+parallel_bb =           ["board_representation_bitboard", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "iterative_deepening", "eval_piece_positions", "quiescence", "move_sort", "en_passant_in_quiescence"]
+single_thread_array =   ["board_representation_array", "perft_single_thread", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "iterative_deepening", "eval_piece_positions", "quiescence", "move_sort", "en_passant_in_quiescence"]
+parallel_array =        ["board_representation_array", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "iterative_deepening", "eval_piece_positions", "quiescence", "move_sort", "en_passant_in_quiescence"]
 
 board_representation_bitboard = []
 board_representation_array = []
@@ -41,3 +41,9 @@ eval_piece_positions = []
 
 quiescence = []
 no_quiescence = []
+
+move_sort = []
+no_move_sort = []
+
+en_passant_in_quiescence = []
+no_en_passant_in_quiescence = []

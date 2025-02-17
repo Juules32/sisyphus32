@@ -3,14 +3,40 @@ extern crate rand;
 use rand::Rng;
 use std::{sync::Arc, sync::atomic::{AtomicBool, Ordering}};
 
-use crate::{bit_move::{BitMove, ScoringMove}, eval::EvalPosition, move_generation::{Legal, PseudoLegal, MoveGeneration}, pl, position::Position, timer::Timer};
+use crate::{bit_move::{BitMove, ScoringMove}, eval::EvalPosition, move_generation::{Legal, MoveGeneration, PseudoLegal}, pl, position::Position, timer::Timer};
+
+struct PrincipalVariation {
+    table: [[BitMove; 246]; 246],
+    lengths: [usize; 246],
+}
+
+impl PrincipalVariation {
+    fn get_pv_string(&self, depth: u8) -> String {
+        self.table[0].iter().take(depth as usize).map(|&bit_move| bit_move.to_uci_string()).collect::<Vec<String>>().join(" ")
+    }
+
+    fn update(&mut self, ply: usize, bit_move: BitMove) {
+        self.table[ply][0] = bit_move;
+        for i in 0..self.lengths[ply + 1] {
+            self.table[ply][i + 1] = self.table[ply + 1][i];
+        }
+        self.lengths[ply] = self.lengths[ply + 1] + 1;
+    }
+}
+
+impl Default for PrincipalVariation {
+    fn default() -> Self {
+        Self { table: [[BitMove::EMPTY; 246]; 246], lengths: [usize::default(); 246] }
+    }
+}
 
 pub struct Search {
     timer: Timer,
     stop_time: u128,
     pub stop_calculating: Arc<AtomicBool>,
     nodes: u64,
-    // TODO: pv, killer_moves, etc...
+    pv: PrincipalVariation,
+    // TODO: killer_moves, etc...
 }
 
 const CHECK_STOP_INTERVAL: u64 = 10000;
@@ -42,7 +68,7 @@ impl Search {
         }
 
         if self.stop_calculating.load(Ordering::Relaxed) {
-            return ScoringMove::blank(BLANK)
+            return ScoringMove::blank(BLANK);
         }
     
         MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position)
@@ -75,7 +101,7 @@ impl Search {
         }
 
         if self.stop_calculating.load(Ordering::Relaxed) {
-            return ScoringMove::blank(BLANK)
+            return ScoringMove::blank(BLANK);
         }
         
         let evaluation = EvalPosition::eval(position);
@@ -86,8 +112,10 @@ impl Search {
             alpha = evaluation.score;
         }
 
-        let mut best_move = ScoringMove::blank(evaluation.score);
+        let mut best_move = ScoringMove::blank(alpha);
         let mut moves = MoveGeneration::generate_captures::<ScoringMove, Legal>(position);
+
+        #[cfg(feature = "move_sort")]
         moves.sort_by_score();
 
         for scoring_capture in moves.iter_mut() {
@@ -96,10 +124,10 @@ impl Search {
             scoring_capture.score = -self.quiescence(&position_copy, -beta, -alpha).score;
             if scoring_capture.score > alpha {
                 alpha = scoring_capture.score;
-                if alpha >= beta {
-                    return *scoring_capture;
-                }
                 best_move = *scoring_capture;
+                if alpha >= beta {
+                    return best_move;
+                }
             }
         }
 
@@ -107,7 +135,9 @@ impl Search {
     }
 
     #[inline(always)]
-    fn negamax_best_move(&mut self, position: &Position, mut alpha: i16, beta: i16, depth: u8) -> ScoringMove {
+    fn negamax_best_move(&mut self, position: &Position, mut alpha: i16, beta: i16, mut depth: u8, ply: usize) -> ScoringMove {
+        self.nodes += 1;
+        
         if depth == 0 {
             #[cfg(feature = "no_quiescence")]
             return EvalPosition::eval(position);
@@ -116,26 +146,30 @@ impl Search {
             return self.quiescence(position, alpha, beta);
         }
 
-        self.nodes += 1;
-
         if self.nodes % CHECK_STOP_INTERVAL == 0 && self.timer.get_time_passed_millis() > self.stop_time {
             self.stop_calculating.store(true, Ordering::Relaxed);
         }
 
         if self.stop_calculating.load(Ordering::Relaxed) {
-            return ScoringMove::blank(BLANK)
+            return ScoringMove::blank(BLANK);
         }
+
+        let in_check = position.in_check();
+
+        if in_check { depth += 1; }
 
         // NOTE: Generating legal moves immediately doesn't seem to cause a
         // drop in performance!
         let mut moves = MoveGeneration::generate_moves::<ScoringMove, Legal>(position);
+
+        #[cfg(feature = "move_sort")]
         moves.sort_by_score();
 
         if moves.is_empty() {
-            if position.in_check() {
-                return ScoringMove::blank(-CHECKMATE);
+            if in_check {
+                return ScoringMove::blank(-CHECKMATE + ply as i16);
             } else {
-                return ScoringMove::blank(DRAW)
+                return ScoringMove::blank(DRAW);
             }
         }
 
@@ -143,13 +177,14 @@ impl Search {
         for scoring_move in moves.iter_mut() {
             let mut position_copy = position.clone();
             position_copy.make_move(scoring_move.bit_move);
-            scoring_move.score = -self.negamax_best_move(&position_copy, -beta, -alpha, depth - 1).score;
+            scoring_move.score = -self.negamax_best_move(&position_copy, -beta, -alpha, depth - 1, ply + 1).score;
             if scoring_move.score > alpha {
                 alpha = scoring_move.score;
-                if alpha >= beta {
-                    return *scoring_move;
-                }
                 best_move = *scoring_move;
+                self.pv.update(ply, best_move.bit_move);
+                if alpha >= beta {
+                    return best_move;
+                }
             }
         }
 
@@ -165,7 +200,7 @@ impl Search {
         return self.minimax_best_move(position, depth);
 
         #[cfg(feature = "search_negamax")]
-        return self.negamax_best_move(position, START_ALPHA, START_BETA, depth);
+        return self.negamax_best_move(position, START_ALPHA, START_BETA, depth, 0);
     }
 
     fn reset(&mut self, total_time: u128, increment: u128) {
@@ -185,6 +220,8 @@ impl Search {
     #[inline(always)]
     fn go_iterative_deepening(&mut self, position: &Position, depth: u8) {
         let mut best_scoring_move = ScoringMove::blank(BLANK);
+        let mut candidate_pv_table = self.pv.table.clone();
+
         for current_depth in 1..=depth {
             if current_depth != 1 && self.timer.get_time_passed_millis() * AVERAGE_AMOUNT_OF_MOVES > self.stop_time {
                 pl!("info string ended iterative search early based on time prediction");
@@ -193,16 +230,21 @@ impl Search {
             self.nodes = 0;
             let new_best_move = self.best_move(position, current_depth);
             if self.stop_calculating.load(Ordering::Relaxed) {
-                break
+                self.pv.table = candidate_pv_table; // Revert to previous PV
+                break;
             }
+
+            // Copy the new PV table as it's valid
+            candidate_pv_table = self.pv.table.clone();
             best_scoring_move = new_best_move;
+
             pl!(format!(
                 "info depth {} score cp {} nodes {} time {} pv {}",
                 current_depth,
                 best_scoring_move.score,
                 self.nodes,
                 self.timer.get_time_passed_millis(),
-                best_scoring_move.bit_move.to_uci_string()
+                self.pv.get_pv_string(current_depth),
             ));
         }
         pl!(format!("bestmove {}", best_scoring_move.bit_move.to_uci_string()));
@@ -234,6 +276,7 @@ impl Default for Search {
             stop_time: 0,
             stop_calculating: Arc::new(AtomicBool::new(false)),
             nodes: 0,
+            pv: PrincipalVariation::default(),
         }
     }
 }
