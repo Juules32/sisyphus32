@@ -93,7 +93,7 @@ impl Position {
     }
 
     #[inline]
-    pub fn make_move(&mut self, bit_move: BitMove) -> bool {
+    pub fn make_move(&mut self, bit_move: BitMove) {
         #[cfg(feature = "board_representation_bitboard")]
         let (source, target, piece, capture, flag) = bit_move.decode();
 
@@ -194,14 +194,7 @@ impl Position {
 
         self.castling_rights.update(source, target);
         self.populate_occupancies();
-
-        if self.in_check() {
-            self.side.switch();
-            false
-        } else {
-            self.side.switch();
-            true
-        }
+        self.side.switch();
     }
 
     #[inline]
@@ -293,13 +286,13 @@ impl Position {
     }
 
     #[inline(always)]
-    pub fn is_square_attacked(&self, square: Square) -> bool {
-        let &[enemy_pawn, enemy_knight, enemy_bishop, enemy_rook, enemy_queen, enemy_king] = match self.side {
+    pub fn is_square_attacked(&self, defending_side: Color, square: Square) -> bool {
+        let &[enemy_pawn, enemy_knight, enemy_bishop, enemy_rook, enemy_queen, enemy_king] = match defending_side {
             Color::White => &PieceType::BLACK_PIECES,
             Color::Black => &PieceType::WHITE_PIECES,
         };
 
-        (MoveMasks::get_pawn_capture_mask(self.side, square) & self.bbs[enemy_pawn]).is_not_empty() ||
+        (MoveMasks::get_pawn_capture_mask(defending_side, square) & self.bbs[enemy_pawn]).is_not_empty() ||
         (MoveMasks::get_knight_mask(square) & self.bbs[enemy_knight]).is_not_empty() ||
         (MoveMasks::get_bishop_mask(square, self.ao) & self.bbs[enemy_bishop]).is_not_empty() ||
         (MoveMasks::get_rook_mask(square, self.ao) & self.bbs[enemy_rook]).is_not_empty() ||
@@ -307,10 +300,10 @@ impl Position {
         (MoveMasks::get_king_mask(square) & self.bbs[enemy_king]).is_not_empty()
     }
 
-    pub fn in_check(&self) -> bool {
-        match self.side {
-            Color::White => self.is_square_attacked(self.bbs[PieceType::WK].to_sq()),
-            Color::Black => self.is_square_attacked(self.bbs[PieceType::BK].to_sq()),
+    pub fn in_check(&self, defending_side: Color) -> bool {
+        match defending_side {
+            Color::White => self.is_square_attacked(defending_side, self.bbs[PieceType::WK].to_sq()),
+            Color::Black => self.is_square_attacked(defending_side, self.bbs[PieceType::BK].to_sq()),
         }
     }
 
