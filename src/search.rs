@@ -71,20 +71,17 @@ impl Search {
             return ScoringMove::blank(BLANK);
         }
     
-        MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position)
+        MoveGeneration::generate_moves::<ScoringMove, Legal>(position)
             .into_iter()
-            .filter_map(|mut m: ScoringMove| {
+            .map(|mut m: ScoringMove| {
                 let mut position_copy = position.clone();
-                if position_copy.make_move(m.bit_move) {
-                    m.score = -self.minimax_best_move(&position_copy, depth - 1).score;
-                    Some(m)
-                } else {
-                    None
-                }
+                position_copy.make_move(m.bit_move);
+                m.score = -self.minimax_best_move(&position_copy, depth - 1).score;
+                m
             })
             .max()
             .unwrap_or_else(|| {
-                if position.in_check() {
+                if position.in_check(position.side) {
                     ScoringMove::blank(-CHECKMATE)
                 } else {
                     ScoringMove::blank(DRAW)
@@ -113,7 +110,7 @@ impl Search {
         }
 
         let mut best_move = ScoringMove::blank(alpha);
-        let mut moves = MoveGeneration::generate_captures::<ScoringMove, Legal>(position);
+        let mut moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
 
         #[cfg(feature = "move_sort")]
         moves.sort_by_score();
@@ -121,12 +118,14 @@ impl Search {
         for scoring_capture in moves.iter_mut() {
             let mut position_copy = position.clone();
             position_copy.make_move(scoring_capture.bit_move);
-            scoring_capture.score = -self.quiescence(&position_copy, -beta, -alpha).score;
-            if scoring_capture.score > alpha {
-                alpha = scoring_capture.score;
-                best_move = *scoring_capture;
-                if alpha >= beta {
-                    return best_move;
+            if !position_copy.in_check(position_copy.side.opposite()) {
+                scoring_capture.score = -self.quiescence(&position_copy, -beta, -alpha).score;
+                if scoring_capture.score > alpha {
+                    alpha = scoring_capture.score;
+                    best_move = *scoring_capture;
+                    if alpha >= beta {
+                        return best_move;
+                    }
                 }
             }
         }
@@ -154,37 +153,42 @@ impl Search {
             return ScoringMove::blank(BLANK);
         }
 
-        let in_check = position.in_check();
+        let in_check = position.in_check(position.side);
 
         if in_check { depth += 1; }
 
         // NOTE: Generating legal moves immediately doesn't seem to cause a
         // drop in performance!
-        let mut moves = MoveGeneration::generate_moves::<ScoringMove, Legal>(position);
+        let mut moves = MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position);
 
         #[cfg(feature = "move_sort")]
         moves.sort_by_score();
 
-        if moves.is_empty() {
-            if in_check {
-                return ScoringMove::blank(-CHECKMATE + ply as i16);
-            } else {
-                return ScoringMove::blank(DRAW);
-            }
-        }
+        let mut moves_has_legal_move = false;
 
         let mut best_move = ScoringMove::blank(alpha);
         for scoring_move in moves.iter_mut() {
             let mut position_copy = position.clone();
             position_copy.make_move(scoring_move.bit_move);
-            scoring_move.score = -self.negamax_best_move(&position_copy, -beta, -alpha, depth - 1, ply + 1).score;
-            if scoring_move.score > alpha {
-                alpha = scoring_move.score;
-                best_move = *scoring_move;
-                self.pv.update(ply, best_move.bit_move);
-                if alpha >= beta {
-                    return best_move;
+            if !position_copy.in_check(position_copy.side.opposite()) {
+                moves_has_legal_move = true;
+                scoring_move.score = -self.negamax_best_move(&position_copy, -beta, -alpha, depth - 1, ply + 1).score;
+                if scoring_move.score > alpha {
+                    alpha = scoring_move.score;
+                    best_move = *scoring_move;
+                    self.pv.update(ply, best_move.bit_move);
+                    if alpha >= beta {
+                        return best_move;
+                    }
                 }
+            }
+        }
+
+        if !moves_has_legal_move {
+            if in_check {
+                return ScoringMove::blank(-CHECKMATE + ply as i16);
+            } else {
+                return ScoringMove::blank(DRAW);
             }
         }
 

@@ -205,9 +205,9 @@ impl MoveGeneration {
             // Kingside Castling
             #[allow(clippy::collapsible_if)]
             if king_side_castling_right && (position.ao & king_side_castling_mask).is_empty() {
-                if !position.is_square_attacked(castling_square_e) &&
-                !position.is_square_attacked(castling_square_f) &&
-                !position.is_square_attacked(castling_square_g)
+                if !position.is_square_attacked(position.side, castling_square_e) &&
+                !position.is_square_attacked(position.side, castling_square_f) &&
+                !position.is_square_attacked(position.side, castling_square_g)
                 {
                     
                     #[cfg(feature = "board_representation_bitboard")]
@@ -221,9 +221,9 @@ impl MoveGeneration {
             // Queenside Castling
             #[allow(clippy::collapsible_if)]
             if queen_side_castling_right && (position.ao & queen_side_castling_mask).is_empty() {
-                if !position.is_square_attacked(castling_square_e) &&
-                !position.is_square_attacked(castling_square_d) &&
-                !position.is_square_attacked(castling_square_c)
+                if !position.is_square_attacked(position.side, castling_square_e) &&
+                !position.is_square_attacked(position.side, castling_square_d) &&
+                !position.is_square_attacked(position.side, castling_square_c)
                 {
                     
                     #[cfg(feature = "board_representation_bitboard")]
@@ -525,7 +525,7 @@ pub trait Filter {
 pub struct PseudoLegal { }
 impl Filter for PseudoLegal {
     #[inline(always)]
-    fn should_add(_: &Position, _: BitMove) -> bool {
+    fn should_add(_position: &Position, _bit_move: BitMove) -> bool {
         true
     }
 }
@@ -535,7 +535,8 @@ impl Filter for Legal {
     #[inline(always)]
     fn should_add(position: &Position, bit_move: BitMove) -> bool {
         let mut position_copy = position.clone();
-        position_copy.make_move(bit_move.get_bit_move())
+        position_copy.make_move(bit_move.get_bit_move());
+        !position_copy.in_check(position_copy.side.opposite())
     }
 }
 
