@@ -2,10 +2,15 @@
 name = "sisyphus32"
 version = "0.1.0"
 edition = "2021"
+default-run = "sisyphus32"
 
 [dependencies]
 rand = "0.9.0"
 rayon = "1.10.0"
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true
 
 [features]
 default = ["single_thread_array"]
