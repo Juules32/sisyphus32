@@ -1,7 +1,7 @@
 extern crate rand;
 
 use rand::Rng;
-use std::{sync::Arc, sync::atomic::{AtomicBool, Ordering}};
+use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
 
 use crate::{bit_move::{BitMove, ScoringMove}, eval::EvalPosition, move_generation::{Legal, MoveGeneration, PseudoLegal}, pl, position::Position, timer::Timer};
 
@@ -39,7 +39,6 @@ pub struct Search {
     // TODO: killer_moves, etc...
 }
 
-const CHECK_STOP_INTERVAL: u64 = 10000;
 const BLANK: i16 = 0;
 const CHECKMATE: i16 = 10000;
 const DRAW: i16 = 0;
@@ -62,10 +61,6 @@ impl Search {
         }
 
         self.nodes += 1;
-
-        if self.nodes % CHECK_STOP_INTERVAL == 0 && self.timer.get_time_passed_millis() > self.stop_time {
-            self.stop_calculating.store(true, Ordering::Relaxed);
-        }
 
         if self.stop_calculating.load(Ordering::Relaxed) {
             return ScoringMove::blank(BLANK);
@@ -92,10 +87,6 @@ impl Search {
     #[inline(always)]
     fn quiescence(&mut self, position: &Position, mut alpha: i16, beta: i16) -> ScoringMove {
         self.nodes += 1;
-
-        if self.nodes % CHECK_STOP_INTERVAL == 0 && self.timer.get_time_passed_millis() > self.stop_time {
-            self.stop_calculating.store(true, Ordering::Relaxed);
-        }
 
         if self.stop_calculating.load(Ordering::Relaxed) {
             return ScoringMove::blank(BLANK);
@@ -143,10 +134,6 @@ impl Search {
             
             #[cfg(feature = "quiescence")]
             return self.quiescence(position, alpha, beta);
-        }
-
-        if self.nodes % CHECK_STOP_INTERVAL == 0 && self.timer.get_time_passed_millis() > self.stop_time {
-            self.stop_calculating.store(true, Ordering::Relaxed);
         }
 
         if self.stop_calculating.load(Ordering::Relaxed) {
@@ -257,14 +244,31 @@ impl Search {
     #[inline(always)]
     pub fn go(&mut self, position: &Position, depth: u8, total_time: u128, increment: u128) {
         self.reset(total_time, increment);
-
+        let stop_flag = Arc::clone(&self.stop_calculating);
+        let stop_time = self.stop_time;
         println!("info string searching for best move within {} milliseconds", self.stop_time);
 
-        #[cfg(feature = "no_iterative_deepening")]
-        self.go_no_iterative_deepening(position, depth);
+        // NOTE: Scoping the following thread helps prevent an excess amount of threads being created
+        // and future calculations being stopped because of old threads.
+        scope(|s| {
+            s.spawn(move || {
+                for _ in 0..stop_time / 10 {
+                    thread::sleep(Duration::from_millis(10));
+                    if stop_flag.load(Ordering::Relaxed) {
+                        return; // Stop the thread early
+                    }
+                }
+                stop_flag.store(true, Ordering::Relaxed);
+            });
 
-        #[cfg(feature = "iterative_deepening")]
-        self.go_iterative_deepening(position, depth);
+            #[cfg(feature = "no_iterative_deepening")]
+            self.go_no_iterative_deepening(position, depth);
+
+            #[cfg(feature = "iterative_deepening")]
+            self.go_iterative_deepening(position, depth);
+
+            self.stop_calculating.store(true, Ordering::Relaxed);
+        });
     }
 
     #[inline(always)]
