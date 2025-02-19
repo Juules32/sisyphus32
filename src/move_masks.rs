@@ -1,3 +1,5 @@
+use ctor::ctor;
+
 use crate::{bitboard::Bitboard, color::Color, rank::Rank, square::Square, file::File};
 
 const NUM_ROOK_MOVE_PERMUTATIONS: usize = 4096;
@@ -170,16 +172,7 @@ pub static ROOK_MAGIC_BITBOARDS: [Bitboard; 64] = [
 
 pub struct MoveMasks { }
 
-
 impl MoveMasks {
-
-    pub fn init() {
-        unsafe {
-            Self::init_masks();
-            Self::init_slider_configurations();
-        }
-    }
-
     unsafe fn init_masks() {
         for square in Square::ALL_SQUARES {
             PAWN_QUIET_MASKS[Color::White][square] = Self::generate_pawn_quiet_mask(Color::White, square);
@@ -553,4 +546,10 @@ impl MoveMasks {
     pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         Self::get_bishop_mask(square, occupancy) | Self::get_rook_mask(square, occupancy)
     }
+}
+
+#[ctor]
+unsafe fn init_masks_and_slider_configurations() {
+    MoveMasks::init_masks();
+    MoveMasks::init_slider_configurations();
 }
