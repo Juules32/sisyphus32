@@ -27,10 +27,10 @@ impl ZobristKey {
     
         unsafe {
             // XOR piece positions from bitboards
-            for i in 0..64 {
-                let piece = position.pps[i];
+            for square in Square::ALL_SQUARES {
+                let piece = position.get_piece(square);
                 if piece != PieceType::None {
-                    hash ^= PIECE_KEYS[piece as usize][i];
+                    hash ^= PIECE_KEYS[piece as usize][square];
                 }
             }
     
@@ -124,6 +124,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "board_representation_array")]
     fn test_zobrist_hash_different_positions() {
         let position1 = Position::starting_position();
         let mut position2 = Position::starting_position();

@@ -3,7 +3,7 @@ extern crate rand;
 use rand::Rng;
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, eval::EvalPosition, move_generation::{Legal, MoveGeneration, PseudoLegal}, pl, position::Position, timer::Timer};
+use crate::{bit_move::{BitMove, ScoringMove}, eval::EvalPosition, move_generation::{Legal, MoveGeneration, PseudoLegal}, pl, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}};
 
 struct PrincipalVariation {
     table: [[BitMove; 246]; 246],
@@ -140,6 +140,21 @@ impl Search {
             return ScoringMove::blank(BLANK);
         }
 
+        #[cfg(feature = "transposition_table")]
+        if let Some(tt_entry) = TranspositionTable::probe(position.zobrist_key) {
+            // If the stored depth is at least as deep, use it
+            if tt_entry.depth >= depth {
+                match tt_entry.flag {
+                    TTNodeType::Exact => return tt_entry.best_move,                         // Exact value
+                    TTNodeType::LowerBound => alpha = alpha.max(tt_entry.best_move.score),  // Update alpha
+                    TTNodeType::UpperBound => return tt_entry.best_move,                    // β cutoff
+                }
+                if alpha >= beta {
+                    return tt_entry.best_move;
+                }
+            }
+        }
+
         let in_check = position.in_check(position.side);
 
         if in_check { depth += 1; }
@@ -179,6 +194,27 @@ impl Search {
             }
         }
 
+        #[cfg(feature = "transposition_table")]
+        {
+            let flag = if alpha >= beta {
+                TTNodeType::LowerBound
+            } else if best_move.score <= alpha {
+                TTNodeType::UpperBound
+            } else {
+                TTNodeType::Exact
+            };
+
+            TranspositionTable::store(
+                position.zobrist_key,
+                TTEntry {
+                    zobrist_key: position.zobrist_key,
+                    best_move,
+                    depth,
+                    flag,
+                },
+            );
+        }
+
         best_move
     }
 
@@ -216,12 +252,13 @@ impl Search {
         for current_depth in 1..=depth {
             if current_depth != 1 && self.timer.get_time_passed_millis() * AVERAGE_AMOUNT_OF_MOVES > self.stop_time {
                 pl!("info string ended iterative search early based on time prediction");
-                break
+                break;
             }
             self.nodes = 0;
             let new_best_move = self.best_move(position, current_depth);
             if self.stop_calculating.load(Ordering::Relaxed) {
                 self.pv.table = candidate_pv_table; // Revert to previous PV
+                pl!("info string ended iterative search early because time was exceeded");
                 break;
             }
 
