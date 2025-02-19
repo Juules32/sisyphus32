@@ -1,5 +1,5 @@
 use core::fmt;
-use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, fen::FenString, move_flag::MoveFlag, move_masks::MoveMasks, piece::PieceType, square::Square};
+use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, fen::FenString, move_flag::MoveFlag, move_masks::MoveMasks, piece::PieceType, square::Square, zobrist::ZobristKey};
 
 #[derive(Clone)]
 pub struct Position {
@@ -13,6 +13,9 @@ pub struct Position {
     pub side: Color,
     pub en_passant_sq: Square,
     pub castling_rights: CastlingRights,
+
+    #[cfg(feature = "transposition_table")]
+    pub zobrist_key: ZobristKey,
 }
 
 impl Position {
@@ -73,6 +76,9 @@ impl Position {
             side: Color::White,
             en_passant_sq: Square::None,
             castling_rights: CastlingRights::DEFAULT,
+
+            #[cfg(feature = "transposition_table")]
+            zobrist_key: ZobristKey(0),
         }
     }
 
@@ -82,6 +88,9 @@ impl Position {
 
         #[cfg(feature = "board_representation_array")]
         { self.pps[sq] = piece; }
+        
+        #[cfg(feature = "transposition_table")]
+        { self.zobrist_key.mod_piece(piece, sq); }
     }
 
     #[inline(always)]
@@ -90,7 +99,24 @@ impl Position {
 
         #[cfg(feature = "board_representation_array")]
         { self.pps[sq] = PieceType::None; }
+
+        #[cfg(feature = "transposition_table")]
+        { self.zobrist_key.mod_piece(piece, sq); }
     }
+
+    #[inline(always)]
+    pub fn pre_zobrist_mods(&mut self) {
+        self.zobrist_key.mod_castling(self.castling_rights);
+        self.zobrist_key.mod_en_passant(self.en_passant_sq);
+    }
+
+    #[inline(always)]
+    pub fn post_zobrist_mods(&mut self) {
+        self.zobrist_key.mod_side(self.side);
+        self.zobrist_key.mod_castling(self.castling_rights);
+        self.zobrist_key.mod_en_passant(self.en_passant_sq);
+    }
+
 
     #[inline]
     pub fn make_move(&mut self, bit_move: BitMove) {
@@ -111,6 +137,9 @@ impl Position {
         debug_assert!(capture == PieceType::None || capture.color() == self.side.opposite());
         debug_assert!(self.bbs[piece].is_set_sq(source));
         debug_assert!(capture == PieceType::None || self.bbs[capture].is_set_sq(target));
+
+        // Modify the zobrist hash before making the move
+        self.pre_zobrist_mods();
 
         // Moves piece
         self.remove_piece(piece, source);
@@ -195,6 +224,9 @@ impl Position {
         self.castling_rights.update(source, target);
         self.populate_occupancies();
         self.side.switch();
+
+        // Modify the zobrist hash after making the move
+        self.post_zobrist_mods();
     }
 
     #[inline]
@@ -338,6 +370,7 @@ impl Default for Position {
             side: Color::White,
             en_passant_sq: Square::None,
             castling_rights: CastlingRights::NONE,
+            zobrist_key: ZobristKey(0),
         }
     }
 }

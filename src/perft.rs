@@ -387,13 +387,10 @@ impl Perft {
 
 #[cfg(test)]
 mod tests {
-    use crate::move_masks::MoveMasks;
-
     use super::*;
 
     #[test]
     fn short_perft_tests_are_correct() {
-        MoveMasks::init();
         Perft::short_perft_tests();
     }
 }
