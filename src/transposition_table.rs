@@ -2,10 +2,10 @@ use std::sync::Mutex;
 
 use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
 
-#[cfg(feature = "transposition_table")]
+#[cfg(all(feature = "transposition_table", not(feature = "small_transposition_table")))]
 const TT_SIZE: usize = 1_000_000;
 
-#[cfg(feature = "no_transposition_table")]
+#[cfg(any(feature = "small_transposition_table", not(feature = "transposition_table")))]
 const TT_SIZE: usize = 1;
 
 static mut TRANSPOSITION_TABLE: [Mutex<TTSlot>; TT_SIZE] = [const { Mutex::new(TTSlot { main_entry: None, secondary_entry: None }) }; TT_SIZE];

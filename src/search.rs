@@ -129,7 +129,7 @@ impl Search {
         self.nodes += 1;
         
         if depth == 0 {
-            #[cfg(feature = "no_quiescence")]
+            #[cfg(not(feature = "quiescence"))]
             return EvalPosition::eval(position);
             
             #[cfg(feature = "quiescence")]
@@ -298,7 +298,7 @@ impl Search {
                 stop_flag.store(true, Ordering::Relaxed);
             });
 
-            #[cfg(feature = "no_iterative_deepening")]
+            #[cfg(not(feature = "iterative_deepening"))]
             self.go_no_iterative_deepening(position, depth);
 
             #[cfg(feature = "iterative_deepening")]

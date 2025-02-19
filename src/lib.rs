@@ -22,9 +22,6 @@ compile_error!("feature \"sliders_magic_bitboards\" and feature \"sliders_on_the
 )]
 compile_error!("only one of the following features can be enabled at the same time: \"search_minimax\", \"search_negamax\", \"search_random\"!");
 
-#[cfg(all(feature = "no_iterative_deepening", feature = "iterative_deepening"))]
-compile_error!("feature \"no_iterative_deepening\" and feature \"iterative_deepening\" cannot be enabled at the same time!");
-
 #[cfg(all(feature = "eval_basic", feature = "eval_piece_positions"))]
 compile_error!("feature \"eval_basic\" and feature \"eval_piece_positions\" cannot be enabled at the same time!");
 
