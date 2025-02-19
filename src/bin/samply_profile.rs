@@ -1,6 +1,5 @@
-use sisyphus32::{move_masks::MoveMasks, perft::Perft};
+use sisyphus32::perft::Perft;
 
 fn main() {
-    MoveMasks::init();
     Perft::long_perft_tests();
 }
