@@ -105,18 +105,19 @@ impl Position {
     }
 
     #[inline(always)]
+    #[cfg(feature = "transposition_table")]
     pub fn pre_zobrist_mods(&mut self) {
         self.zobrist_key.mod_castling(self.castling_rights);
         self.zobrist_key.mod_en_passant(self.en_passant_sq);
     }
 
     #[inline(always)]
+    #[cfg(feature = "transposition_table")]
     pub fn post_zobrist_mods(&mut self) {
         self.zobrist_key.mod_side(self.side);
         self.zobrist_key.mod_castling(self.castling_rights);
         self.zobrist_key.mod_en_passant(self.en_passant_sq);
     }
-
 
     #[inline]
     pub fn make_move(&mut self, bit_move: BitMove) {
@@ -139,6 +140,7 @@ impl Position {
         debug_assert!(capture == PieceType::None || self.bbs[capture].is_set_sq(target));
 
         // Modify the zobrist hash before making the move
+        #[cfg(feature = "transposition_table")]
         self.pre_zobrist_mods();
 
         // Moves piece
@@ -226,6 +228,7 @@ impl Position {
         self.side.switch();
 
         // Modify the zobrist hash after making the move
+        #[cfg(feature = "transposition_table")]
         self.post_zobrist_mods();
     }
 
@@ -370,6 +373,8 @@ impl Default for Position {
             side: Color::White,
             en_passant_sq: Square::None,
             castling_rights: CastlingRights::NONE,
+
+            #[cfg(feature = "transposition_table")]
             zobrist_key: ZobristKey(0),
         }
     }
