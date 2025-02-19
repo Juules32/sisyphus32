@@ -1,6 +1,6 @@
-use crate::{bit_move::{BitMove, ScoringMove}, color::Color, piece::PieceType, position::Position, square::Square};
+use crate::{bit_move::{BitMove, ScoringMove}, color::Color, piece::PieceType, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
 
-const PIECE_SCORES: [i16; 13] = [100, 300, 301, 500, 900, 10000, 100, 300, 301, 500, 900, 10000, 0];
+const PIECE_SCORES: [i16; 13] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000, 0];
 
 const WP_POSITION_SCORES: [i16; 64] = [
     190, 190, 190, 190, 190, 190, 190, 190, 
@@ -197,6 +197,27 @@ pub struct EvalMove { }
 impl EvalMove {
     #[inline(always)]
     pub fn eval(position: &Position, bit_move: BitMove) -> i16 {
-        if position.get_piece(bit_move.target()) == PieceType::None { 0 } else { MVV_LVA[position.get_piece(bit_move.source()) as usize][position.get_piece(bit_move.target()) as usize] }
+        let mut score = if position.get_piece(bit_move.target()) == PieceType::None {
+            0
+        } else {
+            MVV_LVA[position.get_piece(bit_move.source()) as usize][position.get_piece(bit_move.target()) as usize]
+        };
+
+        #[cfg(feature = "eval_transposition_table")]
+        {
+            if let Some(entry) = TranspositionTable::probe(position.zobrist_key) {
+                if entry.best_move.bit_move == bit_move {
+                    score += 2000;
+                }
+
+                match entry.flag {
+                    TTNodeType::LowerBound => score += 1500,
+                    TTNodeType::UpperBound => score += 1000,
+                    _ => {}
+                }
+            }
+        }
+
+        score
     }
 }
