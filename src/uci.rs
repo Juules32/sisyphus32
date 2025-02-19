@@ -192,7 +192,7 @@ impl Uci {
                 Some(depth_string) => {
                     match depth_string.parse::<u8>() {
                         Ok(depth) => {
-                            self.search.go(&self.position, depth, u128::MAX, u128::MAX);
+                            self.search.go(&self.position, depth, None);
                             Ok(())
                         },
                         Err(_) => Err(UciParseError("Couldn't parse depth string!"))
@@ -201,7 +201,7 @@ impl Uci {
                 None => Err(UciParseError("Didn't find depth string!")),
             }
         } else {
-            let mut total_time = 1_000_000;
+            let mut total_time = None;
             if let Some(time_index) = words.iter().position(|&word| {
                 word == match self.position.side {
                     Color::White => "wtime",
@@ -212,7 +212,7 @@ impl Uci {
                     Some(time_string) => {
                         match time_string.parse::<u128>() {
                             Ok(time) => {
-                                total_time = time
+                                total_time = Some(time)
                             },
                             Err(_) => return Err(UciParseError("Couldn't parse time string!")),
                         }
@@ -241,7 +241,7 @@ impl Uci {
                 }
             }
 
-            self.search.go(&self.position, 255, total_time, increment);
+            self.search.go(&self.position, 255, Search::calculate_stop_time(total_time, increment));
             Ok(())
         }
     }
