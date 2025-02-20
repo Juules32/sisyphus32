@@ -225,9 +225,10 @@ impl Position {
 
         // Modify the zobrist hash after making the move
         #[cfg(feature = "transposition_table")]
-        self.zobrist_mods();
-
-        debug_assert_eq!(self.zobrist_key, ZobristKey::generate(self), "{}", self);
+        {
+            self.zobrist_mods();
+            debug_assert_eq!(self.zobrist_key, ZobristKey::generate(self), "{}", self);
+        }
     }
 
     #[inline]

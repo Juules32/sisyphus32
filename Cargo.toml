@@ -14,14 +14,16 @@ inherits = "release"
 debug = true
 
 [features]
-default = ["single_thread_array"]
+default = ["array_copy_tt"]
 
-basic =                 ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_on_the_fly", "search_random", "iterative_deepening", "eval_piece_positions", "quiescence", "move_sort", "en_passant_in_quiescence", "transposition_table", "eval_transposition_table"]
-magic_bitboard =        ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_magic_bitboards", "search_random", "iterative_deepening", "eval_piece_positions", "quiescence", "move_sort", "en_passant_in_quiescence", "transposition_table", "eval_transposition_table"]
-single_thread_bb =      ["board_representation_bitboard", "perft_single_thread", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "iterative_deepening", "eval_piece_positions", "quiescence", "move_sort", "en_passant_in_quiescence", "transposition_table", "eval_transposition_table"]
-parallel_bb =           ["board_representation_bitboard", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "iterative_deepening", "eval_piece_positions", "quiescence", "move_sort", "en_passant_in_quiescence", "transposition_table", "eval_transposition_table"]
-single_thread_array =   ["board_representation_array", "perft_single_thread", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "iterative_deepening", "eval_piece_positions", "quiescence", "move_sort", "en_passant_in_quiescence", "transposition_table", "eval_transposition_table"]
-parallel_array =        ["board_representation_array", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "iterative_deepening", "eval_piece_positions", "quiescence", "move_sort", "en_passant_in_quiescence", "transposition_table", "eval_transposition_table"]
+basic =                 ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_on_the_fly", "search_random", "eval_basic"]
+magic_bitboard =        ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_magic_bitboards", "search_random", "eval_basic"]
+single_thread_bb =      ["board_representation_bitboard", "perft_single_thread", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "eval_basic"]
+parallel_bb =           ["board_representation_bitboard", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "eval_basic"]
+single_thread_array =   ["board_representation_array", "perft_single_thread", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "eval_basic"]
+parallel_array =        ["board_representation_array", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "eval_basic"]
+
+array_copy_tt = ["board_representation_array", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards", "search_negamax", "eval_piece_positions", "iterative_deepening", "move_sort", "quiescence", "en_passant_in_quiescence", "transposition_table", "eval_transposition_table"]
 
 board_representation_bitboard = []
 board_representation_array = []
@@ -39,6 +41,9 @@ search_minimax = []
 search_random = []
 search_negamax = []
 
+eval_basic = []
+eval_piece_positions = []
+
 iterative_deepening = []
 
 quiescence = []
@@ -50,8 +55,5 @@ en_passant_in_quiescence = []
 transposition_table = []
 
 small_transposition_table = []
-
-eval_basic = []
-eval_piece_positions = []
 
 eval_transposition_table = []

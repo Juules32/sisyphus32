@@ -243,7 +243,7 @@ impl Search {
                 best_scoring_move.score,
                 self.nodes,
                 self.timer.get_time_passed_millis(),
-                self.get_pv_from_tt(&position, current_depth),
+                self.get_pv(&position, current_depth, best_scoring_move.bit_move),
             ));
         }
         pl!(format!("bestmove {}", best_scoring_move.bit_move.to_uci_string()));
@@ -294,9 +294,18 @@ impl Search {
         }
     }
 
+    fn get_pv(&self, position: &Position, depth: u8, _best_move: BitMove) -> String {
+        #[cfg(feature = "transposition_table")]
+        return self.get_pv_from_tt(position, depth);
+
+        #[cfg(not(feature = "transposition_table"))]
+        return _best_move.to_uci_string()
+    }
+
     // NOTE: There is a notable chance the pv will be ended early in case a different position
     // happens to have the same table index. The probability scales inversely with the
     // size of the transposition table.
+    #[cfg(feature = "transposition_table")]
     fn get_pv_from_tt(&self, position: &Position, depth: u8) -> String {
         let mut pv_moves = Vec::new();
         let mut position_copy = position.clone();

@@ -12,9 +12,10 @@ const SQUARES: usize = 64;
 const CASTLING_PERMUTATIONS: usize = 16;
 const SIDES: usize = 2;
 
+// Zobrist keys
 static mut PIECE_KEYS: [[u64; SQUARES]; PIECE_TYPES] = [[0; SQUARES]; PIECE_TYPES];
 static mut CASTLING_KEYS: [u64; CASTLING_PERMUTATIONS] = [0; CASTLING_PERMUTATIONS];
-static mut EN_PASSANT_KEYS: [u64; FILE_COUNT] = [0; FILE_COUNT]; // En passant file keys (only file matters)
+static mut EN_PASSANT_KEYS: [u64; FILE_COUNT] = [0; FILE_COUNT];
 static mut SIDE_KEY: u64 = 0;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -26,7 +27,6 @@ impl ZobristKey {
         let mut hash = 0_u64;
     
         unsafe {
-            // XOR piece positions from bitboards
             for square in Square::ALL_SQUARES {
                 let piece = position.get_piece(square);
                 if piece != PieceType::None {
@@ -34,10 +34,8 @@ impl ZobristKey {
                 }
             }
     
-            // XOR castling rights
             hash ^= CASTLING_KEYS[position.castling_rights.0 as usize];
     
-            // XOR en passant file (if applicable)
             if position.en_passant_sq != Square::None {
                 let file = position.en_passant_sq.file();
                 hash ^= EN_PASSANT_KEYS[file as usize];
@@ -117,7 +115,7 @@ mod tests {
 
     #[test]
     fn test_zobrist_hash_consistency() {
-        let position = Position::starting_position(); // Assuming Position::starting_position() creates the initial position
+        let position = Position::starting_position();
         let hash1 = ZobristKey::generate(&position);
         let hash2 = ZobristKey::generate(&position);
         assert_eq!(hash1, hash2, "Zobrist hash should be consistent for the same position");
@@ -129,7 +127,7 @@ mod tests {
         let position1 = Position::starting_position();
         let mut position2 = Position::starting_position();
 
-        // Modify position2 by moving a pawn (example: e2 -> e4)
+        // Modify position2 by moving e2 to e4
         position2.pps[Square::E2 as usize] = PieceType::None;
         position2.pps[Square::E4 as usize] = PieceType::WP;
 
