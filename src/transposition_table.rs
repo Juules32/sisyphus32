@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
 
 #[cfg(all(feature = "transposition_table", not(feature = "small_transposition_table")))]
-const TT_SIZE: usize = 1_000_000;
+const TT_SIZE: usize = 100_000;
 
 #[cfg(any(feature = "small_transposition_table", not(feature = "transposition_table")))]
 const TT_SIZE: usize = 1;
@@ -27,7 +27,7 @@ pub struct TTEntry {
     pub flag: TTNodeType, // Type of node (Exact, LowerBound, UpperBound)
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TTNodeType {
     Exact,
     LowerBound, // β cutoff
