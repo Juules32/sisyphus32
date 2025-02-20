@@ -6,13 +6,11 @@ use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
 const TT_SIZE: usize = 100_000;
 
 #[cfg(any(feature = "small_transposition_table", not(feature = "transposition_table")))]
-const TT_SIZE: usize = 1;
+const TT_SIZE: usize = 1_000;
 
 static mut TRANSPOSITION_TABLE: [Mutex<TTSlot>; TT_SIZE] = [const { Mutex::new(TTSlot { main_entry: None, secondary_entry: None }) }; TT_SIZE];
 
-pub struct TranspositionTable {
-    
-}
+pub struct TranspositionTable;
 
 struct TTSlot {
     main_entry: Option<TTEntry>,
@@ -21,10 +19,10 @@ struct TTSlot {
 
 #[derive(Clone, Copy)]
 pub struct TTEntry {
-    pub zobrist_key: ZobristKey, // Unique position identifier
-    pub best_move: ScoringMove, // Best move found
-    pub depth: u8, // Depth at which this entry was recorded
-    pub flag: TTNodeType, // Type of node (Exact, LowerBound, UpperBound)
+    pub zobrist_key: ZobristKey,
+    pub best_move: ScoringMove,
+    pub depth: u8,
+    pub flag: TTNodeType,
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -35,7 +33,7 @@ pub enum TTNodeType {
 }
 
 impl TranspositionTable {
-    // Store using a two-level approach
+    // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]
     pub fn store(zobrist_key: ZobristKey, entry: TTEntry) {
         unsafe {
@@ -44,9 +42,9 @@ impl TranspositionTable {
 
             if let Some(existing_entry) = slot.main_entry {
                 if entry.depth >= existing_entry.depth {
-                    slot.main_entry = Some(entry); // Replace main if depth is better
+                    slot.main_entry = Some(entry);
                 } else {
-                    slot.secondary_entry = Some(entry); // Store in secondary slot
+                    slot.secondary_entry = Some(entry);
                 }
             } else {
                 slot.main_entry = Some(entry);

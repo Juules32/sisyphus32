@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-// NOTE: The following pairs of features are not allowed to be used together:
+// NOTE: The following combinations of features are not allowed to be used together:
 #[cfg(all(feature = "perft_parallelize", feature = "perft_single_thread"))]
 compile_error!("feature \"perft_parallelize\" and feature \"perft_single_thread\" cannot be enabled at the same time!");
 
