@@ -58,20 +58,20 @@ impl Search {
     }
 
     #[inline(always)]
-    fn quiescence(&mut self, position: &Position, mut alpha: i16, beta: i16) -> ScoringMove {
+    fn quiescence(&mut self, position: &Position, alpha: i16, beta: i16) -> ScoringMove {
         if self.stop_calculating.load(Ordering::Relaxed) {
             return ScoringMove::blank(BLANK);
         }
         
         let evaluation = EvalPosition::eval(position);
+        let mut best_move = ScoringMove::blank(alpha);
 
         if evaluation.score >= beta {
             return ScoringMove::blank(beta);
         } else if evaluation.score > alpha {
-            alpha = evaluation.score;
+            best_move.score = evaluation.score;
         }
 
-        let mut best_move = ScoringMove::blank(alpha);
         let mut moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
 
         #[cfg(feature = "move_sort")]
@@ -82,11 +82,11 @@ impl Search {
             position_copy.make_move(scoring_capture.bit_move);
             if !position_copy.in_check(position_copy.side.opposite()) {
                 self.nodes += 1;
-                scoring_capture.score = -self.quiescence(&position_copy, -beta, -alpha).score;
-                if scoring_capture.score > alpha {
-                    alpha = scoring_capture.score;
+                scoring_capture.score = -self.quiescence(&position_copy, -beta, -best_move.score).score;
+                if scoring_capture.score > best_move.score {
+                    best_move.score = scoring_capture.score;
                     best_move = *scoring_capture;
-                    if alpha >= beta {
+                    if best_move.score >= beta {
                         return best_move;
                     }
                 }
@@ -97,7 +97,7 @@ impl Search {
     }
 
     #[inline(always)]
-    fn negamax_best_move(&mut self, position: &Position, mut alpha: i16, beta: i16, mut depth: u8) -> ScoringMove {
+    fn negamax_best_move(&mut self, position: &Position, alpha: i16, beta: i16, mut depth: u8) -> ScoringMove {
         self.nodes += 1;
         
         if depth == 0 {
@@ -117,12 +117,17 @@ impl Search {
             // If the stored depth is at least as deep, use it
             if tt_entry.depth >= depth {
                 match tt_entry.flag {
-                    TTNodeType::Exact => return tt_entry.best_move,                         // Exact value
-                    TTNodeType::LowerBound => alpha = alpha.max(tt_entry.best_move.score),  // Update alpha
-                    TTNodeType::UpperBound => return tt_entry.best_move,                    // β cutoff
-                }
-                if alpha >= beta {
-                    return tt_entry.best_move;
+                    TTNodeType::Exact => return tt_entry.best_move,
+                    TTNodeType::LowerBound => {
+                        if tt_entry.best_move.score >= beta {
+                            return tt_entry.best_move;
+                        }
+                    },
+                    TTNodeType::UpperBound => {
+                        if tt_entry.best_move.score <= alpha {
+                            return tt_entry.best_move;
+                        }
+                    },
                 }
             }
         }
@@ -131,8 +136,6 @@ impl Search {
 
         if in_check { depth += 1; }
 
-        // NOTE: Generating legal moves immediately doesn't seem to cause a
-        // drop in performance!
         let mut moves = MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position);
 
         #[cfg(feature = "move_sort")]
@@ -146,12 +149,11 @@ impl Search {
             position_copy.make_move(scoring_move.bit_move);
             if !position_copy.in_check(position_copy.side.opposite()) {
                 moves_has_legal_move = true;
-                scoring_move.score = -self.negamax_best_move(&position_copy, -beta, -alpha, depth - 1).score;
-                if scoring_move.score > alpha {
-                    alpha = scoring_move.score;
+                scoring_move.score = -self.negamax_best_move(&position_copy, -beta, -best_move.score, depth - 1).score;
+                if scoring_move.score > best_move.score {
                     best_move = *scoring_move;
-                    if alpha >= beta {
-                        return best_move;
+                    if best_move.score >= beta {
+                        break;
                     }
                 }
             }
@@ -167,14 +169,14 @@ impl Search {
 
         #[cfg(feature = "transposition_table")]
         {
-            let flag = if alpha >= beta {
+            let flag = if best_move.score >= beta {
                 TTNodeType::LowerBound
             } else if best_move.score <= alpha {
                 TTNodeType::UpperBound
             } else {
                 TTNodeType::Exact
             };
-
+    
             TranspositionTable::store(
                 position.zobrist_key,
                 TTEntry {
@@ -292,6 +294,9 @@ impl Search {
         }
     }
 
+    // NOTE: There is a notable chance the pv will be ended early in case a different position
+    // happens to have the same table index. The probability scales inversely with the
+    // size of the transposition table.
     fn get_pv_from_tt(&self, position: &Position, depth: u8) -> String {
         let mut pv_moves = Vec::new();
         let mut position_copy = position.clone();
