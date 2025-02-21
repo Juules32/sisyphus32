@@ -1,9 +1,8 @@
 use std::fmt::Display;
 
 use ctor::ctor;
-use rand::Rng;
 
-use crate::{castling_rights::CastlingRights, color::Color, piece::PieceType, position::Position, square::Square};
+use crate::{castling_rights::CastlingRights, color::Color, piece::PieceType, position::Position, rng::RandomNumberGenerator, square::Square};
 
 // Constants for Zobrist hashing
 const FILE_COUNT: usize = 8;
@@ -90,23 +89,23 @@ impl Display for ZobristKey {
 
 #[ctor]
 unsafe fn init_zobrist() {
-    let mut rng = rand::rng();
+    let mut rng = RandomNumberGenerator::default();
 
     for piece in 0..PIECE_TYPES {
         for square in 0..SQUARES {
-            PIECE_KEYS[piece][square] = rng.random();
+            PIECE_KEYS[piece][square] = rng.generate_u64();
         }
     }
 
     for i in 0..CASTLING_PERMUTATIONS {
-        CASTLING_KEYS[i] = rng.random();
+        CASTLING_KEYS[i] = rng.generate_u64();
     }
 
     for file in 0..FILE_COUNT {
-        EN_PASSANT_KEYS[file] = rng.random();
+        EN_PASSANT_KEYS[file] = rng.generate_u64();
     }
 
-    SIDE_KEY = rng.random();
+    SIDE_KEY = rng.generate_u64();
 }
 
 #[cfg(test)]

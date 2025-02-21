@@ -52,4 +52,5 @@ pub mod bit_twiddles;
 pub mod move_flag;
 pub mod search;
 pub mod eval;
+pub mod rng;
 pub mod move_generation;

@@ -8,13 +8,23 @@ const TT_SIZE: usize = 100_000;
 #[cfg(any(feature = "small_transposition_table", not(feature = "transposition_table")))]
 const TT_SIZE: usize = 1_000;
 
+#[cfg(feature = "tt_two_tier")]
 static mut TRANSPOSITION_TABLE: [Mutex<TTSlot>; TT_SIZE] = [const { Mutex::new(TTSlot { main_entry: None, secondary_entry: None }) }; TT_SIZE];
+
+#[cfg(feature = "tt_always_replace")]
+static mut TRANSPOSITION_TABLE: [Mutex<TTSlot>; TT_SIZE] = [const { Mutex::new(TTSlot { entry: None }) }; TT_SIZE];
 
 pub struct TranspositionTable;
 
+#[cfg(feature = "tt_two_tier")]
 struct TTSlot {
     main_entry: Option<TTEntry>,
     secondary_entry: Option<TTEntry>,
+}
+
+#[cfg(feature = "tt_always_replace")]
+struct TTSlot {
+    entry: Option<TTEntry>,
 }
 
 #[derive(Clone, Copy)]
@@ -32,6 +42,7 @@ pub enum TTNodeType {
     UpperBound, // α fail
 }
 
+#[cfg(feature = "tt_two_tier")]
 impl TranspositionTable {
     // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]
@@ -65,6 +76,35 @@ impl TranspositionTable {
             }
 
             if let Some(entry) = slot.secondary_entry {
+                if entry.zobrist_key == zobrist_key {
+                    return Some(entry);
+                }
+            }
+
+            None
+        }
+    }
+}
+
+#[cfg(feature = "tt_always_replace")]
+impl TranspositionTable {
+    // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
+    #[inline(always)]
+    pub fn store(zobrist_key: ZobristKey, entry: TTEntry) {
+        unsafe {
+            let index = (zobrist_key.0 as usize) % TT_SIZE;
+            let mut slot = TRANSPOSITION_TABLE[index].lock().unwrap();
+            slot.entry = Some(entry);
+        }
+    }
+
+    #[inline(always)]
+    pub fn probe(zobrist_key: ZobristKey) -> Option<TTEntry> {
+        unsafe {
+            let index = (zobrist_key.0 as usize) % TT_SIZE;
+            let slot = TRANSPOSITION_TABLE[index].lock().unwrap();
+
+            if let Some(entry) = slot.entry {
                 if entry.zobrist_key == zobrist_key {
                     return Some(entry);
                 }
