@@ -14,7 +14,7 @@ inherits = "release"
 debug = true
 
 [features]
-default = ["array_copy_tt_killer_butterfly"]
+default = ["basic", "small_transposition_table"]
 
 basic =                 ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_on_the_fly", "search_random", "eval_piece_positions"]
 magic_bitboard =        ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_magic_bitboards", "search_random", "eval_piece_positions"]
