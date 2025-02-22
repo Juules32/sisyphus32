@@ -3,7 +3,7 @@ extern crate rand;
 use rand::Rng;
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, piece::PieceType, pl, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}};
 
 pub struct Search {
     timer: Timer,
@@ -139,6 +139,7 @@ impl Search {
 
         let in_check = position.in_check(position.side);
 
+        #[cfg(feature = "checks_add_depth")]
         if in_check { depth += 1; }
 
         let mut moves = MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position);
@@ -150,7 +151,7 @@ impl Search {
 
         let mut best_move = ScoringMove::blank(alpha);
         for scoring_move in moves.iter_mut() {
-            let is_capture = position.get_piece(scoring_move.bit_move.target()) == PieceType::None;
+            let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
             let mut position_copy = position.clone();
             position_copy.ply += 1; // TODO: make this cleaner!
             position_copy.make_move(scoring_move.bit_move);
@@ -161,7 +162,7 @@ impl Search {
                     best_move = *scoring_move;
                     if best_move.score >= beta {
 
-                        if !is_capture {
+                        if !is_capture_or_promotion {
                             #[cfg(feature = "killer_moves")]
                             KillerMoves::update(best_move.bit_move, position_copy.ply);
                             
@@ -175,7 +176,7 @@ impl Search {
             }
 
             #[cfg(feature = "butterfly_heuristic")]
-            if scoring_move.bit_move != best_move.bit_move && !is_capture && quiets_count < 64 {
+            if scoring_move.bit_move != best_move.bit_move && !is_capture_or_promotion && quiets_count < 64 {
                 quiets_searched[quiets_count] = scoring_move.bit_move;
                 quiets_count += 1;
             }
@@ -264,8 +265,8 @@ impl Search {
     #[inline(always)]
     fn go_no_iterative_deepening(&mut self, position: &Position, depth: u16) {
         let best_scoring_move = self.best_move(position, depth);
-        pl!(format!("info depth {} score cp {} nodes {} time {} pv {}", depth, best_scoring_move.score, self.nodes, self.timer.get_time_passed_millis(), best_scoring_move.bit_move.to_uci_string()));
-        pl!(format!("bestmove {}", best_scoring_move.bit_move.to_uci_string()));
+        println!("info depth {} score cp {} nodes {} time {} pv {}", depth, best_scoring_move.score, self.nodes, self.timer.get_time_passed_millis(), best_scoring_move.bit_move.to_uci_string());
+        println!("bestmove {}", best_scoring_move.bit_move.to_uci_string());
     }
 
     #[inline(always)]
@@ -275,29 +276,29 @@ impl Search {
         for current_depth in 1..=depth {
             if let Some(time) = self.stop_time {
                 if current_depth != 1 && self.timer.get_time_passed_millis() * AVERAGE_AMOUNT_OF_MOVES > time {
-                    pl!("info string ended iterative search early based on time prediction");
+                    println!("info string ended iterative search early based on time prediction");
                     break;
                 }
             }
             self.nodes = 0;
             let new_best_move = self.best_move(position, current_depth);
             if self.stop_calculating.load(Ordering::Relaxed) {
-                pl!("info string ended iterative search");
+                println!("info string ended iterative search");
                 break;
             }
 
             best_scoring_move = new_best_move;
 
-            pl!(format!(
+            println!(
                 "info depth {} score cp {} nodes {} time {} pv {}",
                 current_depth,
                 best_scoring_move.score,
                 self.nodes,
                 self.timer.get_time_passed_millis(),
                 self.get_pv(position, current_depth, best_scoring_move.bit_move),
-            ));
+            );
         }
-        pl!(format!("bestmove {}", best_scoring_move.bit_move.to_uci_string()));
+        println!("bestmove {}", best_scoring_move.bit_move.to_uci_string());
     }
 
     #[inline(always)]

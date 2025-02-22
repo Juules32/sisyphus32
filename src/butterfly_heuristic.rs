@@ -1,3 +1,5 @@
+use std::mem;
+
 use crate::{bit_move::BitMove, color::Color, square::Square};
 
 const SIDE_COUNT: usize = 2; // White and Black
@@ -5,7 +7,7 @@ const SQUARES: usize = 64;
 const MAX_SCORE: i16 = 100; // Deliberately lower than any MVV-LVA values
 
 // Butterfly heuristic table: [side][source][target]
-static mut BUTTERFLY_HEURISTIC: [[[i16; SQUARES]; SQUARES]; SIDE_COUNT] = [[[0; SQUARES]; SQUARES]; SIDE_COUNT];
+static mut BUTTERFLY_HEURISTIC: [[[i16; SQUARES]; SQUARES]; SIDE_COUNT] = unsafe { mem::zeroed() };
 
 pub struct ButterflyHeuristic;
 
