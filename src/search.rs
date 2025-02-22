@@ -22,13 +22,13 @@ const AVERAGE_AMOUNT_OF_MOVES: u128 = 30;
 
 impl Search {
     #[inline(always)]
-    fn random_best_move(&self, position: &Position, _depth: u8) -> ScoringMove {
+    fn random_best_move(&self, position: &Position, _depth: u16) -> ScoringMove {
         let moves = MoveGeneration::generate_moves::<BitMove, Legal>(position);
         ScoringMove::from(moves[rand::rng().random_range(0..moves.len())])
     }
     
     #[inline(always)]
-    fn minimax_best_move(&mut self, position: &Position, depth: u8) -> ScoringMove {
+    fn minimax_best_move(&mut self, position: &Position, depth: u16) -> ScoringMove {
         if depth == 0 {
             return EvalPosition::eval(position);
         }
