@@ -142,7 +142,6 @@ impl Position {
         #[cfg(feature = "transposition_table")]
         self.zobrist_mods();
 
-
         // Removes captured piece
         // NOTE: Because of the way zobrist hashing is implemented,
         // it is important that the capture is removed before moving the piece.

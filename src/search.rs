@@ -210,6 +210,35 @@ impl Search {
             );
         }
 
+        if !moves_has_legal_move {
+            if in_check {
+                return ScoringMove::blank(-CHECKMATE - depth as i16);
+            } else {
+                return ScoringMove::blank(DRAW);
+            }
+        }
+
+        #[cfg(feature = "transposition_table")]
+        {
+            let flag = if alpha >= beta {
+                TTNodeType::LowerBound
+            } else if best_move.score <= alpha {
+                TTNodeType::UpperBound
+            } else {
+                TTNodeType::Exact
+            };
+
+            TranspositionTable::store(
+                position.zobrist_key,
+                TTEntry {
+                    zobrist_key: position.zobrist_key,
+                    best_move,
+                    depth,
+                    flag,
+                },
+            );
+        }
+
         best_move
     }
 
