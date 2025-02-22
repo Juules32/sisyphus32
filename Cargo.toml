@@ -28,6 +28,7 @@ array_copy_tt = ["array_copy", "transposition_table", "eval_transposition_table"
 array_copy_tt_killer = ["array_copy_tt", "killer_moves"]
 array_copy_tt_butterfly = ["array_copy_tt", "butterfly_heuristic"]
 array_copy_tt_killer_butterfly = ["array_copy_tt", "killer_moves", "butterfly_heuristic"]
+array_copy_killer_butterfly = ["array_copy", "killer_moves", "butterfly_heuristic"]
 
 board_representation_bitboard = []
 board_representation_array = []

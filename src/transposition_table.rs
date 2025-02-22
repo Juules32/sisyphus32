@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::{mem, sync::Mutex};
 
 use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
 
@@ -83,6 +83,11 @@ impl TranspositionTable {
 
             None
         }
+    }
+
+    #[inline(always)]
+    pub fn reset() {
+        unsafe { TRANSPOSITION_TABLE = mem::zeroed() };
     }
 }
 

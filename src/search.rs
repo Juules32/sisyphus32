@@ -152,17 +152,16 @@ impl Search {
 
         let mut best_move = ScoringMove::blank(alpha);
         for scoring_move in moves.iter_mut() {
-            let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
             let mut position_copy = position.clone();
             position_copy.ply += 1; // TODO: make this cleaner!
             position_copy.make_move(scoring_move.bit_move);
             if !position_copy.in_check(position_copy.side.opposite()) {
+                let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
                 moves_has_legal_move = true;
                 scoring_move.score = -self.negamax_best_move(&position_copy, -beta, -best_move.score, depth - 1).score;
                 if scoring_move.score > best_move.score {
                     best_move = *scoring_move;
                     if best_move.score >= beta {
-
                         if !is_capture_or_promotion {
                             #[cfg(feature = "killer_moves")]
                             KillerMoves::update(best_move.bit_move, position_copy.ply);
@@ -174,20 +173,20 @@ impl Search {
                         break;
                     }
                 }
-            }
 
-            #[cfg(feature = "butterfly_heuristic")]
-            if scoring_move.bit_move != best_move.bit_move && !is_capture_or_promotion && quiets_count < 64 {
-                quiets_searched[quiets_count] = scoring_move.bit_move;
-                quiets_count += 1;
+                #[cfg(feature = "butterfly_heuristic")]
+                if scoring_move.bit_move != best_move.bit_move && !is_capture_or_promotion && quiets_count < 64 {
+                    quiets_searched[quiets_count] = scoring_move.bit_move;
+                    quiets_count += 1;
+                }
             }
         }
 
         if !moves_has_legal_move {
             if in_check {
-                return ScoringMove::blank(-CHECKMATE - depth as i16);
+                best_move = ScoringMove::blank(-CHECKMATE - depth as i16);
             } else {
-                return ScoringMove::blank(DRAW);
+                best_move = ScoringMove::blank(DRAW);
             }
         }
 
@@ -201,35 +200,6 @@ impl Search {
                 TTNodeType::Exact
             };
     
-            TranspositionTable::store(
-                position.zobrist_key,
-                TTEntry {
-                    zobrist_key: position.zobrist_key,
-                    best_move,
-                    depth,
-                    flag,
-                },
-            );
-        }
-
-        if !moves_has_legal_move {
-            if in_check {
-                return ScoringMove::blank(-CHECKMATE - depth as i16);
-            } else {
-                return ScoringMove::blank(DRAW);
-            }
-        }
-
-        #[cfg(feature = "transposition_table")]
-        {
-            let flag = if alpha >= beta {
-                TTNodeType::LowerBound
-            } else if best_move.score <= alpha {
-                TTNodeType::UpperBound
-            } else {
-                TTNodeType::Exact
-            };
-
             TranspositionTable::store(
                 position.zobrist_key,
                 TTEntry {
@@ -284,7 +254,8 @@ impl Search {
             self.nodes = 0;
             let new_best_move = self.best_move(position, current_depth);
             if self.stop_calculating.load(Ordering::Relaxed) {
-                println!("info string ended iterative search");
+                TranspositionTable::reset();
+                println!("info string ended iterative search and reset transposition table");
                 break;
             }
 
