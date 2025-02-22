@@ -13,6 +13,7 @@ pub struct Position {
     pub side: Color,
     pub en_passant_sq: Square,
     pub castling_rights: CastlingRights,
+    pub ply: u16,
 
     #[cfg(feature = "transposition_table")]
     pub zobrist_key: ZobristKey,
@@ -43,7 +44,7 @@ impl Position {
     }
 
     pub fn starting_position() -> Position {
-        Position {
+        let mut position = Position {
             #[cfg(feature = "board_representation_array")]
             pps: [
                 PieceType::BR, PieceType::BN, PieceType::BB, PieceType::BQ, PieceType::BK, PieceType::BB, PieceType::BN, PieceType::BR,
@@ -76,10 +77,16 @@ impl Position {
             side: Color::White,
             en_passant_sq: Square::None,
             castling_rights: CastlingRights::DEFAULT,
+            ply: 0,
 
             #[cfg(feature = "transposition_table")]
             zobrist_key: ZobristKey(0),
-        }
+        };
+
+        #[cfg(feature = "transposition_table")]
+        { position.zobrist_key = ZobristKey::generate(&position); }
+
+        position
     }
 
     #[inline(always)]
@@ -106,14 +113,7 @@ impl Position {
 
     #[inline(always)]
     #[cfg(feature = "transposition_table")]
-    pub fn pre_zobrist_mods(&mut self) {
-        self.zobrist_key.mod_castling(self.castling_rights);
-        self.zobrist_key.mod_en_passant(self.en_passant_sq);
-    }
-
-    #[inline(always)]
-    #[cfg(feature = "transposition_table")]
-    pub fn post_zobrist_mods(&mut self) {
+    pub fn zobrist_mods(&mut self) {
         self.zobrist_key.mod_side(self.side);
         self.zobrist_key.mod_castling(self.castling_rights);
         self.zobrist_key.mod_en_passant(self.en_passant_sq);
@@ -133,7 +133,6 @@ impl Position {
         #[cfg(feature = "board_representation_array")]
         let capture = self.pps[target];
 
-
         debug_assert_eq!(piece.color(), self.side);
         debug_assert!(capture == PieceType::None || capture.color() == self.side.opposite());
         debug_assert!(self.bbs[piece].is_set_sq(source));
@@ -141,20 +140,18 @@ impl Position {
 
         // Modify the zobrist hash before making the move
         #[cfg(feature = "transposition_table")]
-        self.pre_zobrist_mods();
+        self.zobrist_mods();
+
+        // Removes captured piece
+        // NOTE: Because of the way zobrist hashing is implemented,
+        // it is important that the capture is removed before moving the piece.
+        if capture != PieceType::None {
+            self.remove_piece(capture, target);
+        }
 
         // Moves piece
         self.remove_piece(piece, source);
         self.set_piece(piece, target);
-
-        // Removes captured piece
-        if capture != PieceType::None {
-            #[cfg(feature = "board_representation_bitboard")]
-            self.remove_piece(capture, target);
-            
-            #[cfg(feature = "board_representation_array")]
-            self.bbs[capture].pop_sq(target);
-        }
 
         // Resets en-passant square
         self.en_passant_sq = Square::None;
@@ -229,7 +226,10 @@ impl Position {
 
         // Modify the zobrist hash after making the move
         #[cfg(feature = "transposition_table")]
-        self.post_zobrist_mods();
+        {
+            self.zobrist_mods();
+            debug_assert_eq!(self.zobrist_key, ZobristKey::generate(self), "{}", self);
+        }
     }
 
     #[inline]
@@ -373,6 +373,7 @@ impl Default for Position {
             side: Color::White,
             en_passant_sq: Square::None,
             castling_rights: CastlingRights::NONE,
+            ply: 0,
 
             #[cfg(feature = "transposition_table")]
             zobrist_key: ZobristKey(0),
@@ -400,19 +401,27 @@ impl fmt::Display for Position {
             }
             s += "\n";
         }
-        s += &format!(
-            "
-     a b c d e f g h
+        s += "\n     a b c d e f g h\n";
 
-  FEN:        {}
-  Side        {}
-  En-passant: {}
-  Castling:   {}\n",
+        #[cfg(feature = "transposition_table")]
+        {
+            s += &format!("
+  Zobrist Key: {:#x}",
+                self.zobrist_key.0
+            );
+        }
+
+        s += &format!("
+          FEN: {}
+         Side: {}
+   En-passant: {}
+     Castling: {}\n",
             FenString::from(self),
             self.side,
             self.en_passant_sq,
-            self.castling_rights
+            self.castling_rights,
         );
+        
         f.pad(&s)
     }
 }

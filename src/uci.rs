@@ -29,10 +29,12 @@ impl Uci {
         thread::spawn(move || {
             let mut lines = io::stdin().lock().lines();
             while let Some(Ok(line)) = lines.next() {
-                if line.starts_with("stop") {
-                    stop_calculating.store(true, Ordering::Relaxed);
-                } else if uci_command_tx.send(line).is_err() {
-                    break;
+                match line.as_str() {
+                    "stop" => stop_calculating.store(true, Ordering::Relaxed),
+                    "quit" | "exit" | "q" | "e" => exit(0),
+                    _ => if uci_command_tx.send(line).is_err() {
+                        break;
+                    },
                 }
             }
         });
@@ -55,7 +57,6 @@ impl Uci {
         match words.next() {
             Some(keyword) => {
                 match keyword {
-                    "quit" | "exit" => exit(0),
                     "go" => self.parse_go(&line),
                     "position" => self.parse_position(&line),
                     "ucinewgame" => self.parse_position("position startpos"),
@@ -190,7 +191,7 @@ impl Uci {
         } else if let Some(depth_index) = words.iter().position(|&word| word == "depth") {
             match words.get(depth_index + 1) {
                 Some(depth_string) => {
-                    match depth_string.parse::<u8>() {
+                    match depth_string.parse::<u16>() {
                         Ok(depth) => {
                             self.search.go(&self.position, depth, None);
                             Ok(())
