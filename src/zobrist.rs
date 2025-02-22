@@ -88,21 +88,22 @@ impl Display for ZobristKey {
 }
 
 #[ctor]
+#[allow(static_mut_refs)]
 unsafe fn init_zobrist() {
     let mut rng = RandomNumberGenerator::default();
-
-    for piece in 0..PIECE_TYPES {
-        for square in 0..SQUARES {
-            PIECE_KEYS[piece][square] = rng.generate_u64();
+    
+    for piece_array_key in PIECE_KEYS.iter_mut() {
+        for square_key in piece_array_key.iter_mut() {
+            *square_key = rng.generate_u64();
         }
     }
 
-    for i in 0..CASTLING_PERMUTATIONS {
-        CASTLING_KEYS[i] = rng.generate_u64();
+    for castling_key in CASTLING_KEYS.iter_mut() {
+        *castling_key = rng.generate_u64();
     }
 
-    for file in 0..FILE_COUNT {
-        EN_PASSANT_KEYS[file] = rng.generate_u64();
+    for en_passant_key in EN_PASSANT_KEYS.iter_mut() {
+        *en_passant_key = rng.generate_u64();
     }
 
     SIDE_KEY = rng.generate_u64();

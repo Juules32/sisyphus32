@@ -1,4 +1,4 @@
-use crate::{bit_move::{BitMove, ScoringMove}, color::Color, piece::PieceType, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, color::Color, killer_moves::KillerMoves, piece::PieceType, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
 
 const PIECE_SCORES: [i16; 13] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000, 0];
 
@@ -207,17 +207,28 @@ impl EvalMove {
         {
             if let Some(entry) = TranspositionTable::probe(position.zobrist_key) {
                 if entry.best_move.bit_move == bit_move {
-                    score += 2000;
-                }
-
-                match entry.flag {
-                    TTNodeType::LowerBound => score += 1500,
-                    TTNodeType::UpperBound => score += 1000,
-                    _ => {}
+                    match entry.flag {
+                        TTNodeType::Exact => score += 5000,
+                        TTNodeType::LowerBound => score += 600,
+                        TTNodeType::UpperBound => score += 300,
+                    }
                 }
             }
         }
 
+        #[cfg(feature = "killer_moves")]
+        {
+            if KillerMoves::get_primary(position.ply) == bit_move {
+                score += 100;
+            } else if KillerMoves::get_secondary(position.ply) == bit_move {
+                score += 50;
+            }
+        }
+
+        #[cfg(feature = "butterfly_heuristic")]
+        {
+            score += ButterflyHeuristic::get(position.side, bit_move.source(), bit_move.target());
+        }
         score
     }
 }

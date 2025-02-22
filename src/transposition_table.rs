@@ -31,7 +31,7 @@ struct TTSlot {
 pub struct TTEntry {
     pub zobrist_key: ZobristKey,
     pub best_move: ScoringMove,
-    pub depth: u8,
+    pub depth: u16,
     pub flag: TTNodeType,
 }
 

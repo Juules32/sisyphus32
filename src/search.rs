@@ -3,7 +3,7 @@ extern crate rand;
 use rand::Rng;
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, eval::EvalPosition, move_generation::{Legal, MoveGeneration, PseudoLegal}, pl, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, piece::PieceType, pl, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}};
 
 pub struct Search {
     timer: Timer,
@@ -97,7 +97,12 @@ impl Search {
     }
 
     #[inline(always)]
-    fn negamax_best_move(&mut self, position: &Position, alpha: i16, beta: i16, mut depth: u8) -> ScoringMove {
+    fn negamax_best_move(&mut self, position: &Position, alpha: i16, beta: i16, mut depth: u16) -> ScoringMove {
+        #[cfg(feature = "butterfly_heuristic")]
+        let mut quiets_searched: [BitMove; 64] = [BitMove::EMPTY; 64];
+        #[cfg(feature = "butterfly_heuristic")]
+        let mut quiets_count = 0;
+
         self.nodes += 1;
         
         if depth == 0 {
@@ -145,7 +150,9 @@ impl Search {
 
         let mut best_move = ScoringMove::blank(alpha);
         for scoring_move in moves.iter_mut() {
+            let is_capture = position.get_piece(scoring_move.bit_move.target()) == PieceType::None;
             let mut position_copy = position.clone();
+            position_copy.ply += 1; // TODO: make this cleaner!
             position_copy.make_move(scoring_move.bit_move);
             if !position_copy.in_check(position_copy.side.opposite()) {
                 moves_has_legal_move = true;
@@ -153,9 +160,24 @@ impl Search {
                 if scoring_move.score > best_move.score {
                     best_move = *scoring_move;
                     if best_move.score >= beta {
+
+                        if !is_capture {
+                            #[cfg(feature = "killer_moves")]
+                            KillerMoves::update(best_move.bit_move, position_copy.ply);
+                            
+                            #[cfg(feature = "butterfly_heuristic")]
+                            ButterflyHeuristic::update(position.side, &quiets_searched[0..quiets_count], best_move.bit_move, depth as i16);
+                        }
+
                         break;
                     }
                 }
+            }
+
+            #[cfg(feature = "butterfly_heuristic")]
+            if scoring_move.bit_move != best_move.bit_move && !is_capture && quiets_count < 64 {
+                quiets_searched[quiets_count] = scoring_move.bit_move;
+                quiets_count += 1;
             }
         }
 
@@ -192,7 +214,7 @@ impl Search {
     }
 
     #[inline(always)]
-    fn best_move(&mut self, position: &Position, depth: u8) -> ScoringMove {
+    fn best_move(&mut self, position: &Position, depth: u16) -> ScoringMove {
         #[cfg(feature = "search_random")]
         return self.random_best_move(position, depth);
         
@@ -211,14 +233,14 @@ impl Search {
     }
 
     #[inline(always)]
-    fn go_no_iterative_deepening(&mut self, position: &Position, depth: u8) {
+    fn go_no_iterative_deepening(&mut self, position: &Position, depth: u16) {
         let best_scoring_move = self.best_move(position, depth);
         pl!(format!("info depth {} score cp {} nodes {} time {} pv {}", depth, best_scoring_move.score, self.nodes, self.timer.get_time_passed_millis(), best_scoring_move.bit_move.to_uci_string()));
         pl!(format!("bestmove {}", best_scoring_move.bit_move.to_uci_string()));
     }
 
     #[inline(always)]
-    fn go_iterative_deepening(&mut self, position: &Position, depth: u8) {
+    fn go_iterative_deepening(&mut self, position: &Position, depth: u16) {
         let mut best_scoring_move = ScoringMove::blank(BLANK);
 
         for current_depth in 1..=depth {
@@ -243,14 +265,14 @@ impl Search {
                 best_scoring_move.score,
                 self.nodes,
                 self.timer.get_time_passed_millis(),
-                self.get_pv(&position, current_depth, best_scoring_move.bit_move),
+                self.get_pv(position, current_depth, best_scoring_move.bit_move),
             ));
         }
         pl!(format!("bestmove {}", best_scoring_move.bit_move.to_uci_string()));
     }
 
     #[inline(always)]
-    pub fn go(&mut self, position: &Position, depth: u8, stop_time: Option<u128>) {
+    pub fn go(&mut self, position: &Position, depth: u16, stop_time: Option<u128>) {
         self.reset(stop_time);
         let stop_flag = Arc::clone(&self.stop_calculating);
         print!("info string searching for best move");
@@ -286,15 +308,10 @@ impl Search {
 
     #[inline(always)]
     pub fn calculate_stop_time(total_time: Option<u128>, increment: u128) -> Option<u128> {
-        match total_time {
-            Some(time) => {
-                Some(time / AVERAGE_AMOUNT_OF_MOVES + increment)
-            },
-            None => None,
-        }
+        total_time.map(|time| time / AVERAGE_AMOUNT_OF_MOVES + increment)
     }
 
-    fn get_pv(&self, position: &Position, depth: u8, _best_move: BitMove) -> String {
+    fn get_pv(&self, position: &Position, depth: u16, _best_move: BitMove) -> String {
         #[cfg(feature = "transposition_table")]
         return self.get_pv_from_tt(position, depth);
 
@@ -306,7 +323,7 @@ impl Search {
     // happens to have the same table index. The probability scales inversely with the
     // size of the transposition table.
     #[cfg(feature = "transposition_table")]
-    fn get_pv_from_tt(&self, position: &Position, depth: u8) -> String {
+    fn get_pv_from_tt(&self, position: &Position, depth: u16) -> String {
         let mut pv_moves = Vec::new();
         let mut position_copy = position.clone();
         for _ in 0..depth {
