@@ -132,7 +132,7 @@ impl BitMove {
 
     #[inline(always)]
     pub fn is_capture_or_promotion(self, position: &Position) -> bool {
-        position.get_piece(self.target()) == PieceType::None || self.flag().is_promotion()
+        position.get_piece(self.target()) != PieceType::None || self.flag().is_promotion()
     }
 
     #[cfg(feature = "board_representation_bitboard")]
