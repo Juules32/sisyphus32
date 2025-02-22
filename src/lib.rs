@@ -52,5 +52,7 @@ pub mod bit_twiddles;
 pub mod move_flag;
 pub mod search;
 pub mod eval;
+pub mod killer_moves;
+pub mod butterfly_heuristic;
 pub mod rng;
 pub mod move_generation;

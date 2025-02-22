@@ -191,7 +191,7 @@ impl Uci {
         } else if let Some(depth_index) = words.iter().position(|&word| word == "depth") {
             match words.get(depth_index + 1) {
                 Some(depth_string) => {
-                    match depth_string.parse::<u8>() {
+                    match depth_string.parse::<u16>() {
                         Ok(depth) => {
                             self.search.go(&self.position, depth, None);
                             Ok(())
