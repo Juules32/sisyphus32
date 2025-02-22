@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use crate::{bit_move::BitMove, color::Color, eval::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, color::Color, eval::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
@@ -47,9 +47,9 @@ impl Uci {
     }
 
     fn print_uci_info() {
-        pl!("id name Sisyphus32");
-        pl!("id author Juules32");
-        pl!("uciok");
+        println!("id name Sisyphus32");
+        println!("id author Juules32");
+        println!("uciok");
     }
     
     fn parse_line(&mut self, line: String) -> Result<(), UciParseError> {
@@ -65,15 +65,15 @@ impl Uci {
                         Ok(())
                     },
                     "eval" => {
-                        pl!(EvalPosition::eval(&self.position).score);
+                        println!("{}", EvalPosition::eval(&self.position).score);
                         Ok(())
                     },
                     "isready" => {
-                        pl!("readyok");
+                        println!("readyok");
                         Ok(())
                     },
                     "d" => {
-                        pl!(self.position);
+                        println!("{}", self.position);
                         Ok(())
                     },
                     "bench" | "benchlong" => {

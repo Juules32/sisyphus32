@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, mem};
 
 use ctor::ctor;
 
@@ -12,9 +12,9 @@ const CASTLING_PERMUTATIONS: usize = 16;
 const SIDES: usize = 2;
 
 // Zobrist keys
-static mut PIECE_KEYS: [[u64; SQUARES]; PIECE_TYPES] = [[0; SQUARES]; PIECE_TYPES];
-static mut CASTLING_KEYS: [u64; CASTLING_PERMUTATIONS] = [0; CASTLING_PERMUTATIONS];
-static mut EN_PASSANT_KEYS: [u64; FILE_COUNT] = [0; FILE_COUNT];
+static mut PIECE_KEYS: [[u64; SQUARES]; PIECE_TYPES] = unsafe { mem::zeroed() };
+static mut CASTLING_KEYS: [u64; CASTLING_PERMUTATIONS] = unsafe { mem::zeroed() };
+static mut EN_PASSANT_KEYS: [u64; FILE_COUNT] = unsafe { mem::zeroed() };
 static mut SIDE_KEY: u64 = 0;
 
 #[derive(Clone, Copy, PartialEq, Debug)]

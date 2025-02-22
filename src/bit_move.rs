@@ -1,9 +1,6 @@
-use crate::{eval::EvalMove, move_flag::MoveFlag, position::Position, square::Square};
+use crate::{eval::EvalMove, move_flag::MoveFlag, piece::PieceType, position::Position, square::Square};
 use core::fmt;
-use std::{cmp::Ordering, fmt::Display, hash::Hash};
-
-#[cfg(feature = "board_representation_bitboard")]
-use crate::piece::PieceType;
+use std::{cmp::Ordering, fmt::Display, hash::Hash, mem};
 
 #[cfg(feature = "board_representation_bitboard")]
 const SOURCE_MASK: u32 =  0b0000_0000_0000_0000_0000_0000_0011_1111;
@@ -52,7 +49,7 @@ impl Move for BitMove {
 }
 
 impl BitMove {
-    pub const EMPTY: BitMove = BitMove(0);
+    pub const EMPTY: BitMove = unsafe { mem::zeroed() };
 
     #[inline(always)]
     pub fn source(&self) -> Square {
@@ -131,6 +128,11 @@ impl BitMove {
     #[inline(always)]
     pub fn decode(&self) -> (Square, Square, MoveFlag) {
         (self.source(), self.target(), self.flag())
+    }
+
+    #[inline(always)]
+    pub fn is_capture_or_promotion(self, position: &Position) -> bool {
+        position.get_piece(self.target()) == PieceType::None || self.flag().is_promotion()
     }
 
     #[cfg(feature = "board_representation_bitboard")]
@@ -240,6 +242,8 @@ impl Move for ScoringMove {
 }
 
 impl ScoringMove {
+    const EMPTY: ScoringMove = unsafe { mem::zeroed() };
+
     #[inline(always)]
     pub fn blank(score: i16) -> Self {
         Self {
@@ -260,10 +264,7 @@ impl ScoringMove {
 impl Default for ScoringMove {
     #[inline(always)]
     fn default() -> Self {
-        ScoringMove {
-            bit_move: BitMove::EMPTY,
-            score: 0,
-        }
+        Self::EMPTY
     }
 }
 

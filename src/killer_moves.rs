@@ -1,9 +1,11 @@
+use std::mem;
+
 use crate::bit_move::BitMove;
 
 const MAX_PLY: usize = 64;
 
-static mut PRIMARY_KILLER_MOVES: [BitMove; MAX_PLY] = [BitMove::EMPTY; MAX_PLY];
-static mut SECONDARY_KILLER_MOVES: [BitMove; MAX_PLY] = [BitMove::EMPTY; MAX_PLY];
+static mut PRIMARY_KILLER_MOVES: [BitMove; MAX_PLY] = unsafe { mem::zeroed() };
+static mut SECONDARY_KILLER_MOVES: [BitMove; MAX_PLY] = unsafe { mem::zeroed() };
 
 pub struct KillerMoves;
 
