@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{position::Position, castling_rights::CastlingRights, color::Color, piece::PieceType, square::{Square, SquareParseError}};
+use crate::{castling_rights::CastlingRights, color::Color, piece::PieceType, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
 
 #[derive(Debug)]
 pub struct FenParseError(pub &'static str);
@@ -29,7 +29,7 @@ impl FenString {
     }
 
     pub fn parse(&self) -> Result<Position, FenParseError> {
-        let mut pos = Position::default();
+        let mut position = Position::default();
         
         let mut fen_iter = self.string.split_whitespace();
         let pieces_str = fen_iter.next().ok_or(FenParseError("No pieces found!"))?;
@@ -37,12 +37,15 @@ impl FenString {
         let castling_rights_str = fen_iter.next().ok_or(FenParseError("No castling rights found!"))?;
         let en_passant_sq_str = fen_iter.next().ok_or(FenParseError("No en-passant found!"))?;
         
-        Self::set_pieces(&mut pos, pieces_str)?;
-        Self::set_side(&mut pos, side_str)?;
-        Self::set_castling_rights(&mut pos, castling_rights_str)?;
-        Self::set_en_passant_sq(&mut pos, en_passant_sq_str)?;
+        Self::set_pieces(&mut position, pieces_str)?;
+        Self::set_side(&mut position, side_str)?;
+        Self::set_castling_rights(&mut position, castling_rights_str)?;
+        Self::set_en_passant_sq(&mut position, en_passant_sq_str)?;
         
-        Ok(pos)
+        #[cfg(feature = "transposition_table")]
+        { position.zobrist_key = ZobristKey::generate(&position); }
+        
+        Ok(position)
     }
     
     fn set_pieces(position: &mut Position, pieces_str: &str) -> Result<(), FenParseError> {
