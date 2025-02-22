@@ -202,6 +202,24 @@ impl Uci {
                 None => Err(UciParseError("Didn't find depth string!")),
             }
         } else {
+            if let Some(move_time_index) = words.iter().position(|&word| {
+                word == "movetime"
+            }) {
+                match words.get(move_time_index + 1) {
+                    Some(time_string) => {
+                        match time_string.parse::<u128>() {
+                            Ok(move_time) => {
+                                self.search.go(&self.position, 255, Some(move_time));
+                                return Ok(());
+                            },
+                            Err(_) => return Err(UciParseError("Couldn't parse time string!")),
+                        }
+                    },
+                    None => return Err(UciParseError("Didn't find time string!")),
+                }
+            }
+
+
             let mut total_time = None;
             if let Some(time_index) = words.iter().position(|&word| {
                 word == match self.position.side {
