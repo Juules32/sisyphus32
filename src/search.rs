@@ -19,6 +19,7 @@ const DRAW: i16 = 0;
 const START_ALPHA: i16 = -32001;
 const START_BETA: i16 = 32001;
 const AVERAGE_AMOUNT_OF_MOVES: u128 = 30;
+const AVERAGE_BRANCHING_FACTOR: u128 = 5;
 
 impl Search {
     #[inline(always)]
@@ -275,7 +276,7 @@ impl Search {
 
         for current_depth in 1..=depth {
             if let Some(time) = self.stop_time {
-                if current_depth != 1 && self.timer.get_time_passed_millis() * AVERAGE_AMOUNT_OF_MOVES > time {
+                if current_depth != 1 && self.timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR > time {
                     println!("info string ended iterative search early based on time prediction");
                     break;
                 }
