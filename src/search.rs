@@ -79,9 +79,9 @@ impl Search {
         moves.sort_by_score();
 
         for scoring_capture in moves.iter_mut() {
-            if let Some(position_copy) = position.apply_pseudo_legal_move(scoring_capture.bit_move) {
+            if let Some(new_position) = position.apply_pseudo_legal_move(scoring_capture.bit_move) {
                 self.nodes += 1;
-                scoring_capture.score = -self.quiescence(&position_copy, -beta, -best_move.score).score;
+                scoring_capture.score = -self.quiescence(&new_position, -beta, -best_move.score).score;
                 if scoring_capture.score > best_move.score {
                     best_move = *scoring_capture;
                     if best_move.score >= beta {
@@ -149,16 +149,16 @@ impl Search {
 
         let mut best_move = ScoringMove::blank(alpha);
         for scoring_move in moves.iter_mut() {
-            if let Some(position_copy) = position.apply_pseudo_legal_move(scoring_move.bit_move) {
+            if let Some(new_position) = position.apply_pseudo_legal_move(scoring_move.bit_move) {
                 let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
                 moves_has_legal_move = true;
-                scoring_move.score = -self.negamax_best_move(&position_copy, -beta, -best_move.score, depth - 1).score;
+                scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, depth - 1).score;
                 if scoring_move.score > best_move.score {
                     best_move = *scoring_move;
                     if best_move.score >= beta {
                         if !is_capture_or_promotion {
                             #[cfg(feature = "killer_moves")]
-                            KillerMoves::update(best_move.bit_move, position_copy.ply);
+                            KillerMoves::update(best_move.bit_move, new_position.ply);
                             
                             #[cfg(feature = "butterfly_heuristic")]
                             ButterflyHeuristic::update(position.side, &quiets_searched[0..quiets_count], best_move.bit_move, depth as i16);
@@ -250,7 +250,7 @@ impl Search {
             if self.stop_calculating.load(Ordering::Relaxed) {
                 #[cfg(feature = "transposition_table")]
                 TranspositionTable::reset();
-                
+
                 println!("info string ended iterative search and reset transposition table");
                 break;
             }
