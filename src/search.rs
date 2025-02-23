@@ -3,7 +3,7 @@ extern crate rand;
 use rand::Rng;
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, color::Color, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}};
 
 pub struct Search {
     timer: Timer,
@@ -261,7 +261,7 @@ impl Search {
             println!(
                 "info depth {} score {} nodes {} time {} pv {}",
                 current_depth,
-                Self::score_or_mate_string(best_scoring_move.score, found_mate, position.side),
+                Self::score_or_mate_string(best_scoring_move.score, found_mate),
                 self.nodes,
                 self.timer.get_time_passed_millis(),
                 self.get_pv(position, current_depth, best_scoring_move.bit_move),
@@ -275,7 +275,7 @@ impl Search {
         println!("bestmove {}", best_scoring_move.bit_move.to_uci_string());
     }
 
-    fn score_or_mate_string(score: i16, found_mate: bool, side: Color) -> String {
+    fn score_or_mate_string(score: i16, found_mate: bool) -> String {
         if found_mate {
             format!("mate {}", ((CHECKMATE - score.abs()) as f32 / 2.0).ceil() as i16 * score.signum())
         } else {
