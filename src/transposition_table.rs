@@ -38,8 +38,8 @@ pub struct TTEntry {
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TTNodeType {
     Exact,
-    LowerBound, // β cutoff
-    UpperBound, // α fail
+    LowerBound, // β cutoff aka. Fail-high
+    UpperBound, // α fail aka. Fail-low
 }
 
 #[cfg(feature = "tt_two_tier")]

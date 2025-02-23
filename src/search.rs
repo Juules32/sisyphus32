@@ -146,7 +146,6 @@ impl Search {
         moves.sort_by_score();
 
         let mut moves_has_legal_move = false;
-
         let mut best_move = ScoringMove::blank(alpha);
         for scoring_move in moves.iter_mut() {
             if let Some(new_position) = position.apply_pseudo_legal_move(scoring_move.bit_move) {
