@@ -79,13 +79,10 @@ impl Search {
         moves.sort_by_score();
 
         for scoring_capture in moves.iter_mut() {
-            let mut position_copy = position.clone();
-            position_copy.make_move(scoring_capture.bit_move);
-            if !position_copy.in_check(position_copy.side.opposite()) {
+            if let Some(position_copy) = position.apply_pseudo_legal_move(scoring_capture.bit_move) {
                 self.nodes += 1;
                 scoring_capture.score = -self.quiescence(&position_copy, -beta, -best_move.score).score;
                 if scoring_capture.score > best_move.score {
-                    best_move.score = scoring_capture.score;
                     best_move = *scoring_capture;
                     if best_move.score >= beta {
                         return best_move;
@@ -152,10 +149,7 @@ impl Search {
 
         let mut best_move = ScoringMove::blank(alpha);
         for scoring_move in moves.iter_mut() {
-            let mut position_copy = position.clone();
-            position_copy.ply += 1; // TODO: make this cleaner!
-            position_copy.make_move(scoring_move.bit_move);
-            if !position_copy.in_check(position_copy.side.opposite()) {
+            if let Some(position_copy) = position.apply_pseudo_legal_move(scoring_move.bit_move) {
                 let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
                 moves_has_legal_move = true;
                 scoring_move.score = -self.negamax_best_move(&position_copy, -beta, -best_move.score, depth - 1).score;
@@ -184,7 +178,7 @@ impl Search {
 
         if !moves_has_legal_move {
             if in_check {
-                best_move = ScoringMove::blank(-CHECKMATE - depth as i16);
+                best_move = ScoringMove::blank(-CHECKMATE + position.ply as i16);
             } else {
                 best_move = ScoringMove::blank(DRAW);
             }
@@ -254,7 +248,9 @@ impl Search {
             self.nodes = 0;
             let new_best_move = self.best_move(position, current_depth);
             if self.stop_calculating.load(Ordering::Relaxed) {
+                #[cfg(feature = "transposition_table")]
                 TranspositionTable::reset();
+                
                 println!("info string ended iterative search and reset transposition table");
                 break;
             }
