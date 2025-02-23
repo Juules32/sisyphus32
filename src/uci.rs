@@ -30,7 +30,7 @@ impl Uci {
             let mut lines = io::stdin().lock().lines();
             while let Some(Ok(line)) = lines.next() {
                 match line.as_str() {
-                    "stop" => stop_calculating.store(true, Ordering::Relaxed),
+                    "stop" | "s" => stop_calculating.store(true, Ordering::Relaxed),
                     "quit" | "exit" | "q" | "e" => exit(0),
                     _ => if uci_command_tx.send(line).is_err() {
                         break;
@@ -72,7 +72,7 @@ impl Uci {
                         println!("readyok");
                         Ok(())
                     },
-                    "d" => {
+                    "d" | "display" => {
                         println!("{}", self.position);
                         Ok(())
                     },

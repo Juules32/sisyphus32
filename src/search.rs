@@ -3,7 +3,7 @@ extern crate rand;
 use rand::Rng;
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, color::Color, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}};
 
 pub struct Search {
     timer: Timer,
@@ -20,6 +20,7 @@ const START_ALPHA: i16 = -32001;
 const START_BETA: i16 = 32001;
 const AVERAGE_AMOUNT_OF_MOVES: u128 = 30;
 const AVERAGE_BRANCHING_FACTOR: u128 = 5;
+const MAX_PLY: i16 = 242;
 
 impl Search {
     #[inline(always)]
@@ -255,17 +256,31 @@ impl Search {
             }
 
             best_scoring_move = new_best_move;
+            let found_mate = best_scoring_move.score.abs() > CHECKMATE - MAX_PLY;
 
             println!(
-                "info depth {} score cp {} nodes {} time {} pv {}",
+                "info depth {} score {} nodes {} time {} pv {}",
                 current_depth,
-                best_scoring_move.score,
+                Self::score_or_mate_string(best_scoring_move.score, found_mate, position.side),
                 self.nodes,
                 self.timer.get_time_passed_millis(),
                 self.get_pv(position, current_depth, best_scoring_move.bit_move),
             );
+
+            if found_mate {
+                println!("info string ended iterative search because mating line was found");
+                break;
+            }
         }
         println!("bestmove {}", best_scoring_move.bit_move.to_uci_string());
+    }
+
+    fn score_or_mate_string(score: i16, found_mate: bool, side: Color) -> String {
+        if found_mate {
+            format!("mate {}", ((CHECKMATE - score.abs()) as f32 / 2.0).ceil() as i16 * score.signum())
+        } else {
+            format!("cp {score}")
+        }
     }
 
     #[inline(always)]
