@@ -3,14 +3,14 @@ extern crate rand;
 use rand::Rng;
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
 pub struct Search {
     timer: Timer,
     stop_time: Option<u128>,
     pub stop_calculating: Arc<AtomicBool>,
     nodes: u64,
-    // TODO: killer_moves, etc...
+    pub zobrist_hash_history: Vec<ZobristKey>,
 }
 
 const BLANK: i16 = 0;
@@ -32,7 +32,7 @@ impl Search {
     #[inline(always)]
     fn minimax_best_move(&mut self, position: &Position, depth: u16) -> ScoringMove {
         if depth == 0 {
-            return EvalPosition::eval(position);
+            return EvalPosition::eval_with_history(position, &self.zobrist_hash_history);
         }
 
         self.nodes += 1;
@@ -65,7 +65,8 @@ impl Search {
             return ScoringMove::blank(BLANK);
         }
         
-        let evaluation = EvalPosition::eval(position);
+        let evaluation = EvalPosition::eval_with_history(position, &self.zobrist_hash_history);
+
         let mut best_move = ScoringMove::blank(alpha);
 
         if evaluation.score >= beta {
@@ -97,16 +98,11 @@ impl Search {
 
     #[inline(always)]
     fn negamax_best_move(&mut self, position: &Position, alpha: i16, beta: i16, mut depth: u16) -> ScoringMove {
-        #[cfg(feature = "butterfly_heuristic")]
-        let mut quiets_searched: [BitMove; 64] = [BitMove::EMPTY; 64];
-        #[cfg(feature = "butterfly_heuristic")]
-        let mut quiets_count = 0;
-
         self.nodes += 1;
         
         if depth == 0 {
             #[cfg(not(feature = "quiescence"))]
-            return EvalPosition::eval(position);
+            return EvalPosition::eval_with_history(position, &self.zobrist_hash_history);
             
             #[cfg(feature = "quiescence")]
             return self.quiescence(position, alpha, beta);
@@ -138,21 +134,31 @@ impl Search {
 
         let in_check = position.in_check(position.side);
 
-        #[cfg(feature = "checks_add_depth")]
-        if in_check { depth += 1; }
+        // NOTE: Checks adding depth doesn't work together with the tt AND draw by repetition checks
+        // #[cfg(feature = "checks_add_depth")]
+        // if in_check { depth += 1; }
 
         let mut moves = MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position);
 
         #[cfg(feature = "move_sort")]
         moves.sort_by_score();
 
+        #[cfg(feature = "butterfly_heuristic")]
+        let mut quiets_searched: [BitMove; 64] = [BitMove::EMPTY; 64];
+        #[cfg(feature = "butterfly_heuristic")]
+        let mut quiets_count = 0;
+
         let mut moves_has_legal_move = false;
         let mut best_move = ScoringMove::blank(alpha);
         for scoring_move in moves.iter_mut() {
             if let Some(new_position) = position.apply_pseudo_legal_move(scoring_move.bit_move) {
                 let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
+                let is_pp_capture_or_castle = scoring_move.bit_move.is_pp_capture_or_castle(position);
                 moves_has_legal_move = true;
+                
+                if !is_pp_capture_or_castle { self.zobrist_hash_history.push(position.zobrist_key); }
                 scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, depth - 1).score;
+                if !is_pp_capture_or_castle { self.zobrist_hash_history.pop(); }
                 if scoring_move.score > best_move.score {
                     best_move = *scoring_move;
                     if best_move.score >= beta {
@@ -359,6 +365,7 @@ impl Default for Search {
             stop_time: None,
             stop_calculating: Arc::new(AtomicBool::new(false)),
             nodes: 0,
+            zobrist_hash_history: Vec::new(),
         }
     }
 }

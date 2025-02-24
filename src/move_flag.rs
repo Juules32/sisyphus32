@@ -24,6 +24,11 @@ impl MoveFlag {
     pub fn is_promotion(self) -> bool {
         matches!(self, Self::PromoQ | Self::PromoR | Self::PromoB | Self::PromoN)
     }
+
+    #[inline(always)]
+    pub fn is_castle(self) -> bool {
+        matches!(self, Self::WKCastle | Self::WQCastle | Self::BKCastle | Self::BQCastle)
+    }
 }
 
 impl From<u8> for MoveFlag {

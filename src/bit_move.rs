@@ -135,6 +135,16 @@ impl BitMove {
         position.get_piece(self.target()) != PieceType::None || self.flag().is_promotion()
     }
 
+    #[inline(always)]
+    pub fn is_pp_capture_or_castle(self, position: &Position) -> bool {
+        let source_piece = position.get_piece(self.source());
+        let target_piece = position.get_piece(self.target());
+        source_piece == PieceType::WP ||
+        source_piece == PieceType::BP ||
+        target_piece != PieceType::None ||
+        self.flag().is_castle()
+    }
+
     #[cfg(feature = "board_representation_bitboard")]
     pub fn to_row_string(self) -> String {
         format!(

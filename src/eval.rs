@@ -1,4 +1,4 @@
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, color::Color, killer_moves::KillerMoves, piece::PieceType, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, color::Color, killer_moves::KillerMoves, piece::PieceType, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
 const PIECE_SCORES: [i16; 13] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000, 0];
 
@@ -189,6 +189,15 @@ impl EvalPosition {
 
         #[cfg(feature = "eval_piece_positions")]
         return EvalPosition::piece_positions(position);
+    }
+
+    #[inline(always)]
+    pub fn eval_with_history(position: &Position, zobrist_hash_history: &Vec<ZobristKey>) -> ScoringMove {
+        if zobrist_hash_history.contains(&position.zobrist_key) {
+            return ScoringMove::blank(0);
+        }
+
+        return Self::eval(position)
     }
 }
 
