@@ -1,6 +1,6 @@
 use crate::bit_move::{BitMove, Move, ScoringMove};
 use core::fmt;
-use std::ops::{Index, IndexMut};
+use std::{mem, ops::{Index, IndexMut}};
 
 pub const MAX_MOVES: usize = 255;
 
@@ -12,10 +12,7 @@ pub struct MoveList<T> {
 impl<T: Move> MoveList<T> {
     #[inline(always)]
     pub fn new() -> Self {
-        MoveList {
-            array: [T::default(); MAX_MOVES],
-            size: 0,
-        }
+        Self::default()
     }
 
     pub fn contains(&self, mv: &T) -> bool {
@@ -56,7 +53,7 @@ impl<T: Move> MoveList<T> {
 
 impl<T: Move> Default for MoveList<T> {
     fn default() -> Self {
-        Self::new()
+        unsafe { mem::zeroed() }
     }
 }
 

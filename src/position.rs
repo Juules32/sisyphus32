@@ -14,8 +14,6 @@ pub struct Position {
     pub en_passant_sq: Square,
     pub castling_rights: CastlingRights,
     pub ply: u16,
-
-    #[cfg(feature = "transposition_table")]
     pub zobrist_key: ZobristKey,
 }
 
@@ -78,8 +76,6 @@ impl Position {
             en_passant_sq: Square::None,
             castling_rights: CastlingRights::DEFAULT,
             ply: 0,
-
-            #[cfg(feature = "transposition_table")]
             zobrist_key: ZobristKey(0),
         };
 
@@ -321,6 +317,19 @@ impl Position {
     }
 
     #[inline(always)]
+    pub fn apply_pseudo_legal_move(&self, bit_move: BitMove) -> Option<Position> {
+        let mut position_copy = self.clone();
+        position_copy.make_move(bit_move);
+
+        if !position_copy.in_check(position_copy.side.opposite()) {
+            position_copy.ply += 1;
+            Some(position_copy)
+        } else {
+            None
+        }
+    }
+
+    #[inline(always)]
     pub fn is_square_attacked(&self, defending_side: Color, square: Square) -> bool {
         let &[enemy_pawn, enemy_knight, enemy_bishop, enemy_rook, enemy_queen, enemy_king] = match defending_side {
             Color::White => &PieceType::BLACK_PIECES,
@@ -374,8 +383,6 @@ impl Default for Position {
             en_passant_sq: Square::None,
             castling_rights: CastlingRights::NONE,
             ply: 0,
-
-            #[cfg(feature = "transposition_table")]
             zobrist_key: ZobristKey(0),
         }
     }

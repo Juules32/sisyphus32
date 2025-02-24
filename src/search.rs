@@ -3,22 +3,25 @@ extern crate rand;
 use rand::Rng;
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, piece::PieceType, pl, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
 pub struct Search {
     timer: Timer,
     stop_time: Option<u128>,
     pub stop_calculating: Arc<AtomicBool>,
     nodes: u64,
-    // TODO: killer_moves, etc...
+    pub zobrist_key_history: Vec<ZobristKey>,
 }
 
 const BLANK: i16 = 0;
 const CHECKMATE: i16 = 10000;
-const DRAW: i16 = 0;
+const DRAW_BY_STALEMATE: i16 = 0;
+const DRAW_BY_REPETITION: i16 = 0;
 const START_ALPHA: i16 = -32001;
 const START_BETA: i16 = 32001;
 const AVERAGE_AMOUNT_OF_MOVES: u128 = 30;
+const AVERAGE_BRANCHING_FACTOR: u128 = 5;
+const MAX_PLY: i16 = 242;
 
 impl Search {
     #[inline(always)]
@@ -52,7 +55,7 @@ impl Search {
                 if position.in_check(position.side) {
                     ScoringMove::blank(-CHECKMATE)
                 } else {
-                    ScoringMove::blank(DRAW)
+                    ScoringMove::blank(DRAW_BY_STALEMATE)
                 }
             })
     }
@@ -64,6 +67,7 @@ impl Search {
         }
         
         let evaluation = EvalPosition::eval(position);
+
         let mut best_move = ScoringMove::blank(alpha);
 
         if evaluation.score >= beta {
@@ -78,13 +82,10 @@ impl Search {
         moves.sort_by_score();
 
         for scoring_capture in moves.iter_mut() {
-            let mut position_copy = position.clone();
-            position_copy.make_move(scoring_capture.bit_move);
-            if !position_copy.in_check(position_copy.side.opposite()) {
+            if let Some(new_position) = position.apply_pseudo_legal_move(scoring_capture.bit_move) {
                 self.nodes += 1;
-                scoring_capture.score = -self.quiescence(&position_copy, -beta, -best_move.score).score;
+                scoring_capture.score = -self.quiescence(&new_position, -beta, -best_move.score).score;
                 if scoring_capture.score > best_move.score {
-                    best_move.score = scoring_capture.score;
                     best_move = *scoring_capture;
                     if best_move.score >= beta {
                         return best_move;
@@ -98,11 +99,6 @@ impl Search {
 
     #[inline(always)]
     fn negamax_best_move(&mut self, position: &Position, alpha: i16, beta: i16, mut depth: u16) -> ScoringMove {
-        #[cfg(feature = "butterfly_heuristic")]
-        let mut quiets_searched: [BitMove; 64] = [BitMove::EMPTY; 64];
-        #[cfg(feature = "butterfly_heuristic")]
-        let mut quiets_count = 0;
-
         self.nodes += 1;
         
         if depth == 0 {
@@ -139,6 +135,7 @@ impl Search {
 
         let in_check = position.in_check(position.side);
 
+        #[cfg(feature = "checks_add_depth")]
         if in_check { depth += 1; }
 
         let mut moves = MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position);
@@ -146,24 +143,31 @@ impl Search {
         #[cfg(feature = "move_sort")]
         moves.sort_by_score();
 
-        let mut moves_has_legal_move = false;
+        #[cfg(feature = "butterfly_heuristic")]
+        let mut quiets_searched: [BitMove; 64] = [BitMove::EMPTY; 64];
+        #[cfg(feature = "butterfly_heuristic")]
+        let mut quiets_count = 0;
 
+        let mut moves_has_legal_move = false;
         let mut best_move = ScoringMove::blank(alpha);
+        self.zobrist_key_history.push(position.zobrist_key);
         for scoring_move in moves.iter_mut() {
-            let is_capture = position.get_piece(scoring_move.bit_move.target()) == PieceType::None;
-            let mut position_copy = position.clone();
-            position_copy.ply += 1; // TODO: make this cleaner!
-            position_copy.make_move(scoring_move.bit_move);
-            if !position_copy.in_check(position_copy.side.opposite()) {
+            if let Some(new_position) = position.apply_pseudo_legal_move(scoring_move.bit_move) {
+                let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
                 moves_has_legal_move = true;
-                scoring_move.score = -self.negamax_best_move(&position_copy, -beta, -best_move.score, depth - 1).score;
+                
+                if self.zobrist_key_history.contains(&new_position.zobrist_key) {
+                    self.zobrist_key_history.pop();
+                    return ScoringMove::blank(DRAW_BY_REPETITION);
+                }
+
+                scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, depth - 1).score;
                 if scoring_move.score > best_move.score {
                     best_move = *scoring_move;
                     if best_move.score >= beta {
-
-                        if !is_capture {
+                        if !is_capture_or_promotion {
                             #[cfg(feature = "killer_moves")]
-                            KillerMoves::update(best_move.bit_move, position_copy.ply);
+                            KillerMoves::update(best_move.bit_move, new_position.ply);
                             
                             #[cfg(feature = "butterfly_heuristic")]
                             ButterflyHeuristic::update(position.side, &quiets_searched[0..quiets_count], best_move.bit_move, depth as i16);
@@ -172,20 +176,21 @@ impl Search {
                         break;
                     }
                 }
-            }
 
-            #[cfg(feature = "butterfly_heuristic")]
-            if scoring_move.bit_move != best_move.bit_move && !is_capture && quiets_count < 64 {
-                quiets_searched[quiets_count] = scoring_move.bit_move;
-                quiets_count += 1;
+                #[cfg(feature = "butterfly_heuristic")]
+                if scoring_move.bit_move != best_move.bit_move && !is_capture_or_promotion && quiets_count < 64 {
+                    quiets_searched[quiets_count] = scoring_move.bit_move;
+                    quiets_count += 1;
+                }
             }
         }
+        self.zobrist_key_history.pop();
 
         if !moves_has_legal_move {
             if in_check {
-                return ScoringMove::blank(-CHECKMATE - depth as i16);
+                best_move = ScoringMove::blank(-CHECKMATE + position.ply as i16);
             } else {
-                return ScoringMove::blank(DRAW);
+                best_move = ScoringMove::blank(DRAW_BY_STALEMATE);
             }
         }
 
@@ -199,35 +204,6 @@ impl Search {
                 TTNodeType::Exact
             };
     
-            TranspositionTable::store(
-                position.zobrist_key,
-                TTEntry {
-                    zobrist_key: position.zobrist_key,
-                    best_move,
-                    depth,
-                    flag,
-                },
-            );
-        }
-
-        if !moves_has_legal_move {
-            if in_check {
-                return ScoringMove::blank(-CHECKMATE - depth as i16);
-            } else {
-                return ScoringMove::blank(DRAW);
-            }
-        }
-
-        #[cfg(feature = "transposition_table")]
-        {
-            let flag = if alpha >= beta {
-                TTNodeType::LowerBound
-            } else if best_move.score <= alpha {
-                TTNodeType::UpperBound
-            } else {
-                TTNodeType::Exact
-            };
-
             TranspositionTable::store(
                 position.zobrist_key,
                 TTEntry {
@@ -264,8 +240,8 @@ impl Search {
     #[inline(always)]
     fn go_no_iterative_deepening(&mut self, position: &Position, depth: u16) {
         let best_scoring_move = self.best_move(position, depth);
-        pl!(format!("info depth {} score cp {} nodes {} time {} pv {}", depth, best_scoring_move.score, self.nodes, self.timer.get_time_passed_millis(), best_scoring_move.bit_move.to_uci_string()));
-        pl!(format!("bestmove {}", best_scoring_move.bit_move.to_uci_string()));
+        println!("info depth {} score cp {} nodes {} time {} pv {}", depth, best_scoring_move.score, self.nodes, self.timer.get_time_passed_millis(), best_scoring_move.bit_move.to_uci_string());
+        println!("bestmove {}", best_scoring_move.bit_move.to_uci_string());
     }
 
     #[inline(always)]
@@ -274,30 +250,47 @@ impl Search {
 
         for current_depth in 1..=depth {
             if let Some(time) = self.stop_time {
-                if current_depth != 1 && self.timer.get_time_passed_millis() * AVERAGE_AMOUNT_OF_MOVES > time {
-                    pl!("info string ended iterative search early based on time prediction");
+                if current_depth != 1 && self.timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR > time {
+                    println!("info string ended iterative search early based on time prediction");
                     break;
                 }
             }
             self.nodes = 0;
             let new_best_move = self.best_move(position, current_depth);
             if self.stop_calculating.load(Ordering::Relaxed) {
-                pl!("info string ended iterative search");
+                #[cfg(feature = "transposition_table")]
+                TranspositionTable::reset();
+
+                println!("info string ended iterative search and reset transposition table");
                 break;
             }
 
             best_scoring_move = new_best_move;
+            let found_mate = best_scoring_move.score.abs() > CHECKMATE - MAX_PLY;
 
-            pl!(format!(
-                "info depth {} score cp {} nodes {} time {} pv {}",
+            println!(
+                "info depth {} score {} nodes {} time {} pv {}",
                 current_depth,
-                best_scoring_move.score,
+                Self::score_or_mate_string(best_scoring_move.score, found_mate),
                 self.nodes,
                 self.timer.get_time_passed_millis(),
                 self.get_pv(position, current_depth, best_scoring_move.bit_move),
-            ));
+            );
+
+            if found_mate {
+                println!("info string ended iterative search because mating line was found");
+                break;
+            }
         }
-        pl!(format!("bestmove {}", best_scoring_move.bit_move.to_uci_string()));
+        println!("bestmove {}", best_scoring_move.bit_move.to_uci_string());
+    }
+
+    fn score_or_mate_string(score: i16, found_mate: bool) -> String {
+        if found_mate {
+            format!("mate {}", ((CHECKMATE - score.abs()) as f32 / 2.0).ceil() as i16 * score.signum())
+        } else {
+            format!("cp {score}")
+        }
     }
 
     #[inline(always)]
@@ -376,6 +369,7 @@ impl Default for Search {
             stop_time: None,
             stop_calculating: Arc::new(AtomicBool::new(false)),
             nodes: 0,
+            zobrist_key_history: Vec::new(),
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::{bit_twiddles, square::Square};
 use core::fmt;
-use std::{mem::transmute, ops::*};
+use std::{mem::{self, transmute}, ops::*};
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Bitboard(pub u64);
@@ -98,7 +98,7 @@ impl Bitboard {
     pub const ALL_STARTING_PIECES: Bitboard =           Bitboard(0xFFFF00000000FFFF);
     
     pub const EDGES: Bitboard =                         Bitboard(0xFF818181818181FF);
-    pub const EMPTY: Bitboard =                         Bitboard(0x0000000000000000);
+    pub const EMPTY: Bitboard =                         unsafe { mem::zeroed() };
 
     pub const W_KING_SIDE_MASK: Bitboard =              Bitboard(0x6000000000000000);
     pub const W_QUEEN_SIDE_MASK: Bitboard =             Bitboard(0x0E00000000000000);

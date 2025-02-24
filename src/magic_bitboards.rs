@@ -1,6 +1,7 @@
 use crate::{bitboard::Bitboard, move_masks::{self, MoveMasks}, rng::RandomNumberGenerator, square::Square};
 
 const MAX_SLIDER_MOVE_PERMUTATIONS: usize = 4096;
+const NUM_CANDIDATES: usize = 10_000_000;
 
 #[derive(Default)]
 struct MagicBitboardGenerator {
@@ -28,7 +29,7 @@ impl MagicBitboardGenerator {
             }
         }
 
-        for _ in 0..10000000 {
+        for _ in 0..NUM_CANDIDATES {
             let magic_bitboard_candidate = self.generate_magic_bitboard_candidate();
             
             // Skip inappropriate magic bitboards
