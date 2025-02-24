@@ -38,7 +38,6 @@ pub mod uci;
 pub mod fen;
 pub mod zobrist;
 pub mod file;
-pub mod macros;
 pub mod magic_bitboards;
 pub mod move_masks;
 pub mod move_list;

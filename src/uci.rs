@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use crate::{bit_move::BitMove, color::Color, eval::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, pl, position::Position, search::Search, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, color::Color, eval::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
@@ -30,7 +30,7 @@ impl Uci {
             let mut lines = io::stdin().lock().lines();
             while let Some(Ok(line)) = lines.next() {
                 match line.as_str() {
-                    "stop" => stop_calculating.store(true, Ordering::Relaxed),
+                    "stop" | "s" => stop_calculating.store(true, Ordering::Relaxed),
                     "quit" | "exit" | "q" | "e" => exit(0),
                     _ => if uci_command_tx.send(line).is_err() {
                         break;
@@ -47,9 +47,9 @@ impl Uci {
     }
 
     fn print_uci_info() {
-        pl!("id name Sisyphus32");
-        pl!("id author Juules32");
-        pl!("uciok");
+        println!("id name Sisyphus32");
+        println!("id author Juules32");
+        println!("uciok");
     }
     
     fn parse_line(&mut self, line: String) -> Result<(), UciParseError> {
@@ -65,15 +65,15 @@ impl Uci {
                         Ok(())
                     },
                     "eval" => {
-                        pl!(EvalPosition::eval(&self.position).score);
+                        println!("{}", EvalPosition::eval(&self.position).score);
                         Ok(())
                     },
                     "isready" => {
-                        pl!("readyok");
+                        println!("readyok");
                         Ok(())
                     },
-                    "d" => {
-                        pl!(self.position);
+                    "d" | "display" => {
+                        println!("{}", self.position);
                         Ok(())
                     },
                     "bench" | "benchlong" => {
@@ -165,11 +165,10 @@ impl Uci {
 
         if let Some(moves_index) = moves_index_option {
             for move_string in line[moves_index + 5..].split_whitespace() {
-                let pseudo_legal_move = self.parse_move_string(move_string)?;
-                self.position.make_move(pseudo_legal_move);
+                let bit_move = self.parse_move_string(move_string)?;
+                self.position.make_move(bit_move);
             }
         }
-
         Ok(())
     }
     
@@ -202,6 +201,24 @@ impl Uci {
                 None => Err(UciParseError("Didn't find depth string!")),
             }
         } else {
+            if let Some(move_time_index) = words.iter().position(|&word| {
+                word == "movetime"
+            }) {
+                match words.get(move_time_index + 1) {
+                    Some(time_string) => {
+                        match time_string.parse::<u128>() {
+                            Ok(move_time) => {
+                                self.search.go(&self.position, 255, Some(move_time));
+                                return Ok(());
+                            },
+                            Err(_) => return Err(UciParseError("Couldn't parse time string!")),
+                        }
+                    },
+                    None => return Err(UciParseError("Didn't find time string!")),
+                }
+            }
+
+
             let mut total_time = None;
             if let Some(time_index) = words.iter().position(|&word| {
                 word == match self.position.side {

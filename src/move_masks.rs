@@ -1,3 +1,5 @@
+use std::mem;
+
 use ctor::ctor;
 
 use crate::{bitboard::Bitboard, color::Color, rank::Rank, square::Square, file::File};
@@ -5,14 +7,14 @@ use crate::{bitboard::Bitboard, color::Color, rank::Rank, square::Square, file::
 const NUM_ROOK_MOVE_PERMUTATIONS: usize = 4096;
 const NUM_BISHOP_MOVE_PERMUTATIONS: usize = 512;
 
-pub static mut PAWN_QUIET_MASKS: [[Bitboard; 64]; 2] = [[Bitboard::EMPTY; 64]; 2];
-pub static mut PAWN_CAPTURE_MASKS: [[Bitboard; 64]; 2] = [[Bitboard::EMPTY; 64]; 2];
-pub static mut KNIGHT_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-pub static mut KING_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-pub static mut BISHOP_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-pub static mut ROOK_MASKS: [Bitboard; 64] = [Bitboard::EMPTY; 64];
-pub static mut ROOK_MOVE_CONFIGURATIONS: [[Bitboard; NUM_ROOK_MOVE_PERMUTATIONS]; 64] = [[Bitboard::EMPTY; NUM_ROOK_MOVE_PERMUTATIONS]; 64];
-pub static mut BISHOP_MOVE_CONFIGURATIONS: [[Bitboard; NUM_BISHOP_MOVE_PERMUTATIONS]; 64] = [[Bitboard::EMPTY; NUM_BISHOP_MOVE_PERMUTATIONS]; 64];
+pub static mut PAWN_QUIET_MASKS: [[Bitboard; 64]; 2] = unsafe { mem::zeroed() };
+pub static mut PAWN_CAPTURE_MASKS: [[Bitboard; 64]; 2] = unsafe { mem::zeroed() };
+pub static mut KNIGHT_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+pub static mut KING_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+pub static mut BISHOP_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+pub static mut ROOK_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+pub static mut ROOK_MOVE_CONFIGURATIONS: [[Bitboard; NUM_ROOK_MOVE_PERMUTATIONS]; 64] = unsafe { mem::zeroed() };
+pub static mut BISHOP_MOVE_CONFIGURATIONS: [[Bitboard; NUM_BISHOP_MOVE_PERMUTATIONS]; 64] = unsafe { mem::zeroed() };
 
 pub static BISHOP_RELEVANT_BITS: [u8; 64] = [
     6, 5, 5, 5, 5, 5, 5, 6,

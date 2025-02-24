@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::{mem, sync::Mutex};
 
 use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
 
@@ -38,8 +38,8 @@ pub struct TTEntry {
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TTNodeType {
     Exact,
-    LowerBound, // β cutoff
-    UpperBound, // α fail
+    LowerBound, // β cutoff aka. Fail-high
+    UpperBound, // α fail aka. Fail-low
 }
 
 #[cfg(feature = "tt_two_tier")]
@@ -83,6 +83,11 @@ impl TranspositionTable {
 
             None
         }
+    }
+
+    #[inline(always)]
+    pub fn reset() {
+        unsafe { TRANSPOSITION_TABLE = mem::zeroed() };
     }
 }
 
