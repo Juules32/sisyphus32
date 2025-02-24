@@ -10,12 +10,13 @@ pub struct Search {
     stop_time: Option<u128>,
     pub stop_calculating: Arc<AtomicBool>,
     nodes: u64,
-    pub zobrist_hash_history: Vec<ZobristKey>,
+    pub zobrist_key_history: Vec<ZobristKey>,
 }
 
 const BLANK: i16 = 0;
 const CHECKMATE: i16 = 10000;
-const DRAW: i16 = 0;
+const DRAW_BY_STALEMATE: i16 = 0;
+const DRAW_BY_REPETITION: i16 = 0;
 const START_ALPHA: i16 = -32001;
 const START_BETA: i16 = 32001;
 const AVERAGE_AMOUNT_OF_MOVES: u128 = 30;
@@ -32,7 +33,7 @@ impl Search {
     #[inline(always)]
     fn minimax_best_move(&mut self, position: &Position, depth: u16) -> ScoringMove {
         if depth == 0 {
-            return EvalPosition::eval_with_history(position, &self.zobrist_hash_history);
+            return EvalPosition::eval(position);
         }
 
         self.nodes += 1;
@@ -54,7 +55,7 @@ impl Search {
                 if position.in_check(position.side) {
                     ScoringMove::blank(-CHECKMATE)
                 } else {
-                    ScoringMove::blank(DRAW)
+                    ScoringMove::blank(DRAW_BY_STALEMATE)
                 }
             })
     }
@@ -65,7 +66,7 @@ impl Search {
             return ScoringMove::blank(BLANK);
         }
         
-        let evaluation = EvalPosition::eval_with_history(position, &self.zobrist_hash_history);
+        let evaluation = EvalPosition::eval(position);
 
         let mut best_move = ScoringMove::blank(alpha);
 
@@ -102,7 +103,7 @@ impl Search {
         
         if depth == 0 {
             #[cfg(not(feature = "quiescence"))]
-            return EvalPosition::eval_with_history(position, &self.zobrist_hash_history);
+            return EvalPosition::eval(position);
             
             #[cfg(feature = "quiescence")]
             return self.quiescence(position, alpha, beta);
@@ -134,9 +135,8 @@ impl Search {
 
         let in_check = position.in_check(position.side);
 
-        // NOTE: Checks adding depth doesn't work together with the tt AND draw by repetition checks
-        // #[cfg(feature = "checks_add_depth")]
-        // if in_check { depth += 1; }
+        #[cfg(feature = "checks_add_depth")]
+        if in_check { depth += 1; }
 
         let mut moves = MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position);
 
@@ -150,15 +150,18 @@ impl Search {
 
         let mut moves_has_legal_move = false;
         let mut best_move = ScoringMove::blank(alpha);
+        self.zobrist_key_history.push(position.zobrist_key);
         for scoring_move in moves.iter_mut() {
             if let Some(new_position) = position.apply_pseudo_legal_move(scoring_move.bit_move) {
                 let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
-                let is_pp_capture_or_castle = scoring_move.bit_move.is_pp_capture_or_castle(position);
                 moves_has_legal_move = true;
                 
-                if !is_pp_capture_or_castle { self.zobrist_hash_history.push(position.zobrist_key); }
+                if self.zobrist_key_history.contains(&new_position.zobrist_key) {
+                    self.zobrist_key_history.pop();
+                    return ScoringMove::blank(DRAW_BY_REPETITION);
+                }
+
                 scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, depth - 1).score;
-                if !is_pp_capture_or_castle { self.zobrist_hash_history.pop(); }
                 if scoring_move.score > best_move.score {
                     best_move = *scoring_move;
                     if best_move.score >= beta {
@@ -181,12 +184,13 @@ impl Search {
                 }
             }
         }
+        self.zobrist_key_history.pop();
 
         if !moves_has_legal_move {
             if in_check {
                 best_move = ScoringMove::blank(-CHECKMATE + position.ply as i16);
             } else {
-                best_move = ScoringMove::blank(DRAW);
+                best_move = ScoringMove::blank(DRAW_BY_STALEMATE);
             }
         }
 
@@ -365,7 +369,7 @@ impl Default for Search {
             stop_time: None,
             stop_calculating: Arc::new(AtomicBool::new(false)),
             nodes: 0,
-            zobrist_hash_history: Vec::new(),
+            zobrist_key_history: Vec::new(),
         }
     }
 }

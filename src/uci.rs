@@ -163,16 +163,10 @@ impl Uci {
             return Err(UciParseError("Neither fen nor startpos found!"));
         }
 
-        self.search.zobrist_hash_history.push(self.position.zobrist_key);
         if let Some(moves_index) = moves_index_option {
             for move_string in line[moves_index + 5..].split_whitespace() {
                 let bit_move = self.parse_move_string(move_string)?;
                 self.position.make_move(bit_move);
-                if bit_move.is_pp_capture_or_castle(&self.position) {
-                    self.search.zobrist_hash_history = Vec::new();
-                } else {
-                    self.search.zobrist_hash_history.push(self.position.zobrist_key);
-                }
             }
         }
         Ok(())
