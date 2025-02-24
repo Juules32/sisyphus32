@@ -9,7 +9,6 @@ const FILE_COUNT: usize = 8;
 const PIECE_TYPES: usize = 12;
 const SQUARES: usize = 64;
 const CASTLING_PERMUTATIONS: usize = 16;
-const SIDES: usize = 2;
 
 // Zobrist keys
 static mut PIECE_KEYS: [[u64; SQUARES]; PIECE_TYPES] = unsafe { mem::zeroed() };
