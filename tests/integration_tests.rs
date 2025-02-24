@@ -17,7 +17,6 @@ fn test_fen_parsing_and_move_generation() {
 }
 
 #[test]
-#[cfg(feature = "transposition_table")]
 fn test_zobrist_key_incremental_updates_are_correct() {
     let position = Position::starting_position();
 
