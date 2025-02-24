@@ -14,8 +14,6 @@ pub struct Position {
     pub en_passant_sq: Square,
     pub castling_rights: CastlingRights,
     pub ply: u16,
-
-    #[cfg(feature = "transposition_table")]
     pub zobrist_key: ZobristKey,
 }
 
@@ -78,8 +76,6 @@ impl Position {
             en_passant_sq: Square::None,
             castling_rights: CastlingRights::DEFAULT,
             ply: 0,
-
-            #[cfg(feature = "transposition_table")]
             zobrist_key: ZobristKey(0),
         };
 
@@ -387,8 +383,6 @@ impl Default for Position {
             en_passant_sq: Square::None,
             castling_rights: CastlingRights::NONE,
             ply: 0,
-
-            #[cfg(feature = "transposition_table")]
             zobrist_key: ZobristKey(0),
         }
     }
