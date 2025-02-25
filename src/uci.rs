@@ -218,7 +218,6 @@ impl Uci {
                 }
             }
 
-
             let mut total_time = None;
             if let Some(time_index) = words.iter().position(|&word| {
                 word == match self.position.side {

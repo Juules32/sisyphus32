@@ -5,3 +5,7 @@ TODO*
 TO-DO*
 .VSCodeCounter
 *.gz
+openings/*
+!openings/.gitkeep
+pgn_results/*
+!pgn_results/.gitkeep
