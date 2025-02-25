@@ -42,8 +42,7 @@ impl FenString {
         Self::set_castling_rights(&mut position, castling_rights_str)?;
         Self::set_en_passant_sq(&mut position, en_passant_sq_str)?;
         
-        #[cfg(feature = "transposition_table")]
-        { position.zobrist_key = ZobristKey::generate(&position); }
+        position.zobrist_key = ZobristKey::generate(&position);
         
         Ok(position)
     }

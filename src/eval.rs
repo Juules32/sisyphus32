@@ -184,7 +184,7 @@ impl EvalPosition {
 
     #[inline(always)]
     pub fn eval(position: &Position) -> ScoringMove {
-        #[cfg(feature = "eval_basic")]
+        #[cfg(not(feature = "eval_piece_positions"))]
         return EvalPosition::basic(position);
 
         #[cfg(feature = "eval_piece_positions")]
