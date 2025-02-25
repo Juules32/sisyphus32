@@ -16,7 +16,9 @@ fn main() {
 
         if !status.success() {
             eprintln!("Test failed for feature: {}", feature_name);
-            continue;
+            panic!("Tests failed! Exiting early...");  // Force exit with failure
         }
     }
+
+    println!("All tests passed!");
 }
