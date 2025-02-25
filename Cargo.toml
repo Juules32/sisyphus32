@@ -18,7 +18,9 @@ inherits = "release"
 
 [features]
 
-# Playable versions:
+#  /*-------------------------*\ 
+#        Playable versions
+#  \*-------------------------*/
 random = ["default_base"]
 minimax = ["default_base", "search_minimax"]
 negamax = ["default_base", "search_negamax"]
@@ -34,7 +36,9 @@ eval_tt = ["tt", "eval_transposition_table"]
 tttt = ["eval_tt", "tt_two_tier"]
 default = ["tttt"] # Should only be one feature from the list of playable versions
 
-# Base features (should not be set as default feature):
+#  /*------------------------------------------------------------*\ 
+#        Base features (should not be set as default feature)
+#  \*------------------------------------------------------------*/
 basic =                 ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_on_the_fly"]
 magic_bitboard =        ["board_representation_bitboard", "perft_single_thread", "revert_with_undo_move", "sliders_magic_bitboards"]
 single_thread_bb =      ["board_representation_bitboard", "perft_single_thread", "revert_with_clone", "sliders_magic_bitboards"]
@@ -43,7 +47,9 @@ single_thread_array =   ["board_representation_array", "perft_single_thread", "r
 parallel_array =        ["board_representation_array", "perft_parallelize", "revert_with_clone", "sliders_magic_bitboards"]
 default_base =          ["parallel_array"] # The feature used for all playable versions
 
-# Individual features (should not be set as default feature):
+#  /*------------------------------------------------------------*\ 
+#     Individual features (should not be set as default feature)
+#  \*------------------------------------------------------------*/
 board_representation_bitboard = []
 board_representation_array = []
 
@@ -71,7 +77,7 @@ en_passant_in_quiescence = []
 
 transposition_table = []
 
-small_transposition_table = []
+small_tt = []
 
 eval_transposition_table = []
 

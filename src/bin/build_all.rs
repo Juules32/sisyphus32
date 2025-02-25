@@ -3,21 +3,15 @@
 
 use std::{env, process::Command};
 
+use sisyphus32::versions::VERSIONS;
+
 const PROFILE_NAME: &str = "release-all";
 const PACKAGE_NAME: &str = "sisyphus32";
-
-const BUILDS: &[&str] = &[
-    "basic",
-    "parallel_array",
-    "array_copy_tt_killer",
-    "array_copy_tt_killer_butterfly",
-    "default", // Represents the best/newest version of the engine
-];
 
 fn main() {
     env::set_var("RUSTFLAGS", "-Awarnings");
 
-    for feature_name in BUILDS {
+    for feature_name in VERSIONS {
         // Build feature binary
         let status = Command::new("cargo")
             .args(["build", &format!("--profile={PROFILE_NAME}"), "--no-default-features", "--features", feature_name, "--bin", PACKAGE_NAME])

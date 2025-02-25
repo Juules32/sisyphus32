@@ -2,10 +2,10 @@ use std::{mem, sync::Mutex};
 
 use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
 
-#[cfg(all(feature = "transposition_table", not(feature = "small_transposition_table")))]
+#[cfg(all(feature = "transposition_table", not(feature = "small_tt")))]
 const TT_SIZE: usize = 100_000;
 
-#[cfg(any(feature = "small_transposition_table", not(feature = "transposition_table")))]
+#[cfg(any(feature = "small_tt", not(feature = "transposition_table")))]
 const TT_SIZE: usize = 1_000;
 
 #[cfg(feature = "tt_two_tier")]

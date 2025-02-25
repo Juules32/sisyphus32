@@ -46,3 +46,4 @@ pub mod killer_moves;
 pub mod butterfly_heuristic;
 pub mod rng;
 pub mod move_generation;
+pub mod versions;
