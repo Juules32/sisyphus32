@@ -79,8 +79,7 @@ impl Position {
             zobrist_key: ZobristKey(0),
         };
 
-        #[cfg(feature = "transposition_table")]
-        { position.zobrist_key = ZobristKey::generate(&position); }
+        position.zobrist_key = ZobristKey::generate(&position);
 
         position
     }
@@ -92,8 +91,7 @@ impl Position {
         #[cfg(feature = "board_representation_array")]
         { self.pps[sq] = piece; }
         
-        #[cfg(feature = "transposition_table")]
-        { self.zobrist_key.mod_piece(piece, sq); }
+        self.zobrist_key.mod_piece(piece, sq);
     }
 
     #[inline(always)]
@@ -103,12 +101,10 @@ impl Position {
         #[cfg(feature = "board_representation_array")]
         { self.pps[sq] = PieceType::None; }
 
-        #[cfg(feature = "transposition_table")]
-        { self.zobrist_key.mod_piece(piece, sq); }
+        self.zobrist_key.mod_piece(piece, sq);
     }
 
     #[inline(always)]
-    #[cfg(feature = "transposition_table")]
     pub fn zobrist_mods(&mut self) {
         self.zobrist_key.mod_side(self.side);
         self.zobrist_key.mod_castling(self.castling_rights);
@@ -135,7 +131,6 @@ impl Position {
         debug_assert!(capture == PieceType::None || self.bbs[capture].is_set_sq(target));
 
         // Modify the zobrist hash before making the move
-        #[cfg(feature = "transposition_table")]
         self.zobrist_mods();
 
         // Removes captured piece
@@ -221,11 +216,8 @@ impl Position {
         self.side.switch();
 
         // Modify the zobrist hash after making the move
-        #[cfg(feature = "transposition_table")]
-        {
-            self.zobrist_mods();
-            debug_assert_eq!(self.zobrist_key, ZobristKey::generate(self), "{}", self);
-        }
+        self.zobrist_mods();
+        debug_assert_eq!(self.zobrist_key, ZobristKey::generate(self), "{}", self);
     }
 
     #[inline]

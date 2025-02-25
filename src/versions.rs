@@ -1,0 +1,16 @@
+pub const VERSIONS: &[&str] = &[
+    "random",
+    "minimax",
+    "negamax",
+    "piece_positions",
+    "sorted",
+    "quiescence_eval",
+    "quiescence_en_passant",
+    "checks_increment_depth",
+    "killers",
+    "butterfly",
+    "tt",
+    "eval_tt",
+    "tttt",
+    "default",
+];
