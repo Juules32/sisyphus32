@@ -1,6 +1,6 @@
 // Recommended usage: `cargo run --bin samply_profile <samply_binary_name>`
 // NOTE: This has only been tested for windows
-// NOTE: This requires samply to be installed
+// NOTE: This requires samply to be installed (https://crates.io/crates/samply)
 
 use std::{env, process::{exit, Command}};
 
@@ -29,7 +29,7 @@ fn main() {
     let status = Command::new("samply")
         .args(["record", &format!("target/{PROFILE_NAME}/{samply_binary_name}.exe")])
         .status()
-        .expect("Failed to execute cargo build");
+        .expect("Failed to execute samply record");
 
     if !status.success() {
         eprintln!("Samply profile failed for binary: {}", samply_binary_name);

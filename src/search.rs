@@ -220,9 +220,9 @@ impl Search {
 
     #[inline(always)]
     fn best_move(&mut self, position: &Position, depth: u16) -> ScoringMove {
-        #[cfg(feature = "search_random")]
+        #[cfg(all(not(feature = "search_minimax"), not(feature = "search_negamax")))]
         return self.random_best_move(position, depth);
-        
+
         #[cfg(feature = "search_minimax")]
         return self.minimax_best_move(position, depth);
 

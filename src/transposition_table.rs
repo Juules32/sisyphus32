@@ -11,7 +11,7 @@ const TT_SIZE: usize = 1_000;
 #[cfg(feature = "tt_two_tier")]
 static mut TRANSPOSITION_TABLE: [Mutex<TTSlot>; TT_SIZE] = [const { Mutex::new(TTSlot { main_entry: None, secondary_entry: None }) }; TT_SIZE];
 
-#[cfg(feature = "tt_always_replace")]
+#[cfg(not(feature = "tt_two_tier"))]
 static mut TRANSPOSITION_TABLE: [Mutex<TTSlot>; TT_SIZE] = [const { Mutex::new(TTSlot { entry: None }) }; TT_SIZE];
 
 pub struct TranspositionTable;
@@ -22,7 +22,7 @@ struct TTSlot {
     secondary_entry: Option<TTEntry>,
 }
 
-#[cfg(feature = "tt_always_replace")]
+#[cfg(not(feature = "tt_two_tier"))]
 struct TTSlot {
     entry: Option<TTEntry>,
 }
@@ -40,6 +40,13 @@ pub enum TTNodeType {
     Exact,
     LowerBound, // β cutoff aka. Fail-high
     UpperBound, // α fail aka. Fail-low
+}
+
+impl TranspositionTable {
+    #[inline(always)]
+    pub fn reset() {
+        unsafe { TRANSPOSITION_TABLE = mem::zeroed() };
+    }
 }
 
 #[cfg(feature = "tt_two_tier")]
@@ -84,14 +91,9 @@ impl TranspositionTable {
             None
         }
     }
-
-    #[inline(always)]
-    pub fn reset() {
-        unsafe { TRANSPOSITION_TABLE = mem::zeroed() };
-    }
 }
 
-#[cfg(feature = "tt_always_replace")]
+#[cfg(not(feature = "tt_two_tier"))]
 impl TranspositionTable {
     // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]

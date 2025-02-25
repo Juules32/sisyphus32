@@ -21,4 +21,4 @@ jobs:
         cargo test --release --no-default-features --features "parallel_bb, small_transposition_table"
         cargo test --release --no-default-features --features "single_thread_array, small_transposition_table"
         cargo test --release --no-default-features --features "parallel_array, small_transposition_table"
-        cargo test --release --no-default-features --features "array_copy_tt, small_transposition_table"
+        cargo test --release --no-default-features --features "tt, small_transposition_table"
