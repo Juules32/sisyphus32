@@ -13,6 +13,9 @@ ctor = "0.3.6"
 inherits = "release"
 debug = true
 
+[profile.release-all]
+inherits = "release"
+
 [features]
 default = ["array_copy_tt_killer_butterfly"]
 

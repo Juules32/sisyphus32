@@ -30,8 +30,8 @@ impl Uci {
             let mut lines = io::stdin().lock().lines();
             while let Some(Ok(line)) = lines.next() {
                 match line.as_str() {
-                    "stop" | "s" => stop_calculating.store(true, Ordering::Relaxed),
                     "quit" | "exit" | "q" | "e" => exit(0),
+                    "stop" | "s" => stop_calculating.store(true, Ordering::Relaxed),
                     _ => if uci_command_tx.send(line).is_err() {
                         break;
                     },
@@ -57,33 +57,33 @@ impl Uci {
         match words.next() {
             Some(keyword) => {
                 match keyword {
-                    "go" => self.parse_go(&line),
-                    "position" => self.parse_position(&line),
-                    "ucinewgame" => self.parse_position("position startpos"),
                     "uci" => {
                         Self::print_uci_info();
                         Ok(())
                     },
-                    "eval" => {
-                        println!("{}", EvalPosition::eval(&self.position).score);
-                        Ok(())
-                    },
+                    "ucinewgame" => self.parse_position("position startpos"),
                     "isready" => {
                         println!("readyok");
                         Ok(())
                     },
-                    "d" | "display" => {
+                    "position" => self.parse_position(&line),
+                    "go" => self.parse_go(&line),
+                    "eval" => {
+                        println!("{}", EvalPosition::eval(&self.position).score);
+                        Ok(())
+                    },
+                    "display" | "d" => {
                         println!("{}", self.position);
                         Ok(())
                     },
-                    "bench" | "benchlong" => {
-                        Perft::long_perft_tests();
-                        Ok(())
-                    },
-                    "benchmedium" => {
+                    "bench" | "benchmedium" => {
                         Perft::medium_perft_tests();
                         Ok(())
                     }
+                    "benchlong" => {
+                        Perft::long_perft_tests();
+                        Ok(())
+                    },
                     "benchshort" => {
                         Perft::short_perft_tests();
                         Ok(())
