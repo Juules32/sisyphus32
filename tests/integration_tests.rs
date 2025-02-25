@@ -26,8 +26,3 @@ fn test_zobrist_key_incremental_updates_are_correct() {
         assert_eq!(position_copy.zobrist_key, ZobristKey::generate(&position_copy), "{}", position_copy);
     }
 }
-
-#[test]
-fn bogus_test() {
-    assert!(false);
-}
