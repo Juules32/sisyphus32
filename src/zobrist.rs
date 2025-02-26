@@ -121,7 +121,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "board_representation_array")]
+    #[cfg(feature = "unit_bb_array")]
     fn test_zobrist_hash_different_positions() {
         let position1 = Position::starting_position();
         let mut position2 = Position::starting_position();

@@ -20,13 +20,13 @@ pub struct Perft { }
 impl Perft {
     #[inline(always)]
     pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftResult {
-        #[cfg(all(feature = "perft_single_thread", feature = "revert_with_undo_move"))]
+        #[cfg(all(not(feature = "unit_parallel_perft"), feature = "unit_revert_undo"))]
         return Self::perft_test_single_thread_undo_move(position, depth, print_result);
 
-        #[cfg(all(feature = "perft_single_thread", feature = "revert_with_clone"))]
+        #[cfg(all(not(feature = "unit_parallel_perft"), feature = "unit_revert_clone"))]
         return Self::perft_test_single_thread_clone(position, depth, print_result);
 
-        #[cfg(feature = "perft_parallelize")]
+        #[cfg(feature = "unit_parallel_perft")]
         return Self::perft_test_parallelize(position, depth, print_result);
     }
 
@@ -40,7 +40,7 @@ impl Perft {
 
         let mut position_copy = position.clone();
 
-        #[cfg(feature = "revert_with_undo_move")]
+        #[cfg(feature = "unit_revert_undo")]
         let old_castling_rights = position.castling_rights;
         
         for bit_move in MoveGeneration::generate_moves::<BitMove, PseudoLegal>(position) {
@@ -56,7 +56,7 @@ impl Perft {
                 current_nodes = 0;
             }
 
-            #[cfg(feature = "revert_with_undo_move")]
+            #[cfg(feature = "unit_revert_undo")]
             position_copy.undo_move(bit_move, old_castling_rights);
         }
 
@@ -177,7 +177,7 @@ impl Perft {
             let mut nodes = 0;
             let mut position_copy = position.clone();
 
-            #[cfg(feature = "revert_with_undo_move")]
+            #[cfg(feature = "unit_revert_undo")]
             let old_castling_rights = position.castling_rights;
             
             for bit_move in MoveGeneration::generate_moves::<BitMove, PseudoLegal>(position) {
@@ -186,7 +186,7 @@ impl Perft {
                     nodes += Self::perft_driver_single_thread_undo_move(&position_copy, depth - 1);
                 }
 
-                #[cfg(feature = "revert_with_undo_move")]
+                #[cfg(feature = "unit_revert_undo")]
                 position_copy.undo_move(bit_move, old_castling_rights);
             }
             nodes

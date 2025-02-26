@@ -35,40 +35,40 @@ impl MoveGeneration {
                 while capture_mask.is_not_empty() {
                     let target = capture_mask.pop_lsb();
 
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     let target_piece = position.get_piece(target);
 
                     if source_rank == pawn_promotion_rank {
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoN));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::PromoN));
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoB));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::PromoB));
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoR));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::PromoR));
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoQ));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::PromoQ));
                     } else {
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, MoveFlag::None));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
                     }
                 }
@@ -82,41 +82,41 @@ impl MoveGeneration {
                         // Making sure both squares in front of the pawn are empty
                         if (MoveMasks::get_pawn_quiet_mask(side, source) & position.ao).is_empty() {
                             
-                            #[cfg(feature = "board_representation_bitboard")]
+                            #[cfg(feature = "unit_bb")]
                             Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, PieceType::None, double_pawn_flag));
 
-                            #[cfg(feature = "board_representation_array")]
+                            #[cfg(feature = "unit_bb_array")]
                                 Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, double_pawn_flag));
                         } 
                     } else if source_rank == pawn_promotion_rank {
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoN));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::PromoN));
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoB));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::PromoB));
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoR));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::PromoR));
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::PromoQ));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::PromoQ));
                     } else {
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, PieceType::None, MoveFlag::None));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
                     }
                 }
@@ -127,10 +127,10 @@ impl MoveGeneration {
                     while en_passant_mask.is_not_empty() {
                         let target = en_passant_mask.pop_lsb();
                         if target == en_passant_sq {
-                            #[cfg(feature = "board_representation_bitboard")]
+                            #[cfg(feature = "unit_bb")]
                             Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, PieceType::None, en_passant_flag));
 
-                            #[cfg(feature = "board_representation_array")]
+                            #[cfg(feature = "unit_bb_array")]
                             Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, en_passant_flag));
                         }
                     }
@@ -150,13 +150,13 @@ impl MoveGeneration {
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     let target_piece = position.get_piece(target);
                     
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, knight, target_piece, MoveFlag::None));
 
-                    #[cfg(feature = "board_representation_array")]
+                    #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
                 }
             }
@@ -192,13 +192,13 @@ impl MoveGeneration {
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
 
-                #[cfg(feature = "board_representation_bitboard")]
+                #[cfg(feature = "unit_bb")]
                 let target_piece = position.get_piece(target);
                 
-                #[cfg(feature = "board_representation_bitboard")]
+                #[cfg(feature = "unit_bb")]
                 Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, king, target_piece, MoveFlag::None));
 
-                #[cfg(feature = "board_representation_array")]
+                #[cfg(feature = "unit_bb_array")]
                 Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
             }
 
@@ -210,10 +210,10 @@ impl MoveGeneration {
                 !position.is_square_attacked(position.side, castling_square_g)
                 {
                     
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, castling_square_g, king, PieceType::None, king_side_castling_flag));
 
-                    #[cfg(feature = "board_representation_array")]
+                    #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, castling_square_g, king_side_castling_flag));
                 }
             }
@@ -226,10 +226,10 @@ impl MoveGeneration {
                 !position.is_square_attacked(position.side, castling_square_c)
                 {
                     
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, castling_square_c, king, PieceType::None, queen_side_castling_flag));
 
-                    #[cfg(feature = "board_representation_array")]
+                    #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, castling_square_c, queen_side_castling_flag));
                 }
             }
@@ -246,13 +246,13 @@ impl MoveGeneration {
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     let target_piece = position.get_piece(target);
                     
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, bishop, target_piece, MoveFlag::None));
 
-                    #[cfg(feature = "board_representation_array")]
+                    #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
                 }
             }
@@ -269,13 +269,13 @@ impl MoveGeneration {
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     let target_piece = position.get_piece(target);
                     
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, rook, target_piece, MoveFlag::None));
 
-                    #[cfg(feature = "board_representation_array")]
+                    #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
                 }
             }
@@ -292,13 +292,13 @@ impl MoveGeneration {
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     let target_piece = position.get_piece(target);
                     
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, queen, target_piece, MoveFlag::None));
 
-                    #[cfg(feature = "board_representation_array")]
+                    #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
                 }
             }
@@ -344,55 +344,55 @@ impl MoveGeneration {
                 while capture_mask.is_not_empty() {
                     let target = capture_mask.pop_lsb();
 
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     let target_piece = position.get_piece(target);
 
                     if source_rank == pawn_promotion_rank {
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoN));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::PromoN));
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoB));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::PromoB));
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoR));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::PromoR));
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, MoveFlag::PromoQ));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::PromoQ));
                     } else {
                         
-                        #[cfg(feature = "board_representation_bitboard")]
+                        #[cfg(feature = "unit_bb")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, MoveFlag::None));
 
-                        #[cfg(feature = "board_representation_array")]
+                        #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
                     }
                 }
 
-                #[cfg(feature = "en_passant_in_quiescence")]
+                #[cfg(feature = "unit_quiescence_en_passant")]
                 // En-passant
                 if en_passant_sq != Square::None && source_rank == en_passant_rank {
                     let mut en_passant_mask = MoveMasks::get_pawn_capture_mask(side, source);
                     while en_passant_mask.is_not_empty() {
                         let target = en_passant_mask.pop_lsb();
                         if target == en_passant_sq {
-                            #[cfg(feature = "board_representation_bitboard")]
+                            #[cfg(feature = "unit_bb")]
                             Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, PieceType::None, en_passant_flag));
 
-                            #[cfg(feature = "board_representation_array")]
+                            #[cfg(feature = "unit_bb_array")]
                             Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, en_passant_flag));
                         }
                     }
@@ -412,13 +412,13 @@ impl MoveGeneration {
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     let target_piece = position.get_piece(target);
                     
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, knight, target_piece, MoveFlag::None));
 
-                    #[cfg(feature = "board_representation_array")]
+                    #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
                 }
             }
@@ -434,13 +434,13 @@ impl MoveGeneration {
             while move_mask.is_not_empty() {
                 let target = move_mask.pop_lsb();
 
-                #[cfg(feature = "board_representation_bitboard")]
+                #[cfg(feature = "unit_bb")]
                 let target_piece = position.get_piece(target);
                 
-                #[cfg(feature = "board_representation_bitboard")]
+                #[cfg(feature = "unit_bb")]
                 Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, king, target_piece, MoveFlag::None));
 
-                #[cfg(feature = "board_representation_array")]
+                #[cfg(feature = "unit_bb_array")]
                 Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
             }
         }
@@ -456,13 +456,13 @@ impl MoveGeneration {
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     let target_piece = position.get_piece(target);
                     
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, bishop, target_piece, MoveFlag::None));
 
-                    #[cfg(feature = "board_representation_array")]
+                    #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
                 }
             }
@@ -479,13 +479,13 @@ impl MoveGeneration {
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     let target_piece = position.get_piece(target);
                     
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, rook, target_piece, MoveFlag::None));
 
-                    #[cfg(feature = "board_representation_array")]
+                    #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
                 }
             }
@@ -502,13 +502,13 @@ impl MoveGeneration {
                 while move_mask.is_not_empty() {
                     let target = move_mask.pop_lsb();
 
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     let target_piece = position.get_piece(target);
                     
-                    #[cfg(feature = "board_representation_bitboard")]
+                    #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, queen, target_piece, MoveFlag::None));
 
-                    #[cfg(feature = "board_representation_array")]
+                    #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, MoveFlag::None));
                 }
             }
