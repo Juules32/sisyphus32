@@ -2,27 +2,27 @@ use std::{mem, sync::Mutex};
 
 use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
 
-#[cfg(all(feature = "transposition_table", not(feature = "small_tt")))]
+#[cfg(all(feature = "unit_tt", not(feature = "unit_small_tt")))]
 const TT_SIZE: usize = 100_000;
 
-#[cfg(any(feature = "small_tt", not(feature = "transposition_table")))]
+#[cfg(any(feature = "unit_small_tt", not(feature = "unit_tt")))]
 const TT_SIZE: usize = 1_000;
 
-#[cfg(feature = "tt_two_tier")]
+#[cfg(feature = "unit_tt_two_tier")]
 static mut TRANSPOSITION_TABLE: [Mutex<TTSlot>; TT_SIZE] = [const { Mutex::new(TTSlot { main_entry: None, secondary_entry: None }) }; TT_SIZE];
 
-#[cfg(not(feature = "tt_two_tier"))]
+#[cfg(not(feature = "unit_tt_two_tier"))]
 static mut TRANSPOSITION_TABLE: [Mutex<TTSlot>; TT_SIZE] = [const { Mutex::new(TTSlot { entry: None }) }; TT_SIZE];
 
 pub struct TranspositionTable;
 
-#[cfg(feature = "tt_two_tier")]
+#[cfg(feature = "unit_tt_two_tier")]
 struct TTSlot {
     main_entry: Option<TTEntry>,
     secondary_entry: Option<TTEntry>,
 }
 
-#[cfg(not(feature = "tt_two_tier"))]
+#[cfg(not(feature = "unit_tt_two_tier"))]
 struct TTSlot {
     entry: Option<TTEntry>,
 }
@@ -49,7 +49,7 @@ impl TranspositionTable {
     }
 }
 
-#[cfg(feature = "tt_two_tier")]
+#[cfg(feature = "unit_tt_two_tier")]
 impl TranspositionTable {
     // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]
@@ -93,7 +93,7 @@ impl TranspositionTable {
     }
 }
 
-#[cfg(not(feature = "tt_two_tier"))]
+#[cfg(not(feature = "unit_tt_two_tier"))]
 impl TranspositionTable {
     // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]

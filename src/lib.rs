@@ -1,24 +1,18 @@
 #![allow(dead_code)]
 
 // NOTE: The following combinations of features are not allowed to be used together:
-#[cfg(all(feature = "perft_parallelize", feature = "perft_single_thread"))]
-compile_error!("feature \"perft_parallelize\" and feature \"perft_single_thread\" cannot be enabled at the same time!");
+#[cfg(all(feature = "unit_bb", feature = "unit_bb_array"))]
+compile_error!("feature \"unit_bb\" and feature \"unit_bb_array\" cannot be enabled at the same time!");
 
-#[cfg(all(feature = "board_representation_bitboard", feature = "board_representation_array"))]
-compile_error!("feature \"board_representation_bitboard\" and feature \"board_representation_array\" cannot be enabled at the same time!");
+#[cfg(all(feature = "unit_revert_clone", feature = "unit_revert_undo"))]
+compile_error!("feature \"unit_revert_clone\" and feature \"unit_revert_undo\" cannot be enabled at the same time!");
 
-#[cfg(all(feature = "revert_with_clone", feature = "revert_with_undo_move"))]
-compile_error!("feature \"revert_with_clone\" and feature \"revert_with_undo_move\" cannot be enabled at the same time!");
-
-#[cfg(all(feature = "sliders_magic_bitboards", feature = "sliders_on_the_fly"))]
-compile_error!("feature \"sliders_magic_bitboards\" and feature \"sliders_on_the_fly\" cannot be enabled at the same time!");
-
-#[cfg(all(feature = "search_minimax", feature = "search_negamax"))]
-compile_error!("feature \"search_minimax\" and feature \"search_negamax\" cannot be enabled at the same time!");
+#[cfg(all(feature = "unit_minimax", feature = "unit_negamax"))]
+compile_error!("feature \"unit_minimax\" and feature \"unit_negamax\" cannot be enabled at the same time!");
 
 // NOTE: The following pairs of features are too unpractical to be used together:
-#[cfg(all(feature = "revert_with_undo_move", feature = "board_representation_array"))]
-compile_error!("feature \"revert_with_undo_move\" and feature \"board_representation_array\" cannot be enabled at the same time!");
+#[cfg(all(feature = "unit_revert_undo", feature = "unit_bb_array"))]
+compile_error!("feature \"unit_revert_undo\" and feature \"unit_bb_array\" cannot be enabled at the same time!");
 
 pub mod bit_move;
 pub mod bitboard;
