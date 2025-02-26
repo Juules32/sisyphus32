@@ -1,4 +1,4 @@
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, color::Color, killer_moves::KillerMoves, piece::PieceType, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
+use crate::{bit_move::BitMove, butterfly_heuristic::ButterflyHeuristic, color::Color, killer_moves::KillerMoves, piece::PieceType, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
 
 const PIECE_SCORES: [i16; 12] = [100, 300, 320, 500, 900, 10000, -100, -300, -320, -500, -900, -10000];
 
@@ -159,8 +159,8 @@ pub struct EvalPosition { }
 
 impl EvalPosition {
     #[inline(always)]
-    pub fn eval(position: &Position) -> ScoringMove {
-        ScoringMove::blank(Square::ALL_SQUARES.iter().fold(0, |mut acc, &sq| {
+    pub fn eval(position: &Position) -> i16 {
+        Square::ALL_SQUARES.iter().fold(0, |mut acc, &sq| {
             match position.get_piece(sq) {
                 PieceType::None => acc,
                 piece => {
@@ -175,7 +175,7 @@ impl EvalPosition {
         }) * match position.side {
             Color::White => 1,
             Color::Black => -1
-        })
+        }
     }
 }
 
