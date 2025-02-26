@@ -78,7 +78,7 @@ impl Search {
 
         let mut moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
 
-        #[cfg(feature = "move_sort")]
+        #[cfg(feature = "unit_sort_moves")]
         moves.sort_by_score();
 
         for scoring_capture in moves.iter_mut() {
@@ -102,10 +102,10 @@ impl Search {
         self.nodes += 1;
         
         if depth == 0 {
-            #[cfg(not(feature = "quiescence"))]
+            #[cfg(not(feature = "unit_quiescence"))]
             return EvalPosition::eval(position);
             
-            #[cfg(feature = "quiescence")]
+            #[cfg(feature = "unit_quiescence")]
             return self.quiescence(position, alpha, beta);
         }
 
@@ -113,7 +113,7 @@ impl Search {
             return ScoringMove::blank(BLANK);
         }
 
-        #[cfg(feature = "transposition_table")]
+        #[cfg(feature = "unit_tt")]
         if let Some(tt_entry) = TranspositionTable::probe(position.zobrist_key) {
             // If the stored depth is at least as deep, use it
             if tt_entry.depth >= depth {
@@ -135,17 +135,17 @@ impl Search {
 
         let in_check = position.in_check(position.side);
 
-        #[cfg(feature = "checks_add_depth")]
+        #[cfg(feature = "unit_checks_add_depth")]
         if in_check { depth += 1; }
 
         let mut moves = MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position);
 
-        #[cfg(feature = "move_sort")]
+        #[cfg(feature = "unit_sort_moves")]
         moves.sort_by_score();
 
-        #[cfg(feature = "butterfly_heuristic")]
+        #[cfg(feature = "unit_butterfly_heuristic")]
         let mut quiets_searched: [BitMove; 64] = [BitMove::EMPTY; 64];
-        #[cfg(feature = "butterfly_heuristic")]
+        #[cfg(feature = "unit_butterfly_heuristic")]
         let mut quiets_count = 0;
 
         let mut moves_has_legal_move = false;
@@ -166,10 +166,10 @@ impl Search {
                     best_move = *scoring_move;
                     if best_move.score >= beta {
                         if !is_capture_or_promotion {
-                            #[cfg(feature = "killer_moves")]
+                            #[cfg(feature = "unit_killer_heuristic")]
                             KillerMoves::update(best_move.bit_move, new_position.ply);
                             
-                            #[cfg(feature = "butterfly_heuristic")]
+                            #[cfg(feature = "unit_butterfly_heuristic")]
                             ButterflyHeuristic::update(position.side, &quiets_searched[0..quiets_count], best_move.bit_move, depth as i16);
                         }
 
@@ -177,7 +177,7 @@ impl Search {
                     }
                 }
 
-                #[cfg(feature = "butterfly_heuristic")]
+                #[cfg(feature = "unit_butterfly_heuristic")]
                 if scoring_move.bit_move != best_move.bit_move && !is_capture_or_promotion && quiets_count < 64 {
                     quiets_searched[quiets_count] = scoring_move.bit_move;
                     quiets_count += 1;
@@ -194,7 +194,7 @@ impl Search {
             }
         }
 
-        #[cfg(feature = "transposition_table")]
+        #[cfg(feature = "unit_tt")]
         {
             let flag = if best_move.score >= beta {
                 TTNodeType::LowerBound
@@ -220,13 +220,13 @@ impl Search {
 
     #[inline(always)]
     fn best_move(&mut self, position: &Position, depth: u16) -> ScoringMove {
-        #[cfg(all(not(feature = "search_minimax"), not(feature = "search_negamax")))]
+        #[cfg(all(not(feature = "unit_minimax"), not(feature = "unit_negamax")))]
         return self.random_best_move(position, depth);
 
-        #[cfg(feature = "search_minimax")]
+        #[cfg(feature = "unit_minimax")]
         return self.minimax_best_move(position, depth);
 
-        #[cfg(feature = "search_negamax")]
+        #[cfg(feature = "unit_negamax")]
         return self.negamax_best_move(position, START_ALPHA, START_BETA, depth);
     }
 
@@ -258,7 +258,7 @@ impl Search {
             self.nodes = 0;
             let new_best_move = self.best_move(position, current_depth);
             if self.stop_calculating.load(Ordering::Relaxed) {
-                #[cfg(feature = "transposition_table")]
+                #[cfg(feature = "unit_tt")]
                 TranspositionTable::reset();
 
                 println!("info string ended iterative search and reset transposition table");
@@ -318,10 +318,10 @@ impl Search {
                 });
             }
             
-            #[cfg(not(feature = "iterative_deepening"))]
+            #[cfg(not(feature = "unit_iterative_deepening"))]
             self.go_no_iterative_deepening(position, depth);
 
-            #[cfg(feature = "iterative_deepening")]
+            #[cfg(feature = "unit_iterative_deepening")]
             self.go_iterative_deepening(position, depth);
 
             self.stop_calculating.store(true, Ordering::Relaxed);
@@ -334,17 +334,17 @@ impl Search {
     }
 
     fn get_pv(&self, position: &Position, depth: u16, _best_move: BitMove) -> String {
-        #[cfg(feature = "transposition_table")]
+        #[cfg(feature = "unit_tt")]
         return self.get_pv_from_tt(position, depth);
 
-        #[cfg(not(feature = "transposition_table"))]
+        #[cfg(not(feature = "unit_tt"))]
         return _best_move.to_uci_string()
     }
 
     // NOTE: There is a notable chance the pv will be ended early in case a different position
     // happens to have the same table index. The probability scales inversely with the
     // size of the transposition table.
-    #[cfg(feature = "transposition_table")]
+    #[cfg(feature = "unit_tt")]
     fn get_pv_from_tt(&self, position: &Position, depth: u16) -> String {
         let mut pv_moves = Vec::new();
         let mut position_copy = position.clone();

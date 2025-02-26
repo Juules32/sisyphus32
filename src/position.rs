@@ -3,7 +3,7 @@ use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRigh
 
 #[derive(Clone)]
 pub struct Position {
-    #[cfg(feature = "board_representation_array")]
+    #[cfg(feature = "unit_bb_array")]
     pub pps: [PieceType; 64],
 
     pub bbs: [Bitboard; 12],
@@ -43,7 +43,7 @@ impl Position {
 
     pub fn starting_position() -> Position {
         let mut position = Position {
-            #[cfg(feature = "board_representation_array")]
+            #[cfg(feature = "unit_bb_array")]
             pps: [
                 PieceType::BR, PieceType::BN, PieceType::BB, PieceType::BQ, PieceType::BK, PieceType::BB, PieceType::BN, PieceType::BR,
                 PieceType::BP, PieceType::BP, PieceType::BP, PieceType::BP, PieceType::BP, PieceType::BP, PieceType::BP, PieceType::BP,
@@ -88,7 +88,7 @@ impl Position {
     pub fn set_piece(&mut self, piece: PieceType, sq: Square) {
         self.bbs[piece].set_sq(sq);
 
-        #[cfg(feature = "board_representation_array")]
+        #[cfg(feature = "unit_bb_array")]
         { self.pps[sq] = piece; }
         
         self.zobrist_key.mod_piece(piece, sq);
@@ -98,7 +98,7 @@ impl Position {
     pub fn remove_piece(&mut self, piece: PieceType, sq: Square) {
         self.bbs[piece].pop_sq(sq);
 
-        #[cfg(feature = "board_representation_array")]
+        #[cfg(feature = "unit_bb_array")]
         { self.pps[sq] = PieceType::None; }
 
         self.zobrist_key.mod_piece(piece, sq);
@@ -113,16 +113,16 @@ impl Position {
 
     #[inline]
     pub fn make_move(&mut self, bit_move: BitMove) {
-        #[cfg(feature = "board_representation_bitboard")]
+        #[cfg(feature = "unit_bb")]
         let (source, target, piece, capture, flag) = bit_move.decode();
 
-        #[cfg(feature = "board_representation_array")]
+        #[cfg(feature = "unit_bb_array")]
         let (source, target, flag) = bit_move.decode();
 
-        #[cfg(feature = "board_representation_array")]
+        #[cfg(feature = "unit_bb_array")]
         let piece = self.pps[source];
 
-        #[cfg(feature = "board_representation_array")]
+        #[cfg(feature = "unit_bb_array")]
         let capture = self.pps[target];
 
         debug_assert_eq!(piece.color(), self.side);
@@ -221,7 +221,7 @@ impl Position {
     }
 
     #[inline]
-    #[cfg(feature = "revert_with_undo_move")]
+    #[cfg(feature = "unit_revert_undo")]
     pub fn undo_move(&mut self, bit_move: BitMove, old_castling_rights: CastlingRights) {
         let (source, target, piece, capture, flag) = bit_move.decode();
 
@@ -344,7 +344,7 @@ impl Position {
     }
 
     #[inline(always)]
-    #[cfg(feature = "board_representation_bitboard")]
+    #[cfg(feature = "unit_bb")]
     pub fn get_piece(&self, square: Square) -> PieceType {
         for piece_type in PieceType::ALL_PIECES {
             if self.bbs[piece_type].is_set_sq(square) {
@@ -355,7 +355,7 @@ impl Position {
     }
 
     #[inline(always)]
-    #[cfg(feature = "board_representation_array")]
+    #[cfg(feature = "unit_bb_array")]
     pub fn get_piece(&self, square: Square) -> PieceType {
         self.pps[square]
     }
@@ -364,7 +364,7 @@ impl Position {
 impl Default for Position {
     fn default() -> Position {
         Position {
-            #[cfg(feature = "board_representation_array")]
+            #[cfg(feature = "unit_bb_array")]
             pps: [PieceType::None; 64],
 
             bbs: [Bitboard::EMPTY; 12],
@@ -402,7 +402,7 @@ impl fmt::Display for Position {
         }
         s += "\n     a b c d e f g h\n";
 
-        #[cfg(feature = "transposition_table")]
+        #[cfg(feature = "unit_tt")]
         {
             s += &format!("
   Zobrist Key: {:#x}",
