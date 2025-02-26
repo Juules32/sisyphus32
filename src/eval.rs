@@ -205,9 +205,9 @@ impl EvalMove {
 
         #[cfg(feature = "killer_moves")]
         {
-            if KillerMoves::get_primary(position.ply) == bit_move {
+            if KillerMoves::get_primary(position.ply) == Some(bit_move) {
                 score += 100;
-            } else if KillerMoves::get_secondary(position.ply) == bit_move {
+            } else if KillerMoves::get_secondary(position.ply) == Some(bit_move) {
                 score += 50;
             }
         }
