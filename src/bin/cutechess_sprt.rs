@@ -35,8 +35,8 @@ fn main() {
 
     let status = Command::new("cutechess-cli")
         .args([
-            "-engine", &format!("name={new_version}"), &format!("cmd=./{new_version}.exe"),
-            "-engine", &format!("name={old_version}"), &format!("cmd=./{old_version}.exe"),
+            "-engine", &format!("name=sisyphus32_{new_version}"), &format!("cmd=./sisyphus32_{new_version}.exe"),
+            "-engine", &format!("name=sisyphus32_{old_version}"), &format!("cmd=./sisyphus32_{old_version}.exe"),
             "-each", "tc=1+0.1", &format!("dir=./target/{PROFILE_NAME}/"), "proto=uci",
             "-openings", &format!("file=openings/{OPENINGS_NAME}.pgn"), "order=random", &format!("plies={OPENING_PLIES}"),
             "-games", GAMES, "-rounds", ROUNDS, "-repeat", REPEAT, "-maxmoves", MAX_MOVES, "-concurrency", CONCURRENCY, "-ratinginterval", RATING_INTERVAL,
