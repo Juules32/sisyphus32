@@ -69,7 +69,7 @@ impl Uci {
                     "position" => self.parse_position(&line),
                     "go" => self.parse_go(&line),
                     "eval" => {
-                        println!("{}", EvalPosition::eval(&self.position).score);
+                        println!("{}", EvalPosition::eval(&self.position));
                         Ok(())
                     },
                     "display" | "d" => {

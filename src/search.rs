@@ -1,9 +1,9 @@
 extern crate rand;
 
 use rand::Rng;
-use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
+use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, square::Square, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
 pub struct Search {
     timer: Timer,
@@ -22,6 +22,7 @@ const START_BETA: i16 = 32001;
 const AVERAGE_AMOUNT_OF_MOVES: u128 = 30;
 const AVERAGE_BRANCHING_FACTOR: u128 = 5;
 const MAX_PLY: i16 = 242;
+const NULL_MOVE_DEPTH_REDUCTION: u16 = 3;
 
 impl Search {
     #[inline(always)]
@@ -33,7 +34,7 @@ impl Search {
     #[inline(always)]
     fn minimax_best_move(&mut self, position: &Position, depth: u16) -> ScoringMove {
         if depth == 0 {
-            return EvalPosition::eval(position);
+            return ScoringMove::blank(EvalPosition::eval(position));
         }
 
         self.nodes += 1;
@@ -70,10 +71,10 @@ impl Search {
 
         let mut best_move = ScoringMove::blank(alpha);
 
-        if evaluation.score >= beta {
+        if evaluation >= beta {
             return ScoringMove::blank(beta);
-        } else if evaluation.score > alpha {
-            best_move.score = evaluation.score;
+        } else if evaluation > alpha {
+            best_move.score = evaluation;
         }
 
         let mut moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
@@ -103,7 +104,7 @@ impl Search {
         
         if depth == 0 {
             #[cfg(not(feature = "unit_quiescence"))]
-            return EvalPosition::eval(position);
+            return ScoringMove::blank(EvalPosition::eval(position));
             
             #[cfg(feature = "unit_quiescence")]
             return self.quiescence(position, alpha, beta);
@@ -138,6 +139,17 @@ impl Search {
         #[cfg(feature = "unit_checks_add_depth")]
         if in_check { depth += 1; }
 
+        #[cfg(feature = "unit_null_move_pruning")]
+        if depth > NULL_MOVE_DEPTH_REDUCTION && !in_check && position.ply > 0 {
+            let mut position_copy = position.clone();
+            position_copy.side.switch();
+            position_copy.en_passant_sq = Square::None;
+            let null_move_score = -self.negamax_best_move(&position_copy, -beta, -beta + 1, depth - NULL_MOVE_DEPTH_REDUCTION).score;
+            if null_move_score >= beta {
+                return ScoringMove::blank(beta);
+            }
+        }
+
         let mut moves = MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position);
 
         #[cfg(feature = "unit_sort_moves")]
@@ -151,30 +163,51 @@ impl Search {
         let mut moves_has_legal_move = false;
         let mut best_move = ScoringMove::blank(alpha);
         self.zobrist_key_history.push(position.zobrist_key);
+        let original_depth = depth;
+        let mut move_index = 0;
         for scoring_move in moves.iter_mut() {
             if let Some(new_position) = position.apply_pseudo_legal_move(scoring_move.bit_move) {
-                let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
-                moves_has_legal_move = true;
-                
                 if self.zobrist_key_history.contains(&new_position.zobrist_key) {
                     self.zobrist_key_history.pop();
                     return ScoringMove::blank(DRAW_BY_REPETITION);
                 }
 
+                let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
+                moves_has_legal_move = true;
+
+                #[cfg(feature = "unit_late_move_reductions")]
+                if !is_capture_or_promotion && original_depth >= 3 && move_index >= 3 {
+                    // NOTE: If depth was less than one, the recursive call would underflow depth!
+                    depth = max(1, original_depth - (0.75 * (move_index as f32).ln() * (original_depth as f32).ln()) as u16);
+                }
+
                 scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, depth - 1).score;
                 if scoring_move.score > best_move.score {
-                    best_move = *scoring_move;
-                    if best_move.score >= beta {
-                        if !is_capture_or_promotion {
-                            #[cfg(feature = "unit_killer_heuristic")]
-                            KillerMoves::update(best_move.bit_move, new_position.ply);
-                            
-                            #[cfg(feature = "unit_butterfly_heuristic")]
-                            ButterflyHeuristic::update(position.side, &quiets_searched[0..quiets_count], best_move.bit_move, depth as i16);
-                        }
+                    let mut should_update_best_move = true;
 
-                        break;
+                    #[cfg(feature = "unit_late_move_reductions")]
+                    if depth != original_depth && best_move.score >= beta {
+                        println!("doing full search");
+                        scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, original_depth - 1).score;
+                        if !(scoring_move.score > best_move.score) {
+                            println!("turns out it's not good after all {depth} {original_depth}");
+                            should_update_best_move = false;
+                        }
                     }
+
+                    if should_update_best_move {
+                        best_move = *scoring_move;
+                        if best_move.score >= beta {
+                            if !is_capture_or_promotion {
+                                #[cfg(feature = "unit_killer_heuristic")]
+                                KillerMoves::update(best_move.bit_move, new_position.ply);
+                                
+                                #[cfg(feature = "unit_butterfly_heuristic")]
+                                ButterflyHeuristic::update(position.side, &quiets_searched[0..quiets_count], best_move.bit_move, depth as i16);
+                            }
+                            break;
+                        }
+                    }                    
                 }
 
                 #[cfg(feature = "unit_butterfly_heuristic")]
@@ -182,6 +215,8 @@ impl Search {
                     quiets_searched[quiets_count] = scoring_move.bit_move;
                     quiets_count += 1;
                 }
+
+                move_index += 1;
             }
         }
         self.zobrist_key_history.pop();
@@ -209,7 +244,7 @@ impl Search {
                 TTEntry {
                     zobrist_key: position.zobrist_key,
                     best_move,
-                    depth,
+                    depth: original_depth,
                     flag,
                 },
             );
