@@ -166,7 +166,7 @@ impl EvalPosition {
                 piece => {
                     acc += PIECE_SCORES[piece as usize];
                     
-                    #[cfg(feature = "eval_piece_positions")]
+                    #[cfg(feature = "unit_eval_pps")]
                     { acc += PIECE_POSITION_SCORES[piece as usize][sq]; }
 
                     acc
@@ -190,7 +190,7 @@ impl EvalMove {
             MVV_LVA[position.get_piece(bit_move.source()) as usize][position.get_piece(bit_move.target()) as usize]
         };
 
-        #[cfg(feature = "eval_transposition_table")]
+        #[cfg(feature = "unit_eval_tt")]
         {
             if let Some(entry) = TranspositionTable::probe(position.zobrist_key) {
                 if entry.best_move.bit_move == bit_move {
@@ -203,7 +203,7 @@ impl EvalMove {
             }
         }
 
-        #[cfg(feature = "killer_moves")]
+        #[cfg(feature = "unit_killer_heuristic")]
         {
             if KillerMoves::get_primary(position.ply) == Some(bit_move) {
                 score += 100;
@@ -212,7 +212,7 @@ impl EvalMove {
             }
         }
 
-        #[cfg(feature = "butterfly_heuristic")]
+        #[cfg(feature = "unit_butterfly_heuristic")]
         {
             score += ButterflyHeuristic::get(position.side, bit_move.source(), bit_move.target());
         }
