@@ -1,5 +1,5 @@
 use core::fmt;
-use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, fen::FenString, move_flag::MoveFlag, move_masks::MoveMasks, piece::PieceType, square::Square, zobrist::ZobristKey};
+use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, fen::FenString, file::File, move_flag::MoveFlag, move_masks::MoveMasks, piece::PieceType, square::Square, zobrist::ZobristKey};
 
 #[derive(Clone)]
 pub struct Position {
@@ -383,42 +383,33 @@ impl Default for Position {
 impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = String::from("\n");
-        for rank in 0..8_u8 {
-            s += &format!("  {}  ", 8 - rank);
-            for file in 0..8_u8 {
-                let mut is_occupied = false;
-                let sq = Square::from(rank * 8 + file);
-                for piece_type in PieceType::ALL_PIECES {
-                    if Bitboard::is_set_sq(&self.bbs[piece_type], sq) {
-                        s += &format!("{} ", piece_type);
-                        is_occupied = true;
-                    }
-                }
-                if !is_occupied {
-                    s += ". ";
-                }
+        for sq in Square::ALL_SQUARES {
+            if sq.file() == File::FA {
+                s += &format!("  {}  ", sq.rank());
             }
-            s += "\n";
+            
+            match self.get_piece(sq) {
+                PieceType::None => s += ". ",
+                piece_type => s += &format!("{} ", piece_type),
+            }
+
+            if sq.file() == File::FH {
+                s += "\n";
+            }
         }
         s += "\n     a b c d e f g h\n";
-
-        #[cfg(feature = "unit_tt")]
-        {
-            s += &format!("
-  Zobrist Key: {:#x}",
-                self.zobrist_key.0
-            );
-        }
 
         s += &format!("
           FEN: {}
          Side: {}
    En-passant: {}
-     Castling: {}\n",
+     Castling: {}
+  Zobrist Key: {:#x}\n",
             FenString::from(self),
             self.side,
             self.en_passant_sq,
             self.castling_rights,
+            self.zobrist_key.0,
         );
         
         f.pad(&s)
