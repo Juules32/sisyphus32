@@ -101,6 +101,11 @@ impl Search {
     #[inline(always)]
     fn negamax_best_move(&mut self, position: &Position, alpha: i16, beta: i16, mut depth: u16) -> ScoringMove {
         self.nodes += 1;
+
+        if self.zobrist_key_history.contains(&position.zobrist_key) {
+            self.zobrist_key_history.pop();
+            return ScoringMove::blank(DRAW_BY_REPETITION);
+        }
         
         if depth == 0 {
             #[cfg(not(feature = "unit_quiescence"))]
@@ -169,11 +174,6 @@ impl Search {
         let mut move_index = 0;
         for scoring_move in moves.iter_mut() {
             if let Some(new_position) = position.apply_pseudo_legal_move(scoring_move.bit_move) {
-                if self.zobrist_key_history.contains(&new_position.zobrist_key) {
-                    self.zobrist_key_history.pop();
-                    return ScoringMove::blank(DRAW_BY_REPETITION);
-                }
-
                 let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
                 moves_has_legal_move = true;
 
