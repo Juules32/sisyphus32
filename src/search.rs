@@ -180,6 +180,8 @@ impl Search {
                 #[cfg(feature = "unit_late_move_reductions")]
                 if !is_capture_or_promotion && original_depth >= 3 && move_index >= 3 {
                     // NOTE: If depth was less than one, the recursive call would underflow depth!
+                    // NOTE: Usually, we have to check if the new position is part of the PV, but since
+                    // our TT returns exact scores early, this isn't needed.
                     depth = max(1, original_depth - (0.75 * (move_index as f32).ln() * (original_depth as f32).ln()) as u16);
                 }
 
