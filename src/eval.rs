@@ -1,4 +1,8 @@
-use crate::{bit_move::BitMove, butterfly_heuristic::ButterflyHeuristic, color::Color, killer_moves::KillerMoves, piece::PieceType, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
+use std::mem;
+
+use ctor::ctor;
+
+use crate::{bit_move::BitMove, bitboard::Bitboard, butterfly_heuristic::ButterflyHeuristic, color::Color, file::File, killer_moves::KillerMoves, piece::PieceType, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
 
 const PIECE_SCORES: [i16; 12] = [100, 300, 320, 500, 900, 10000, -100, -300, -320, -500, -900, -10000];
 
@@ -155,9 +159,79 @@ const MVV_LVA: [[i16; 12]; 12] = [
     [100, 200, 300, 400, 500, 600, 100, 200, 300, 400, 500, 600],
 ];
 
+static mut FILE_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+static mut RANK_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+static mut ISOLATED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+static mut WHITE_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+static mut BLACK_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+
 pub struct EvalPosition { }
 
 impl EvalPosition {
+    #[inline(always)]
+    pub unsafe fn init_file_masks() {
+        for square in Square::ALL_SQUARES {
+            FILE_MASKS[square] = Bitboard::FILES[square.file() as usize];
+        }
+    }
+
+    #[inline(always)]
+    pub unsafe fn init_rank_masks() {
+        for square in Square::ALL_SQUARES {
+            RANK_MASKS[square] = Bitboard::RANKS[square.rank() as usize];
+        }
+    }
+
+    #[inline(always)]
+    pub unsafe fn init_isolated_masks() {
+        for square in Square::ALL_SQUARES {
+            if square.file() != File::FA {
+                ISOLATED_MASKS[square] |= Bitboard::FILES[square.file() as usize - 1];
+            }
+
+            if square.file() != File::FH {
+                ISOLATED_MASKS[square] |= Bitboard::FILES[square.file() as usize + 1];
+            }
+        }
+    }
+
+    #[inline(always)]
+    pub unsafe fn init_passed_masks() {
+        for square in Square::ALL_SQUARES {
+            for color in [Color::White, Color::Black] {
+                #[allow(static_mut_refs)]
+                let passed_masks_ref = match color {
+                    Color::White => &mut WHITE_PASSED_MASKS,
+                    Color::Black => &mut BLACK_PASSED_MASKS,
+                };
+                
+                (*passed_masks_ref)[square] |= Bitboard::FILES[square.file() as usize];
+
+                if square.file() != File::FA {
+                    (*passed_masks_ref)[square] |= Bitboard::FILES[square.file() as usize - 1];
+                }
+
+                if square.file() != File::FH {
+                    (*passed_masks_ref)[square] |= Bitboard::FILES[square.file() as usize + 1];
+                }
+
+                // NOTE: The rank slices depend on the rank order in the enum
+                match color {
+                    Color::White => {
+                        for &rank_bb in Bitboard::RANKS[square.rank() as usize..].iter() {
+                            (*passed_masks_ref)[square] &= !rank_bb;
+                        }
+                    },
+                    Color::Black => {
+                        for &rank_bb in Bitboard::RANKS[..=square.rank() as usize].iter() {
+                            (*passed_masks_ref)[square] &= !rank_bb;
+                        }
+                    },
+                }
+            }
+        }
+    }
+
     #[inline(always)]
     pub fn eval(position: &Position) -> i16 {
         Square::ALL_SQUARES.iter().fold(0, |mut acc, &sq| {
@@ -218,4 +292,12 @@ impl EvalMove {
         }
         score
     }
+}
+
+#[ctor]
+pub unsafe fn init_all_masks() {
+    EvalPosition::init_file_masks();
+    EvalPosition::init_rank_masks();
+    EvalPosition::init_isolated_masks();
+    EvalPosition::init_passed_masks();
 }

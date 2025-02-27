@@ -75,6 +75,9 @@ impl Bitboard {
     pub const FILE_F: Bitboard =                        Bitboard(0x2020202020202020);
     pub const FILE_G: Bitboard =                        Bitboard(0x4040404040404040);
     pub const FILE_H: Bitboard =                        Bitboard(0x8080808080808080);
+    pub const FILES: [Bitboard; 8] = [
+        Self::FILE_A, Self::FILE_B, Self::FILE_C, Self::FILE_D, Self::FILE_E, Self::FILE_F, Self::FILE_G, Self::FILE_H, 
+    ];
 
     pub const RANK_8: Bitboard =                        Bitboard(0x00000000000000FF);
     pub const RANK_7: Bitboard =                        Bitboard(0x000000000000FF00);
@@ -84,6 +87,9 @@ impl Bitboard {
     pub const RANK_3: Bitboard =                        Bitboard(0x0000FF0000000000);
     pub const RANK_2: Bitboard =                        Bitboard(0x00FF000000000000);
     pub const RANK_1: Bitboard =                        Bitboard(0xFF00000000000000);
+    pub const RANKS: [Bitboard; 8] = [
+        Self::RANK_8, Self::RANK_7, Self::RANK_6, Self::RANK_5, Self::RANK_4, Self::RANK_3, Self::RANK_2, Self::RANK_1, 
+    ];
 
     pub const NOT_A: Bitboard =                         Bitboard(0xFEFEFEFEFEFEFEFE);
     pub const NOT_AB: Bitboard =                        Bitboard(0xFCFCFCFCFCFCFCFC);
