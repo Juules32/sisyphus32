@@ -88,6 +88,14 @@ impl<T, const N: usize> IndexMut<Square> for [T; N] {
     }
 }
 
+impl From<Bitboard> for Square {
+    #[inline(always)]
+    fn from(bitboard: Bitboard) -> Self {
+        debug_assert_eq!(bitboard.count_bits(), 1);
+        bitboard.get_lsb()
+    }
+}
+
 impl From<u8> for Square {
     #[inline(always)]
     fn from(number: u8) -> Self {

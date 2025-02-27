@@ -169,34 +169,34 @@ pub struct EvalPosition { }
 
 impl EvalPosition {
     #[inline(always)]
-    pub unsafe fn init_file_masks() {
+    unsafe fn init_file_masks() {
         for square in Square::ALL_SQUARES {
-            FILE_MASKS[square] = Bitboard::FILES[square.file() as usize];
+            FILE_MASKS[square] = Bitboard::ALL_FILES[square.file() as usize];
         }
     }
 
     #[inline(always)]
-    pub unsafe fn init_rank_masks() {
+    unsafe fn init_rank_masks() {
         for square in Square::ALL_SQUARES {
-            RANK_MASKS[square] = Bitboard::RANKS[square.rank() as usize];
+            RANK_MASKS[square] = Bitboard::ALL_RANKS[square.rank() as usize];
         }
     }
 
     #[inline(always)]
-    pub unsafe fn init_isolated_masks() {
+    unsafe fn init_isolated_masks() {
         for square in Square::ALL_SQUARES {
             if square.file() != File::FA {
-                ISOLATED_MASKS[square] |= Bitboard::FILES[square.file() as usize - 1];
+                ISOLATED_MASKS[square] |= Bitboard::ALL_FILES[square.file() as usize - 1];
             }
 
             if square.file() != File::FH {
-                ISOLATED_MASKS[square] |= Bitboard::FILES[square.file() as usize + 1];
+                ISOLATED_MASKS[square] |= Bitboard::ALL_FILES[square.file() as usize + 1];
             }
         }
     }
 
     #[inline(always)]
-    pub unsafe fn init_passed_masks() {
+    unsafe fn init_passed_masks() {
         for square in Square::ALL_SQUARES {
             for color in [Color::White, Color::Black] {
                 #[allow(static_mut_refs)]
@@ -205,25 +205,25 @@ impl EvalPosition {
                     Color::Black => &mut BLACK_PASSED_MASKS,
                 };
                 
-                (*passed_masks_ref)[square] |= Bitboard::FILES[square.file() as usize];
+                (*passed_masks_ref)[square] |= Bitboard::ALL_FILES[square.file() as usize];
 
                 if square.file() != File::FA {
-                    (*passed_masks_ref)[square] |= Bitboard::FILES[square.file() as usize - 1];
+                    (*passed_masks_ref)[square] |= Bitboard::ALL_FILES[square.file() as usize - 1];
                 }
 
                 if square.file() != File::FH {
-                    (*passed_masks_ref)[square] |= Bitboard::FILES[square.file() as usize + 1];
+                    (*passed_masks_ref)[square] |= Bitboard::ALL_FILES[square.file() as usize + 1];
                 }
 
                 // NOTE: The rank slices depend on the rank order in the enum
                 match color {
                     Color::White => {
-                        for &rank_bb in Bitboard::RANKS[square.rank() as usize..].iter() {
+                        for &rank_bb in Bitboard::ALL_RANKS[square.rank() as usize..].iter() {
                             (*passed_masks_ref)[square] &= !rank_bb;
                         }
                     },
                     Color::Black => {
-                        for &rank_bb in Bitboard::RANKS[..=square.rank() as usize].iter() {
+                        for &rank_bb in Bitboard::ALL_RANKS[..=square.rank() as usize].iter() {
                             (*passed_masks_ref)[square] &= !rank_bb;
                         }
                     },
