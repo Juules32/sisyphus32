@@ -16,3 +16,12 @@ pub const VERSIONS: &[&str] = &[
     "null_move_pruning",
     "late_move_reductions",
 ];
+
+pub const BASE_FEATURES: &[&str] = &[
+    "base_basic",
+    "base_magic_bitboard",
+    "base_clone",
+    "base_parallel",
+    "base_array",
+    "base_parallel_array",
+];
