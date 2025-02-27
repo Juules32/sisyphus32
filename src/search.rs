@@ -142,8 +142,10 @@ impl Search {
         #[cfg(feature = "unit_null_move_pruning")]
         if depth > NULL_MOVE_DEPTH_REDUCTION && !in_check && position.ply > 0 {
             let mut position_copy = position.clone();
+            position_copy.zobrist_mods();
             position_copy.side.switch();
             position_copy.en_passant_sq = Square::None;
+            position_copy.zobrist_mods();
             let null_move_score = -self.negamax_best_move(&position_copy, -beta, -beta + 1, depth - NULL_MOVE_DEPTH_REDUCTION).score;
             if null_move_score >= beta {
                 return ScoringMove::blank(beta);
@@ -186,11 +188,9 @@ impl Search {
                     let mut should_update_best_move = true;
 
                     #[cfg(feature = "unit_late_move_reductions")]
-                    if depth != original_depth && best_move.score >= beta {
-                        println!("doing full search");
+                    if depth != original_depth && scoring_move.score >= beta {
                         scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, original_depth - 1).score;
                         if !(scoring_move.score > best_move.score) {
-                            println!("turns out it's not good after all {depth} {original_depth}");
                             should_update_best_move = false;
                         }
                     }
