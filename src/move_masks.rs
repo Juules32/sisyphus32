@@ -7,8 +7,10 @@ use crate::{bitboard::Bitboard, color::Color, rank::Rank, square::Square, file::
 const NUM_ROOK_MOVE_PERMUTATIONS: usize = 4096;
 const NUM_BISHOP_MOVE_PERMUTATIONS: usize = 512;
 
-pub static mut PAWN_QUIET_MASKS: [[Bitboard; 64]; 2] = unsafe { mem::zeroed() };
-pub static mut PAWN_CAPTURE_MASKS: [[Bitboard; 64]; 2] = unsafe { mem::zeroed() };
+pub static mut WHITE_PAWN_QUIET_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+pub static mut BLACK_PAWN_QUIET_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+pub static mut WHITE_PAWN_CAPTURE_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+pub static mut BLACK_PAWN_CAPTURE_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 pub static mut KNIGHT_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 pub static mut KING_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 pub static mut BISHOP_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
@@ -177,10 +179,10 @@ pub struct MoveMasks { }
 impl MoveMasks {
     unsafe fn init_masks() {
         for square in Square::ALL_SQUARES {
-            PAWN_QUIET_MASKS[Color::White][square] = Self::generate_pawn_quiet_mask(Color::White, square);
-            PAWN_CAPTURE_MASKS[Color::White][square] = Self::generate_pawn_capture_mask(Color::White, square);
-            PAWN_QUIET_MASKS[Color::Black][square] = Self::generate_pawn_quiet_mask(Color::Black, square);
-            PAWN_CAPTURE_MASKS[Color::Black][square] = Self::generate_pawn_capture_mask(Color::Black, square);
+            WHITE_PAWN_QUIET_MASKS[square] = Self::generate_pawn_quiet_mask(Color::White, square);
+            BLACK_PAWN_QUIET_MASKS[square] = Self::generate_pawn_quiet_mask(Color::Black, square);
+            WHITE_PAWN_CAPTURE_MASKS[square] = Self::generate_pawn_capture_mask(Color::White, square);
+            BLACK_PAWN_CAPTURE_MASKS[square] = Self::generate_pawn_capture_mask(Color::Black, square);
             KNIGHT_MASKS[square] = Self::generate_knight_mask(square);
             KING_MASKS[square] = Self::generate_king_mask(square);
             BISHOP_MASKS[square] = Self::generate_bishop_mask(square);
@@ -483,12 +485,22 @@ impl MoveMasks {
 
     #[inline(always)]
     pub fn get_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
-        unsafe { PAWN_QUIET_MASKS[color][square] }
+        unsafe {
+            match color {
+                Color::White => WHITE_PAWN_QUIET_MASKS[square],
+                Color::Black => BLACK_PAWN_QUIET_MASKS[square],
+            }
+        }
     }
 
     #[inline(always)]
     pub fn get_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
-        unsafe { PAWN_CAPTURE_MASKS[color][square] }
+        unsafe {
+            match color {
+                Color::White => WHITE_PAWN_CAPTURE_MASKS[square],
+                Color::Black => BLACK_PAWN_CAPTURE_MASKS[square],
+            }
+        }
     }
 
     #[inline(always)]
