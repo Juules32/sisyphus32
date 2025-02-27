@@ -37,7 +37,7 @@ fn main() {
         .args([
             "-engine", &format!("name=sisyphus32_{new_version}"), &format!("cmd=./sisyphus32_{new_version}.exe"),
             "-engine", &format!("name=sisyphus32_{old_version}"), &format!("cmd=./sisyphus32_{old_version}.exe"),
-            "-each", "tc=1+0.1", &format!("dir=./target/{PROFILE_NAME}/"), "proto=uci",
+            "-each", "tc=0.1+0.01", &format!("dir=./target/{PROFILE_NAME}/"), "proto=uci",
             "-openings", &format!("file=openings/{OPENINGS_NAME}.pgn"), "order=random", &format!("plies={OPENING_PLIES}"),
             "-games", GAMES, "-rounds", ROUNDS, "-repeat", REPEAT, "-maxmoves", MAX_MOVES, "-concurrency", CONCURRENCY, "-ratinginterval", RATING_INTERVAL,
             "-sprt", &format!("elo0={ELO0}"), &format!("elo1={ELO1}"), &format!("alpha={ALPHA}"), &format!("beta={BETA}"),
