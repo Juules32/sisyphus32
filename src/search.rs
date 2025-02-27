@@ -192,7 +192,7 @@ impl Search {
                     #[cfg(feature = "unit_late_move_reductions")]
                     if depth != original_depth && scoring_move.score >= beta {
                         scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, original_depth - 1).score;
-                        if !(scoring_move.score > best_move.score) {
+                        if scoring_move.score <= best_move.score {
                             should_update_best_move = false;
                         }
                     }
