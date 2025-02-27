@@ -338,8 +338,8 @@ impl Position {
 
     pub fn in_check(&self, defending_side: Color) -> bool {
         match defending_side {
-            Color::White => self.is_square_attacked(defending_side, self.bbs[PieceType::WK].to_sq()),
-            Color::Black => self.is_square_attacked(defending_side, self.bbs[PieceType::BK].to_sq()),
+            Color::White => self.is_square_attacked(defending_side, Square::from(self.bbs[PieceType::WK])),
+            Color::Black => self.is_square_attacked(defending_side, Square::from(self.bbs[PieceType::BK])),
         }
     }
 
