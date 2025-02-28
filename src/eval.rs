@@ -167,7 +167,7 @@ static mut BLACK_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 
 const DOUBLED_PAWN_SCORE: i16 = -30;
 const ISOLATED_PAWN_SCORE: i16 = -15;
-const PASSED_PAWN_SCORE: i16 = 10;
+const PASSED_PAWN_SCORES: [i16; 8] = [0, 10, 30, 50, 75, 100, 150, 200];
 
 pub struct EvalPosition { }
 
@@ -282,11 +282,11 @@ impl EvalPosition {
 
                 if piece == PieceType::WP {
                     if (position.bbs[PieceType::BP] & Self::get_white_passed_mask(sq)).is_empty() {
-                        pawn_score += PASSED_PAWN_SCORE;
+                        pawn_score += PASSED_PAWN_SCORES[7 - sq.rank() as usize];
                     }
                 } else {
                     if (position.bbs[PieceType::WP] & Self::get_black_passed_mask(sq)).is_empty() {
-                        pawn_score += PASSED_PAWN_SCORE;
+                        pawn_score += PASSED_PAWN_SCORES[sq.rank() as usize];
                     }
                 }
 
