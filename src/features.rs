@@ -15,7 +15,7 @@ pub const VERSIONS: &[&str] = &[
     "tt_two_tier",
     "null_move_pruning",
     "late_move_reductions",
-    "pawn_eval",
+    "positional_eval",
 ];
 
 pub const BASE_FEATURES: &[&str] = &[
