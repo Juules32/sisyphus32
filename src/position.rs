@@ -130,7 +130,7 @@ impl Position {
         debug_assert!(self.bbs[piece].is_set_sq(source));
         debug_assert!(capture == PieceType::None || self.bbs[capture].is_set_sq(target));
 
-        // Modify the zobrist hash before making the move
+        // Modify the zobrist key before making the move
         self.zobrist_mods();
 
         // Removes captured piece
@@ -215,7 +215,7 @@ impl Position {
         self.populate_occupancies();
         self.side.switch();
 
-        // Modify the zobrist hash after making the move
+        // Modify the zobrist key after making the move
         self.zobrist_mods();
         debug_assert_eq!(self.zobrist_key, ZobristKey::generate(self), "{}", self);
     }

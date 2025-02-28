@@ -165,6 +165,10 @@ static mut ISOLATED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 static mut WHITE_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 static mut BLACK_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 
+const DOUBLED_PAWN_SCORE: i16 = -30;
+const ISOLATED_PAWN_SCORE: i16 = -15;
+const PASSED_PAWN_SCORE: i16 = 10;
+
 pub struct EvalPosition { }
 
 impl EvalPosition {
@@ -233,20 +237,65 @@ impl EvalPosition {
     }
 
     #[inline(always)]
-    pub fn eval(position: &Position) -> i16 {
-        Square::ALL_SQUARES.iter().fold(0, |mut acc, &sq| {
-            match position.get_piece(sq) {
-                PieceType::None => acc,
-                piece => {
-                    acc += PIECE_SCORES[piece as usize];
-                    
-                    #[cfg(feature = "unit_eval_pps")]
-                    { acc += PIECE_POSITION_SCORES[piece as usize][sq]; }
+    fn get_file_mask(square: Square) -> Bitboard {
+        unsafe { FILE_MASKS[square] }
+    }
 
-                    acc
+    #[inline(always)]
+    fn get_isolated_mask(square: Square) -> Bitboard {
+        unsafe { ISOLATED_MASKS[square] }
+    }
+
+    #[inline(always)]
+    fn get_white_passed_mask(square: Square) -> Bitboard {
+        unsafe { WHITE_PASSED_MASKS[square] }
+    }
+    
+    #[inline(always)]
+    fn get_black_passed_mask(square: Square) -> Bitboard {
+        unsafe { BLACK_PASSED_MASKS[square] }
+    }
+
+    #[inline(always)]
+    pub fn eval(position: &Position) -> i16 {
+        let mut score = 0;
+        let mut ao = position.ao;
+
+        while ao != Bitboard::EMPTY {
+
+            let sq = ao.pop_lsb();
+            let piece = position.get_piece(sq);
+            score += PIECE_SCORES[piece as usize];
+            #[cfg(feature = "unit_eval_pps")]
+            { score += PIECE_POSITION_SCORES[piece as usize][sq]; }
+
+            #[cfg(feature = "unit_pawn_eval")]
+            if piece == PieceType::WP || piece == PieceType::BP {
+                let mut pawn_score = 0;
+                if (position.bbs[piece] & Self::get_file_mask(sq)).count_bits() > 1 {
+                    pawn_score += DOUBLED_PAWN_SCORE;
                 }
+                
+                if (position.bbs[piece] & Self::get_isolated_mask(sq)).is_empty() {
+                    pawn_score += ISOLATED_PAWN_SCORE;
+                }
+
+                if piece == PieceType::WP {
+                    if (position.bbs[PieceType::BP] & Self::get_white_passed_mask(sq)).is_empty() {
+                        pawn_score += PASSED_PAWN_SCORE;
+                    }
+                } else {
+                    if (position.bbs[PieceType::WP] & Self::get_black_passed_mask(sq)).is_empty() {
+                        pawn_score += PASSED_PAWN_SCORE;
+                    }
+                }
+
+                if piece == PieceType::BP { pawn_score *= -1; }
+                score += pawn_score
             }
-        }) * match position.side {
+        }
+
+        score * match position.side {
             Color::White => 1,
             Color::Black => -1
         }

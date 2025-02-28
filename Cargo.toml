@@ -37,7 +37,8 @@ eval_tt = ["tt", "unit_eval_tt"]
 tt_two_tier = ["eval_tt", "unit_tt_two_tier"]
 null_move_pruning = ["tt_two_tier", "unit_null_move_pruning"]
 late_move_reductions = ["null_move_pruning", "unit_late_move_reductions"]
-default = ["late_move_reductions"] # Should only be one feature from the list of playable versions
+pawn_eval = ["late_move_reductions", "unit_pawn_eval"]
+default = ["pawn_eval"] # Should only be one feature from the list of playable versions
 
 #  /*------------------------------------------------------------*\ 
 #        Base features (should not be set as default feature)
@@ -93,3 +94,5 @@ unit_checks_add_depth = []
 unit_null_move_pruning = []
 
 unit_late_move_reductions = []
+
+unit_pawn_eval = []

@@ -57,12 +57,10 @@ impl PieceType {
 
     #[inline(always)]
     pub fn color(self) -> Color {
-        if PieceType::WHITE_PIECES.contains(&self) {
+        if self as u8 <= 5 {
             Color::White
-        } else if PieceType::BLACK_PIECES.contains(&self) {
-            Color::Black
         } else {
-            panic!("Illegal color found!")
+            Color::Black
         }
     }
 }
