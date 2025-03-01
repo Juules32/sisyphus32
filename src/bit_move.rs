@@ -1,4 +1,4 @@
-use crate::{eval::EvalMove, move_flag::MoveFlag, piece::PieceType, position::Position, square::Square};
+use crate::{eval::EvalMove, move_flag::MoveFlag, piece::Piece, position::Position, square::Square};
 use core::fmt;
 use std::{cmp::Ordering, fmt::Display, hash::Hash, mem};
 
@@ -63,14 +63,14 @@ impl BitMove {
 
     #[cfg(feature = "unit_bb")]
     #[inline(always)]
-    pub fn piece(&self) -> PieceType {
-        PieceType::from(((self.0 & PIECE_MASK) >> 12) as u8)
+    pub fn piece(&self) -> Piece {
+        Piece::from(((self.0 & PIECE_MASK) >> 12) as u8)
     }
 
     #[cfg(feature = "unit_bb")]
     #[inline(always)]
-    pub fn capture(&self) -> PieceType {
-        PieceType::from(((self.0 & CAPTURE_MASK) >> 16) as u8)
+    pub fn capture(&self) -> Piece {
+        Piece::from(((self.0 & CAPTURE_MASK) >> 16) as u8)
     }
 
     #[cfg(feature = "unit_bb")]
@@ -91,8 +91,8 @@ impl BitMove {
     pub fn encode(
         source: Square, 
         target: Square, 
-        piece: PieceType, 
-        capture: PieceType, 
+        piece: Piece, 
+        capture: Piece, 
         flag: MoveFlag
     ) -> BitMove {
         BitMove(
@@ -120,7 +120,7 @@ impl BitMove {
 
     #[cfg(feature = "unit_bb")]
     #[inline(always)]
-    pub fn decode(&self) -> (Square, Square, PieceType, PieceType, MoveFlag) {
+    pub fn decode(&self) -> (Square, Square, Piece, Piece, MoveFlag) {
         (self.source(), self.target(), self.piece(), self.capture(), self.flag())
     }
 
@@ -132,16 +132,16 @@ impl BitMove {
 
     #[inline(always)]
     pub fn is_capture_or_promotion(self, position: &Position) -> bool {
-        position.get_piece(self.target()) != PieceType::None || self.flag().is_promotion()
+        position.get_piece(self.target()) != Piece::None || self.flag().is_promotion()
     }
 
     #[inline(always)]
     pub fn is_pp_capture_or_castle(self, position: &Position) -> bool {
         let source_piece = position.get_piece(self.source());
         let target_piece = position.get_piece(self.target());
-        source_piece == PieceType::WP ||
-        source_piece == PieceType::BP ||
-        target_piece != PieceType::None ||
+        source_piece == Piece::WP ||
+        source_piece == Piece::BP ||
+        target_piece != Piece::None ||
         self.flag().is_castle()
     }
 
@@ -304,13 +304,13 @@ mod tests {
     #[test]
     #[cfg(feature = "unit_bb")]
     fn encode_and_decode_works() {
-        let bit_move = BitMove::encode(Square::A1, Square::B1, PieceType::WP, PieceType::None, MoveFlag::None);
+        let bit_move = BitMove::encode(Square::A1, Square::B1, Piece::WP, Piece::None, MoveFlag::None);
         let (source, target, piece, capture, flag) = bit_move.decode();
 
         assert_eq!(source, Square::A1);
         assert_eq!(target, Square::B1);
-        assert_eq!(piece, PieceType::WP);
-        assert_eq!(capture, PieceType::None);
+        assert_eq!(piece, Piece::WP);
+        assert_eq!(capture, Piece::None);
         assert_eq!(flag, MoveFlag::None);
     }
 

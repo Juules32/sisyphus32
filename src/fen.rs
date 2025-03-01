@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{castling_rights::CastlingRights, color::Color, piece::PieceType, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
+use crate::{castling_rights::CastlingRights, color::Color, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
 
 #[derive(Debug)]
 pub struct FenParseError(pub &'static str);
@@ -56,8 +56,8 @@ impl FenString {
                 .ok_or(FenParseError("Could not convert char to digit!"))? as u8,
                 '/' => (),
                 'P' | 'N' | 'B' | 'R' | 'Q' | 'K' | 'p' | 'n' | 'b' | 'r' | 'q' | 'k' => {
-                    let piece_type = PieceType::from(pieces_char);
-                    position.set_piece(piece_type, Square::from(sq_index));
+                    let piece = Piece::from(pieces_char);
+                    position.set_piece(piece, Square::from(sq_index));
                 }
                 _ => return Err(FenParseError("Invalid pieces!")),
             };
@@ -132,15 +132,15 @@ impl From<&Position> for FenString {
         for square in Square::ALL_SQUARES {
             curr_width += 1;
 
-            let piece_type = position.get_piece(square);
-            match piece_type {
-                PieceType::None => curr_empty += 1,
+            let piece = position.get_piece(square);
+            match piece {
+                Piece::None => curr_empty += 1,
                 _ => {
                     if curr_empty != 0 {
                         fen_str.push_str(&curr_empty.to_string());
                         curr_empty = 0;
                     }
-                    fen_str.push(piece_type.into())
+                    fen_str.push(piece.into())
                 }
             }
 
