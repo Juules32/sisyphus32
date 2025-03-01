@@ -3,7 +3,7 @@
 
 use std::{env, process::Command};
 
-use sisyphus32::versions::VERSIONS;
+use sisyphus32::features::VERSIONS;
 
 const PROFILE_NAME: &str = "release-all";
 const PACKAGE_NAME: &str = "sisyphus32";
@@ -26,12 +26,7 @@ fn main() {
         // Rename binary
         let target_dir = format!("target/{PROFILE_NAME}");
         let from = format!("{target_dir}/{PACKAGE_NAME}.exe");
-
-        let to = if *feature_name == "default" {
-            format!("{target_dir}/sisyphus32.exe")
-        } else {
-            format!("{target_dir}/{PACKAGE_NAME}_{feature_name}.exe")
-        };
+        let to = format!("{target_dir}/{PACKAGE_NAME}_{feature_name}.exe");
 
         std::fs::rename(&from, &to).expect("Failed to rename binary");
         println!("Built and renamed: {}", to);

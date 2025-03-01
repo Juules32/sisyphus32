@@ -1,6 +1,8 @@
 use core::fmt;
 use std::mem::transmute;
 
+// NOTE: The rank enum can be unintuitive to work with since it starts with the eighth rank.
+// Changing the ordering could impact all places where Rank is used!
 #[derive(Clone, Copy, PartialEq)]
 #[repr(u8)]
 pub enum Rank {

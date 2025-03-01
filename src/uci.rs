@@ -69,7 +69,7 @@ impl Uci {
                     "position" => self.parse_position(&line),
                     "go" => self.parse_go(&line),
                     "eval" => {
-                        println!("{}", EvalPosition::eval(&self.position).score);
+                        println!("{}", EvalPosition::eval(&self.position));
                         Ok(())
                     },
                     "display" | "d" => {
@@ -155,10 +155,10 @@ impl Uci {
             self.position = FenString::kiwipete().parse().unwrap();
         } else if rook_index_option.is_some() {
             self.position = FenString::rook().parse().unwrap();
-        } else if tricky_index_option.is_some() {
-            self.position = FenString::tricky().parse().unwrap();
         } else if tricky2_index_option.is_some() {
             self.position = FenString::tricky2().parse().unwrap();
+        } else if tricky_index_option.is_some() {
+            self.position = FenString::tricky().parse().unwrap();
         } else {
             return Err(UciParseError("Neither fen nor startpos found!"));
         }
