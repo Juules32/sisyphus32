@@ -2,9 +2,9 @@ use std::mem;
 
 use ctor::ctor;
 
-use crate::{bit_move::BitMove, bitboard::Bitboard, butterfly_heuristic::ButterflyHeuristic, color::Color, file::File, killer_moves::KillerMoves, piece::PieceType, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
+use crate::{bit_move::BitMove, bitboard::Bitboard, butterfly_heuristic::ButterflyHeuristic, color::Color, file::File, killer_moves::KillerMoves, move_masks::MoveMasks, piece::PieceType, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
 
-const PIECE_SCORES: [i16; 12] = [100, 300, 320, 500, 900, 10000, -100, -300, -320, -500, -900, -10000];
+const PIECE_SCORES: [i16; 12] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000];
 
 const WP_POSITION_SCORES: [i16; 64] = [
      90,  90,  90,  90,  90,  90,  90,  90, 
@@ -74,46 +74,46 @@ const WK_POSITION_SCORES: [i16; 64] = [
 
 const BP_POSITION_SCORES: [i16; 64] = [
       0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,  10,  10,   0,   0,   0,
-      0,   0,   0,  -5,  -5,   5,   0,   0, 
-     -5,  -5, -10, -20, -20,  -5,  -5,  -5,
-    -10, -10, -10, -20, -20, -10, -10, -10,
-    -20, -20, -25, -30, -30, -25, -20, -20,
-    -30, -30, -30, -40, -40, -30, -30, -30,
-    -90, -90, -90, -90, -90, -90, -90, -90, 
+      0,   0,   0, -10, -10,   0,   0,   0,
+      0,   0,   0,   5,   5,  -5,   0,   0, 
+      5,   5,  10,  20,  20,   5,   5,   5,
+     10,  10,  10,  20,  20,  10,  10,  10,
+     20,  20,  25,  30,  30,  25,  20,  20,
+     30,  30,  30,  40,  40,  30,  30,  30,
+     90,  90,  90,  90,  90,  90,  90,  90, 
 ];
 
 const BN_POSITION_SCORES: [i16; 64] = [
-     10,  10,   0,   0,   0,   0,  10,  10,
-      5,   0,   0,   0,   0,   0,   0,   5,
-      5,  -5, -20, -10, -10, -20,  -5,   5,
-      5, -10, -20, -30, -30, -20, -10,   5,
-      5, -10, -20, -30, -30, -20, -10,   5,
-      5,  -5, -20, -20, -20, -20,  -5,   5,
-      5,   0,   0, -10, -10,   0,   0,   5,
-     15,   5,   0,   0,   0,   0,   5,  15, 
+    -10, -10,   0,   0,   0,   0, -10, -10,
+     -5,   0,   0,   0,   0,   0,   0,  -5,
+     -5,   5,  20,  10,  10,  20,   5,  -5,
+     -5,  10,  20,  30,  30,  20,  10,  -5,
+     -5,  10,  20,  30,  30,  20,  10,  -5,
+     -5,   5,  20,  20,  20,  20,   5,  -5,
+     -5,   0,   0,  10,  10,   0,   0,  -5,
+    -15,  -5,   0,   0,   0,   0,  -5, -15, 
 ];
 
 const BB_POSITION_SCORES: [i16; 64] = [
-      0,   0,  10,   0,   0,  10,   0,   0,
-      0, -30,   0,   0,   0,   0, -30,   0,
-      0, -10,   0,  -5,  -5,   0, -10,   0,
-      0,   0, -10, -20, -20, -10,   0,   0, 
-      0,   0, -10, -20, -20, -10,   0,   0,
-      0,   0,   0,  -5,  -5,   0,   0,   0,
+      0,   0, -10,   0,   0, -10,   0,   0,
+      0,  30,   0,   0,   0,   0,  30,   0,
+      0,  10,   0,   5,   5,   0,  10,   0,
+      0,   0,  10,  20,  20,  10,   0,   0, 
+      0,   0,  10,  20,  20,  10,   0,   0,
+      0,   0,   0,   5,   5,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,
-      5,   0,   0,   0,   0,   0,   0,   5, 
+     -5,   0,   0,   0,   0,   0,   0,  -5, 
 ];
 
 const BR_POSITION_SCORES: [i16; 64] = [
-      0,   0, -10, -20, -20, -10,   0,   0,
-      0,   0, -10, -20, -20, -10,   0,   0,
-      0,   0, -10, -20, -20, -10,   0,   0,
-      0,   0, -10, -20, -20, -10,   0,   0,
-      0,   0, -10, -20, -20, -10,   0,   0,
-      0,   0, -10, -20, -20, -10,   0,   0,
-    -50, -50, -50, -50, -50, -50, -50, -50,
-    -50, -50, -50, -50, -50, -50, -50, -50, 
+      0,   0,  10,  20,  20,  10,   0,   0,
+      0,   0,  10,  20,  20,  10,   0,   0,
+      0,   0,  10,  20,  20,  10,   0,   0,
+      0,   0,  10,  20,  20,  10,   0,   0,
+      0,   0,  10,  20,  20,  10,   0,   0,
+      0,   0,  10,  20,  20,  10,   0,   0,
+     50,  50,  50,  50,  50,  50,  50,  50,
+     50,  50,  50,  50,  50,  50,  50,  50, 
 ];
 
 const BQ_POSITION_SCORES: [i16; 64] = [
@@ -128,14 +128,14 @@ const BQ_POSITION_SCORES: [i16; 64] = [
 ];
 
 const BK_POSITION_SCORES: [i16; 64] = [
-      0,  -5,  -5,   5,  15,   5, -10,   0,
-      0,  -5,  -5,   5,   5,   5,  -5,   0,
-      0,   0,  -5, -10, -10,  -5,   0,   0,
-      0,  -5, -10, -20, -20, -10,  -5,   0,
-      0,  -5, -10, -20, -20, -10,  -5,   0,
-      0,  -5,  -5, -10, -10,  -5,  -5,   0,
-      0,   0,  -5,  -5,  -5,  -5,   0,   0,
-      5,   0,   0,   0,   0,   0,   0,   5, 
+      0,   5,   5,  -5, -15,  -5,  10,   0,
+      0,   5,   5,  -5,  -5,  -5,   5,   0,
+      0,   0,   5,  10,  10,   5,   0,   0,
+      0,   5,  10,  20,  20,  10,   5,   0,
+      0,   5,  10,  20,  20,  10,   5,   0,
+      0,   5,   5,  10,  10,   5,   5,   0,
+      0,   0,   5,   5,   5,   5,   0,   0,
+     -5,   0,   0,   0,   0,   0,   0,  -5, 
 ];
 
 const PIECE_POSITION_SCORES: [&[i16; 64]; 12] = [
@@ -171,6 +171,7 @@ const PASSED_PAWN_SCORES: [i16; 8] = [0, 10, 30, 50, 75, 100, 150, 200];
 const SEMI_OPEN_FILE_SCORE: i16 = 10;
 const OPEN_FILE_SCORE: i16 = 15;
 const KING_ON_SEMI_OPEN_FILE_SCORE: i16 = -30;
+const KING_ADJACENCY_SCORE: i16 = 15;
 
 pub struct EvalPosition { }
 
@@ -262,74 +263,68 @@ impl EvalPosition {
     #[inline(always)]
     pub fn eval(position: &Position) -> i16 {
         let mut score = 0;
-        let mut ao = position.ao;
+        let mut ao_copy = position.ao;
 
-        while ao != Bitboard::EMPTY {
-
-            let sq = ao.pop_lsb();
+        while ao_copy != Bitboard::EMPTY {
+            let sq = ao_copy.pop_lsb();
             let piece = position.get_piece(sq);
-            score += PIECE_SCORES[piece as usize];
+            let mut piece_score = PIECE_SCORES[piece as usize];
             #[cfg(feature = "unit_eval_pps")]
-            { score += PIECE_POSITION_SCORES[piece as usize][sq]; }
+            { piece_score += PIECE_POSITION_SCORES[piece as usize][sq]; }
 
             #[cfg(feature = "unit_positional_eval")]
             if piece == PieceType::WP || piece == PieceType::BP {
-                let mut pawn_score = 0;
                 if (position.bbs[piece] & Self::get_file_mask(sq)).count_bits() > 1 {
-                    pawn_score += DOUBLED_PAWN_SCORE;
+                    piece_score += DOUBLED_PAWN_SCORE;
                 }
                 
                 if (position.bbs[piece] & Self::get_isolated_mask(sq)).is_empty() {
-                    pawn_score += ISOLATED_PAWN_SCORE;
+                    piece_score += ISOLATED_PAWN_SCORE;
                 }
 
                 if piece == PieceType::WP {
                     if (position.bbs[PieceType::BP] & Self::get_white_passed_mask(sq)).is_empty() {
-                        pawn_score += PASSED_PAWN_SCORES[7 - sq.rank() as usize];
+                        piece_score += PASSED_PAWN_SCORES[7 - sq.rank() as usize];
                     }
                 } else {
                     if (position.bbs[PieceType::WP] & Self::get_black_passed_mask(sq)).is_empty() {
-                        pawn_score += PASSED_PAWN_SCORES[sq.rank() as usize];
+                        piece_score += PASSED_PAWN_SCORES[sq.rank() as usize];
                     }
                 }
-
-                if piece == PieceType::BP { pawn_score *= -1; }
-                score += pawn_score
             } else if piece == PieceType::WR || piece == PieceType::BR {
-                let mut rook_score = 0;
-
                 if piece == PieceType::WR {
                     if (position.bbs[PieceType::WP] & Self::get_file_mask(sq)).is_empty() {
-                        rook_score += SEMI_OPEN_FILE_SCORE;
+                        piece_score += SEMI_OPEN_FILE_SCORE;
                     }
                 } else {
                     if (position.bbs[PieceType::BP] & Self::get_file_mask(sq)).is_empty() {
-                        rook_score += SEMI_OPEN_FILE_SCORE;
+                        piece_score += SEMI_OPEN_FILE_SCORE;
                     }
                 }
 
                 if ((position.bbs[PieceType::WP] | position.bbs[PieceType::BP]) & Self::get_file_mask(sq)).is_empty() {
-                    rook_score += OPEN_FILE_SCORE;
+                    piece_score += OPEN_FILE_SCORE;
                 }
-
-                if piece == PieceType::BR { rook_score *= -1; }
-                score += rook_score
             } else if piece == PieceType::WK || piece == PieceType::BK {
-                let mut king_score = 0;
-
                 if piece == PieceType::WK {
                     if (position.bbs[PieceType::WP] & Self::get_file_mask(sq)).is_empty() {
-                        king_score += KING_ON_SEMI_OPEN_FILE_SCORE;
+                        piece_score += KING_ON_SEMI_OPEN_FILE_SCORE;
                     }
+
+                    piece_score += (position.wo & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
+                    piece_score -= (position.bo & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
                 } else {
                     if (position.bbs[PieceType::BP] & Self::get_file_mask(sq)).is_empty() {
-                        king_score += KING_ON_SEMI_OPEN_FILE_SCORE;
+                        piece_score += KING_ON_SEMI_OPEN_FILE_SCORE;
                     }
-                }
 
-                if piece == PieceType::BR { king_score *= -1; }
-                score += king_score
+                    piece_score += (position.bo & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
+                    piece_score -= (position.wo & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
+                }
             }
+
+            if piece.color() == Color::Black { piece_score *= -1; }
+            score += piece_score;
         }
 
         score * match position.side {
