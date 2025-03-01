@@ -15,6 +15,7 @@ pub const VERSIONS: &[&str] = &[
     "tt_two_tier",
     "null_move_pruning",
     "late_move_reductions",
+    "interpolated_eval",
     "positional_eval",
 ];
 

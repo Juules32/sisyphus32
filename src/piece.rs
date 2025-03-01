@@ -55,6 +55,17 @@ impl PieceType {
         PieceType::BK,
     ];
 
+    pub const ALL_PIECES_EXPECT_PAWNS_AND_KINGS: [PieceType; 8] = [
+        PieceType::WN,
+        PieceType::WB,
+        PieceType::WR,
+        PieceType::WQ,
+        PieceType::BN,
+        PieceType::BB,
+        PieceType::BR,
+        PieceType::BQ,
+    ];
+
     #[inline(always)]
     pub fn color(self) -> Color {
         if self as u8 <= 5 {
