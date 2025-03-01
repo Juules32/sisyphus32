@@ -9,3 +9,4 @@ openings/*
 !openings/.gitkeep
 pgn_results/*
 !pgn_results/.gitkeep
+src/bin/debug.rs

@@ -5,7 +5,7 @@ use crate::{bitboard::Bitboard, color::Color};
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub enum PieceType {
+pub enum Piece {
     WP = 0b0,
     WN = 0b1,
     WB = 0b10,
@@ -21,132 +21,141 @@ pub enum PieceType {
     None = 0b1100,
 }
 
-impl PieceType {
-    pub const WHITE_PIECES: [PieceType; 6] = [
-        PieceType::WP,
-        PieceType::WN,
-        PieceType::WB,
-        PieceType::WR,
-        PieceType::WQ,
-        PieceType::WK,
+impl Piece {
+    pub const WHITE_PIECES: [Piece; 6] = [
+        Piece::WP,
+        Piece::WN,
+        Piece::WB,
+        Piece::WR,
+        Piece::WQ,
+        Piece::WK,
     ];
 
-    pub const BLACK_PIECES: [PieceType; 6] = [
-        PieceType::BP,
-        PieceType::BN,
-        PieceType::BB,
-        PieceType::BR,
-        PieceType::BQ,
-        PieceType::BK,
+    pub const BLACK_PIECES: [Piece; 6] = [
+        Piece::BP,
+        Piece::BN,
+        Piece::BB,
+        Piece::BR,
+        Piece::BQ,
+        Piece::BK,
     ];
 
-    pub const ALL_PIECES: [PieceType; 12] = [
-        PieceType::WP,
-        PieceType::WN,
-        PieceType::WB,
-        PieceType::WR,
-        PieceType::WQ,
-        PieceType::WK,
-        PieceType::BP,
-        PieceType::BN,
-        PieceType::BB,
-        PieceType::BR,
-        PieceType::BQ,
-        PieceType::BK,
+    pub const ALL_PIECES: [Piece; 12] = [
+        Piece::WP,
+        Piece::WN,
+        Piece::WB,
+        Piece::WR,
+        Piece::WQ,
+        Piece::WK,
+        Piece::BP,
+        Piece::BN,
+        Piece::BB,
+        Piece::BR,
+        Piece::BQ,
+        Piece::BK,
+    ];
+
+    pub const ALL_PIECES_EXPECT_PAWNS_AND_KINGS: [Piece; 8] = [
+        Piece::WN,
+        Piece::WB,
+        Piece::WR,
+        Piece::WQ,
+        Piece::BN,
+        Piece::BB,
+        Piece::BR,
+        Piece::BQ,
     ];
 
     #[inline(always)]
     pub fn color(self) -> Color {
-        if PieceType::WHITE_PIECES.contains(&self) {
+        if self as u8 <= 5 {
             Color::White
-        } else if PieceType::BLACK_PIECES.contains(&self) {
-            Color::Black
         } else {
-            panic!("Illegal color found!")
+            Color::Black
         }
     }
 }
 
-// Allows indexing with PieceType
-impl Index<PieceType> for [Bitboard; 12] {
+// Allows indexing with Piece
+impl Index<Piece> for [Bitboard; 12] {
     type Output = Bitboard;
 
-    fn index(&self, index: PieceType) -> &Self::Output {
+    fn index(&self, index: Piece) -> &Self::Output {
         &self[index as usize]
     }
 }
 
-// Allows modifying array elements when indexing with PieceType
-impl IndexMut<PieceType> for [Bitboard; 12] {
-    fn index_mut(&mut self, index: PieceType) -> &mut Self::Output {
+// Allows modifying array elements when indexing with Piece
+impl IndexMut<Piece> for [Bitboard; 12] {
+    fn index_mut(&mut self, index: Piece) -> &mut Self::Output {
         &mut self[index as usize]
     }
 }
 
-impl From<u8> for PieceType {
+impl From<u8> for Piece {
     #[inline(always)]
     fn from(number: u8) -> Self {
         unsafe { transmute::<u8, Self>(number) }
     }
 }
 
-impl From<char> for PieceType {
+impl From<char> for Piece {
     #[inline(always)]
     fn from(ch: char) -> Self {
         match ch {
-            'P' => PieceType::WP,
-            'N' => PieceType::WN,
-            'B' => PieceType::WB,
-            'R' => PieceType::WR,
-            'Q' => PieceType::WQ,
-            'K' => PieceType::WK,
-            'p' => PieceType::BP,
-            'n' => PieceType::BN,
-            'b' => PieceType::BB,
-            'r' => PieceType::BR,
-            'q' => PieceType::BQ,
-            'k' => PieceType::BK,
+            'P' => Piece::WP,
+            'N' => Piece::WN,
+            'B' => Piece::WB,
+            'R' => Piece::WR,
+            'Q' => Piece::WQ,
+            'K' => Piece::WK,
+            'p' => Piece::BP,
+            'n' => Piece::BN,
+            'b' => Piece::BB,
+            'r' => Piece::BR,
+            'q' => Piece::BQ,
+            'k' => Piece::BK,
             _ => panic!("Illegal piece char found!"),
         }
     }
 }
 
-impl From<PieceType> for char {
-    fn from(piece_type: PieceType) -> char {
-        match piece_type {
-            PieceType::WP => 'P',
-            PieceType::WN => 'N',
-            PieceType::WB => 'B',
-            PieceType::WR => 'R',
-            PieceType::WQ => 'Q',
-            PieceType::WK => 'K',
-            PieceType::BP => 'p',
-            PieceType::BN => 'n',
-            PieceType::BB => 'b',
-            PieceType::BR => 'r',
-            PieceType::BQ => 'q',
-            PieceType::BK => 'k',
-            PieceType::None => panic!("Can't convert none piece type to char!"),
+impl From<Piece> for char {
+    fn from(piece: Piece) -> char {
+        match piece {
+            Piece::WP => 'P',
+            Piece::WN => 'N',
+            Piece::WB => 'B',
+            Piece::WR => 'R',
+            Piece::WQ => 'Q',
+            Piece::WK => 'K',
+            Piece::BP => 'p',
+            Piece::BN => 'n',
+            Piece::BB => 'b',
+            Piece::BR => 'r',
+            Piece::BQ => 'q',
+            Piece::BK => 'k',
+            Piece::None => panic!("Can't convert none piece type to char!"),
         }
     }
 }
 
-impl fmt::Display for PieceType {
+impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s = match self {
-            PieceType::WP => "♟",
-            PieceType::WN => "♞",
-            PieceType::WB => "♝",
-            PieceType::WR => "♜",
-            PieceType::WQ => "♛",
-            PieceType::WK => "♚",
-            PieceType::BP => "♙",
-            PieceType::BN => "♘",
-            PieceType::BB => "♗",
-            PieceType::BR => "♖",
-            PieceType::BQ => "♕",
-            PieceType::BK => "♔",
-            PieceType::None => "None",
+            Piece::WP => "♟",
+            Piece::WN => "♞",
+            Piece::WB => "♝",
+            Piece::WR => "♜",
+            Piece::WQ => "♛",
+            Piece::WK => "♚",
+            Piece::BP => "♙",
+            Piece::BN => "♘",
+            Piece::BB => "♗",
+            Piece::BR => "♖",
+            Piece::BQ => "♕",
+            Piece::BK => "♔",
+            Piece::None => "None",
         };
         f.pad(s)
     }

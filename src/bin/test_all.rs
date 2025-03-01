@@ -2,12 +2,12 @@
 
 use std::{env, process::Command};
 
-use sisyphus32::versions::VERSIONS;
+use sisyphus32::features::{BASE_FEATURES, VERSIONS};
 
 fn main() {
     env::set_var("RUSTFLAGS", "-Awarnings");
 
-    for feature_name in VERSIONS {
+    for feature_name in VERSIONS.iter().chain(BASE_FEATURES.iter()) {
         // Build feature binary
         let status = Command::new("cargo")
             .args(["test", "--release", "--no-default-features", "--features", &format!("{feature_name},unit_small_tt")])

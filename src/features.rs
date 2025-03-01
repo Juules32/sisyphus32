@@ -13,5 +13,17 @@ pub const VERSIONS: &[&str] = &[
     "tt",
     "eval_tt",
     "tt_two_tier",
-    "default",
+    "null_move_pruning",
+    "late_move_reductions",
+    "interpolated_eval",
+    "positional_eval",
+];
+
+pub const BASE_FEATURES: &[&str] = &[
+    "base_basic",
+    "base_magic_bitboard",
+    "base_clone",
+    "base_parallel",
+    "base_array",
+    "base_parallel_array",
 ];
