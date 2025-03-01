@@ -387,30 +387,6 @@ impl EvalPosition {
     }
 
     #[inline(always)]
-    fn get_interpolated_piece_score(piece: PieceType, game_phase: GamePhase, game_phase_score: i32) -> i32 {
-        match game_phase {
-            GamePhase::Middlegame => (
-                    OPENING_PIECE_SCORES[piece as usize] * game_phase_score +
-                    ENDGAME_PIECE_SCORES[piece as usize] * (OPENING_PHASE_CUTOFF - game_phase_score)
-                ) / OPENING_PHASE_CUTOFF,
-            GamePhase::Opening => OPENING_PIECE_SCORES[piece as usize],
-            GamePhase::Endgame => ENDGAME_PIECE_SCORES[piece as usize],
-        }
-    }
-    
-    #[inline(always)]
-    fn get_interpolated_positional_score(piece: PieceType, positional_index: usize, game_phase: GamePhase, game_phase_score: i32) -> i32 {
-        match game_phase {
-            GamePhase::Middlegame => (
-                    OPENING_PIECE_POSITION_SCORES[piece as usize][positional_index] * game_phase_score +
-                    ENDGAME_PIECE_POSITION_SCORES[piece as usize][positional_index] * (OPENING_PHASE_CUTOFF - game_phase_score)
-                ) / OPENING_PHASE_CUTOFF,
-            GamePhase::Opening => OPENING_PIECE_POSITION_SCORES[piece as usize][positional_index],
-            GamePhase::Endgame => ENDGAME_PIECE_POSITION_SCORES[piece as usize][positional_index],
-        }
-    }
-    
-    #[inline(always)]
     fn get_positional_index(square: Square, color: Color) -> usize {
         match color {
             Color::White => square as usize,
@@ -421,6 +397,8 @@ impl EvalPosition {
     #[inline(always)]
     pub fn eval(position: &Position) -> i16 {
         let mut score = 0;
+        let mut opening_score = 0;
+        let mut endgame_score = 0;
         let mut ao_copy = position.ao;
 
         #[cfg(feature = "interpolated_eval")]
@@ -432,6 +410,11 @@ impl EvalPosition {
         while ao_copy != Bitboard::EMPTY {
             let sq = ao_copy.pop_lsb();
             let piece = position.get_piece(sq);
+            let piece_color_modifier = match piece.color() {
+                Color::White => 1,
+                Color::Black => -1,
+            };
+
             let positional_index = Self::get_positional_index(sq, piece.color());
             let mut piece_score = 0;
 
@@ -444,9 +427,14 @@ impl EvalPosition {
 
             #[cfg(feature = "interpolated_eval")]
             {
-                piece_score += Self::get_interpolated_piece_score(piece, game_phase, game_phase_score);
+                opening_score += OPENING_PIECE_SCORES[piece as usize] * piece_color_modifier;
+                endgame_score += ENDGAME_PIECE_SCORES[piece as usize] * piece_color_modifier;
+
                 #[cfg(feature = "unit_eval_pps")]
-                { piece_score += Self::get_interpolated_positional_score(piece, positional_index, game_phase, game_phase_score); }
+                {
+                    opening_score += OPENING_PIECE_POSITION_SCORES[piece as usize][positional_index] * piece_color_modifier;
+                    endgame_score += ENDGAME_PIECE_POSITION_SCORES[piece as usize][positional_index] * piece_color_modifier;
+                }
             }
 
             #[cfg(feature = "positional_eval")]
@@ -500,9 +488,20 @@ impl EvalPosition {
                 }
             }
 
-            if piece.color() == Color::Black { piece_score *= -1; }
-            score += piece_score;
+            score += piece_score * piece_color_modifier;
         }
+        
+        #[cfg(feature = "interpolated_eval")]
+        match game_phase {
+            GamePhase::Middlegame => {
+                score += (
+                    opening_score * game_phase_score +
+                    endgame_score * (OPENING_PHASE_CUTOFF - game_phase_score)
+                ) / OPENING_PHASE_CUTOFF
+            },
+            GamePhase::Opening => { score += opening_score; },
+            GamePhase::Endgame => { score += endgame_score; },
+        };
 
         score as i16 * match position.side {
             Color::White => 1,
