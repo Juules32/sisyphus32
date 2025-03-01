@@ -2,7 +2,7 @@ use std::{fmt::Display, mem};
 
 use ctor::ctor;
 
-use crate::{castling_rights::CastlingRights, color::Color, piece::PieceType, position::Position, rng::RandomNumberGenerator, square::Square};
+use crate::{castling_rights::CastlingRights, color::Color, piece::Piece, position::Position, rng::RandomNumberGenerator, square::Square};
 
 // Constants for Zobrist hashing
 const FILE_COUNT: usize = 8;
@@ -27,7 +27,7 @@ impl ZobristKey {
         unsafe {
             for square in Square::ALL_SQUARES {
                 let piece = position.get_piece(square);
-                if piece != PieceType::None {
+                if piece != Piece::None {
                     hash ^= PIECE_KEYS[piece as usize][square];
                 }
             }
@@ -48,9 +48,9 @@ impl ZobristKey {
     }
 
     #[inline(always)]
-    pub fn mod_piece(&mut self, piece: PieceType, square: Square) {
+    pub fn mod_piece(&mut self, piece: Piece, square: Square) {
         unsafe {
-            if piece != PieceType::None {
+            if piece != Piece::None {
                 self.0 ^= PIECE_KEYS[piece as usize][square];
             }
         }
@@ -127,8 +127,8 @@ mod tests {
         let mut position2 = Position::starting_position();
 
         // Modify position2 by moving e2 to e4
-        position2.pps[Square::E2 as usize] = PieceType::None;
-        position2.pps[Square::E4 as usize] = PieceType::WP;
+        position2.pps[Square::E2 as usize] = Piece::None;
+        position2.pps[Square::E4 as usize] = Piece::WP;
 
         let hash1 = ZobristKey::generate(&position1);
         let hash2 = ZobristKey::generate(&position2);

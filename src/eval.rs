@@ -5,7 +5,7 @@ use std::mem;
 
 use ctor::ctor;
 
-use crate::{bit_move::BitMove, bitboard::Bitboard, butterfly_heuristic::ButterflyHeuristic, color::Color, file::File, killer_moves::KillerMoves, move_masks::MoveMasks, piece::PieceType, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
+use crate::{bit_move::BitMove, bitboard::Bitboard, butterfly_heuristic::ButterflyHeuristic, color::Color, file::File, killer_moves::KillerMoves, move_masks::MoveMasks, piece::Piece, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
 
 const BASE_PIECE_SCORES: [i32; 12] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000];
 
@@ -368,7 +368,7 @@ impl EvalPosition {
     fn get_game_phase_score(position: &Position) -> i32 {
         let mut game_phase_score = 0;
 
-        for piece in PieceType::ALL_PIECES_EXPECT_PAWNS_AND_KINGS {
+        for piece in Piece::ALL_PIECES_EXPECT_PAWNS_AND_KINGS {
             game_phase_score += position.bbs[piece].count_bits() as i32 * OPENING_PIECE_SCORES[piece as usize];
         }
 
@@ -438,7 +438,7 @@ impl EvalPosition {
             }
 
             #[cfg(feature = "positional_eval")]
-            if piece == PieceType::WP || piece == PieceType::BP {
+            if piece == Piece::WP || piece == Piece::BP {
                 if (position.bbs[piece] & Self::get_file_mask(sq)).count_bits() > 1 {
                     piece_score += DOUBLED_PAWN_SCORE;
                 }
@@ -447,39 +447,39 @@ impl EvalPosition {
                     piece_score += ISOLATED_PAWN_SCORE;
                 }
 
-                if piece == PieceType::WP {
-                    if (position.bbs[PieceType::BP] & Self::get_white_passed_mask(sq)).is_empty() {
+                if piece == Piece::WP {
+                    if (position.bbs[Piece::BP] & Self::get_white_passed_mask(sq)).is_empty() {
                         piece_score += PASSED_PAWN_SCORES[7 - sq.rank() as usize];
                     }
                 } else {
-                    if (position.bbs[PieceType::WP] & Self::get_black_passed_mask(sq)).is_empty() {
+                    if (position.bbs[Piece::WP] & Self::get_black_passed_mask(sq)).is_empty() {
                         piece_score += PASSED_PAWN_SCORES[sq.rank() as usize];
                     }
                 }
-            } else if piece == PieceType::WR || piece == PieceType::BR {
-                if piece == PieceType::WR {
-                    if (position.bbs[PieceType::WP] & Self::get_file_mask(sq)).is_empty() {
+            } else if piece == Piece::WR || piece == Piece::BR {
+                if piece == Piece::WR {
+                    if (position.bbs[Piece::WP] & Self::get_file_mask(sq)).is_empty() {
                         piece_score += SEMI_OPEN_FILE_SCORE;
                     }
                 } else {
-                    if (position.bbs[PieceType::BP] & Self::get_file_mask(sq)).is_empty() {
+                    if (position.bbs[Piece::BP] & Self::get_file_mask(sq)).is_empty() {
                         piece_score += SEMI_OPEN_FILE_SCORE;
                     }
                 }
 
-                if ((position.bbs[PieceType::WP] | position.bbs[PieceType::BP]) & Self::get_file_mask(sq)).is_empty() {
+                if ((position.bbs[Piece::WP] | position.bbs[Piece::BP]) & Self::get_file_mask(sq)).is_empty() {
                     piece_score += OPEN_FILE_SCORE;
                 }
-            } else if piece == PieceType::WK || piece == PieceType::BK {
-                if piece == PieceType::WK {
-                    if (position.bbs[PieceType::WP] & Self::get_file_mask(sq)).is_empty() {
+            } else if piece == Piece::WK || piece == Piece::BK {
+                if piece == Piece::WK {
+                    if (position.bbs[Piece::WP] & Self::get_file_mask(sq)).is_empty() {
                         piece_score += KING_ON_SEMI_OPEN_FILE_SCORE;
                     }
 
                     piece_score += (position.wo & MoveMasks::get_king_mask(sq)).count_bits() as i32 * KING_ADJACENCY_SCORE;
                     piece_score -= (position.bo & MoveMasks::get_king_mask(sq)).count_bits() as i32 * KING_ADJACENCY_SCORE;
                 } else {
-                    if (position.bbs[PieceType::BP] & Self::get_file_mask(sq)).is_empty() {
+                    if (position.bbs[Piece::BP] & Self::get_file_mask(sq)).is_empty() {
                         piece_score += KING_ON_SEMI_OPEN_FILE_SCORE;
                     }
 
@@ -515,7 +515,7 @@ pub struct EvalMove { }
 impl EvalMove {
     #[inline(always)]
     pub fn eval(position: &Position, bit_move: BitMove) -> i16 {
-        let mut score = if position.get_piece(bit_move.target()) == PieceType::None {
+        let mut score = if position.get_piece(bit_move.target()) == Piece::None {
             0
         } else {
             MVV_LVA[position.get_piece(bit_move.source()) as usize][position.get_piece(bit_move.target()) as usize]
