@@ -1,5 +1,5 @@
 use core::fmt;
-use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, fen::FenString, file::File, move_flag::MoveFlag, move_masks::MoveMasks, piece::Piece, square::Square, zobrist::ZobristKey};
+use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, eval::EvalPosition, fen::FenString, file::File, move_flag::MoveFlag, move_masks::MoveMasks, piece::Piece, square::Square, zobrist::ZobristKey};
 
 #[derive(Clone)]
 pub struct Position {
@@ -15,6 +15,9 @@ pub struct Position {
     pub castling_rights: CastlingRights,
     pub ply: u16,
     pub zobrist_key: ZobristKey,
+
+    #[cfg(feature = "unit_interpolated_eval")]
+    pub game_phase_score: i32,
 }
 
 impl Position {
@@ -77,9 +80,15 @@ impl Position {
             castling_rights: CastlingRights::DEFAULT,
             ply: 0,
             zobrist_key: ZobristKey(0),
+            
+            #[cfg(feature = "unit_interpolated_eval")]
+            game_phase_score: 0,
         };
 
         position.zobrist_key = ZobristKey::generate(&position);
+
+        #[cfg(feature = "unit_interpolated_eval")]
+        { position.game_phase_score = EvalPosition::get_game_phase_score(&position); }
 
         position
     }
@@ -138,6 +147,9 @@ impl Position {
         // it is important that the capture is removed before moving the piece.
         if capture != Piece::None {
             self.remove_piece(capture, target);
+
+            #[cfg(feature = "unit_interpolated_eval")]
+            { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(capture); }
         }
 
         // Moves piece
@@ -151,8 +163,18 @@ impl Position {
             MoveFlag::None => (),
             MoveFlag::WDoublePawn => self.en_passant_sq = target.below(),
             MoveFlag::BDoublePawn => self.en_passant_sq = target.above(),
-            MoveFlag::WEnPassant => self.remove_piece(Piece::BP, target.below()),
-            MoveFlag::BEnPassant => self.remove_piece(Piece::WP, target.above()),
+            MoveFlag::WEnPassant => {
+                self.remove_piece(Piece::BP, target.below());
+                
+                #[cfg(feature = "unit_interpolated_eval")]
+                { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(Piece::BP); }
+            },
+            MoveFlag::BEnPassant => {
+                self.remove_piece(Piece::WP, target.above());
+                
+                #[cfg(feature = "unit_interpolated_eval")]
+                { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(Piece::WP); }
+            },
             MoveFlag::WKCastle => {
                 self.remove_piece(Piece::WR, Square::H1);
                 self.set_piece(Piece::WR, Square::F1);
@@ -178,6 +200,12 @@ impl Position {
                     },
                     target,
                 );
+
+                #[cfg(feature = "unit_interpolated_eval")]
+                {
+                    self.game_phase_score -= EvalPosition::get_game_phase_piece_score(piece);
+                    self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WQ);
+                }
             }
             MoveFlag::PromoR => {
                 self.remove_piece(piece, target);
@@ -188,6 +216,12 @@ impl Position {
                     },
                     target,
                 );
+
+                #[cfg(feature = "unit_interpolated_eval")]
+                {
+                    self.game_phase_score -= EvalPosition::get_game_phase_piece_score(piece);
+                    self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
+                }
             }
             MoveFlag::PromoN => {
                 self.remove_piece(piece, target);
@@ -198,6 +232,12 @@ impl Position {
                     },
                     target,
                 );
+
+                #[cfg(feature = "unit_interpolated_eval")]
+                {
+                    self.game_phase_score -= EvalPosition::get_game_phase_piece_score(piece);
+                    self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
+                }
             }
             MoveFlag::PromoB => {
                 self.remove_piece(piece, target);
@@ -208,6 +248,12 @@ impl Position {
                     },
                     target,
                 );
+
+                #[cfg(feature = "unit_interpolated_eval")]
+                {
+                    self.game_phase_score -= EvalPosition::get_game_phase_piece_score(piece);
+                    self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
+                }
             }
         };
 
@@ -376,6 +422,9 @@ impl Default for Position {
             castling_rights: CastlingRights::NONE,
             ply: 0,
             zobrist_key: ZobristKey(0),
+
+            #[cfg(feature = "unit_interpolated_eval")]
+            game_phase_score: 0,
         }
     }
 }

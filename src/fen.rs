@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{castling_rights::CastlingRights, color::Color, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
+use crate::{castling_rights::CastlingRights, color::Color, eval::EvalPosition, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
 
 #[derive(Debug)]
 pub struct FenParseError(pub &'static str);
@@ -43,6 +43,9 @@ impl FenString {
         Self::set_en_passant_sq(&mut position, en_passant_sq_str)?;
         
         position.zobrist_key = ZobristKey::generate(&position);
+
+        #[cfg(feature = "unit_interpolated_eval")]
+        { position.game_phase_score = EvalPosition::get_game_phase_score(&position); }
         
         Ok(position)
     }

@@ -365,7 +365,7 @@ impl EvalPosition {
     }
 
     #[inline(always)]
-    fn get_game_phase_score(position: &Position) -> i32 {
+    pub fn get_game_phase_score(position: &Position) -> i32 {
         let mut game_phase_score = 0;
 
         for piece in Piece::ALL_PIECES_EXPECT_PAWNS_AND_KINGS {
@@ -373,6 +373,11 @@ impl EvalPosition {
         }
 
         game_phase_score
+    }
+
+    #[inline(always)]
+    pub fn get_game_phase_piece_score(piece: Piece) -> i32 {
+        OPENING_PIECE_SCORES[piece as usize]
     }
 
     #[inline(always)]
@@ -401,11 +406,8 @@ impl EvalPosition {
         let mut endgame_score = 0;
         let mut ao_copy = position.ao;
 
-        #[cfg(feature = "interpolated_eval")]
-        let game_phase_score = Self::get_game_phase_score(position);
-
-        #[cfg(feature = "interpolated_eval")]
-        let game_phase = Self::get_game_phase(game_phase_score);
+        #[cfg(feature = "unit_interpolated_eval")]
+        let game_phase = Self::get_game_phase(position.game_phase_score);
 
         while ao_copy != Bitboard::EMPTY {
             let sq = ao_copy.pop_lsb();
@@ -418,14 +420,14 @@ impl EvalPosition {
             let positional_index = Self::get_positional_index(sq, piece.color());
             let mut piece_score = 0;
 
-            #[cfg(not(feature = "interpolated_eval"))]
+            #[cfg(not(feature = "unit_interpolated_eval"))]
             {
                 piece_score += BASE_PIECE_SCORES[piece as usize];
                 #[cfg(feature = "unit_eval_pps")]
                 { piece_score += BASE_PIECE_POSITION_SCORES[piece as usize][positional_index]; }
             }
 
-            #[cfg(feature = "interpolated_eval")]
+            #[cfg(feature = "unit_interpolated_eval")]
             {
                 opening_score += OPENING_PIECE_SCORES[piece as usize] * piece_color_modifier;
                 endgame_score += ENDGAME_PIECE_SCORES[piece as usize] * piece_color_modifier;
@@ -437,7 +439,7 @@ impl EvalPosition {
                 }
             }
 
-            #[cfg(feature = "positional_eval")]
+            #[cfg(feature = "unit_positional_eval")]
             if piece == Piece::WP || piece == Piece::BP {
                 if (position.bbs[piece] & Self::get_file_mask(sq)).count_bits() > 1 {
                     piece_score += DOUBLED_PAWN_SCORE;
@@ -491,12 +493,12 @@ impl EvalPosition {
             score += piece_score * piece_color_modifier;
         }
         
-        #[cfg(feature = "interpolated_eval")]
+        #[cfg(feature = "unit_interpolated_eval")]
         match game_phase {
             GamePhase::Middlegame => {
                 score += (
-                    opening_score * game_phase_score +
-                    endgame_score * (OPENING_PHASE_CUTOFF - game_phase_score)
+                    opening_score * position.game_phase_score +
+                    endgame_score * (OPENING_PHASE_CUTOFF - position.game_phase_score)
                 ) / OPENING_PHASE_CUTOFF
             },
             GamePhase::Opening => { score += opening_score; },

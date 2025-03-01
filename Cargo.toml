@@ -21,36 +21,36 @@ inherits = "release"
 #  /*-------------------------*\ 
 #        Playable versions
 #  \*-------------------------*/
-random = ["base_default"]
-minimax = ["base_default", "unit_minimax"]
-negamax = ["base_default", "unit_negamax"]
-eval_pps = ["negamax", "unit_eval_pps"]
-sort_moves = ["eval_pps", "unit_sort_moves"]
-iterative_deepening = ["sort_moves", "unit_iterative_deepening"]
-quiescence = ["iterative_deepening", "unit_quiescence"]
-quiescence_en_passant = ["quiescence", "unit_quiescence_en_passant"]
-checks_add_depth = ["quiescence_en_passant", "unit_checks_add_depth"]
-killer_heuristic = ["checks_add_depth", "unit_killer_heuristic"]
-butterfly_heuristic = ["killer_heuristic", "unit_butterfly_heuristic"]
-tt = ["butterfly_heuristic", "unit_tt"]
-eval_tt = ["tt", "unit_eval_tt"]
-tt_two_tier = ["eval_tt", "unit_tt_two_tier"]
-null_move_pruning = ["tt_two_tier", "unit_null_move_pruning"]
-late_move_reductions = ["null_move_pruning", "unit_late_move_reductions"]
-interpolated_eval = ["late_move_reductions", "unit_interpolated_eval"]
-positional_eval = ["interpolated_eval", "unit_positional_eval"]
+random =                    ["base_default"]
+minimax =                   ["base_default", "unit_minimax"]
+negamax =                   ["base_default", "unit_negamax"]
+eval_pps =                  ["negamax", "unit_eval_pps"]
+sort_moves =                ["eval_pps", "unit_sort_moves"]
+iterative_deepening =       ["sort_moves", "unit_iterative_deepening"]
+quiescence =                ["iterative_deepening", "unit_quiescence"]
+quiescence_en_passant =     ["quiescence", "unit_quiescence_en_passant"]
+checks_add_depth =          ["quiescence_en_passant", "unit_checks_add_depth"]
+killer_heuristic =          ["checks_add_depth", "unit_killer_heuristic"]
+butterfly_heuristic =       ["killer_heuristic", "unit_butterfly_heuristic"]
+tt =                        ["butterfly_heuristic", "unit_tt"]
+eval_tt =                   ["tt", "unit_eval_tt"]
+tt_two_tier =               ["eval_tt", "unit_tt_two_tier"]
+null_move_pruning =         ["tt_two_tier", "unit_null_move_pruning"]
+late_move_reductions =      ["null_move_pruning", "unit_late_move_reductions"]
+interpolated_eval =         ["late_move_reductions", "unit_interpolated_eval"]
+positional_eval =           ["interpolated_eval", "unit_positional_eval"]
 default = ["interpolated_eval"] # Should only be one feature from the list of playable versions
 
 #  /*------------------------------------------------------------*\ 
 #        Base features (should not be set as default feature)
 #  \*------------------------------------------------------------*/
-base_basic =                ["unit_bb", "unit_revert_undo"                                                       ]
-base_magic_bitboard =       ["unit_bb", "unit_revert_undo", "unit_magic_bbs"                            ]
-base_clone =                ["unit_bb", "unit_revert_clone",     "unit_magic_bbs"                            ]
-base_parallel =             ["unit_bb", "unit_revert_clone",     "unit_magic_bbs", "unit_parallel_perft"       ]
-base_array =                ["unit_bb_array",    "unit_revert_clone",     "unit_magic_bbs"                            ]
-base_parallel_array =       ["unit_bb_array",    "unit_parallel_perft",     "unit_revert_clone",       "unit_magic_bbs" ]
-base_default =              ["base_parallel_array"] # The feature used for all playable versions
+base_basic =                ["unit_bb",       "unit_revert_undo"                                           ]
+base_magic_bitboard =       ["unit_bb",       "unit_revert_undo",  "unit_magic_bbs"                        ]
+base_clone =                ["unit_bb",       "unit_revert_clone", "unit_magic_bbs"                        ]
+base_parallel =             ["unit_bb",       "unit_revert_clone", "unit_magic_bbs", "unit_parallel_perft" ]
+base_array =                ["unit_bb_array", "unit_revert_clone", "unit_magic_bbs"                        ]
+base_parallel_array =       ["unit_bb_array", "unit_revert_clone", "unit_magic_bbs", "unit_parallel_perft" ]
+base_default = ["base_parallel_array"] # The feature used for all playable versions
 
 #  /*------------------------------------------------------------*\ 
 #     Individual features (should not be set as default feature)
@@ -96,6 +96,6 @@ unit_null_move_pruning = []
 
 unit_late_move_reductions = []
 
-unit_positional_eval = []
-
 unit_interpolated_eval = []
+
+unit_positional_eval = []
