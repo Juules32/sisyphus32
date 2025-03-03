@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{ops::{Index, IndexMut}, mem::transmute};
 
-use crate::{bitboard::Bitboard, color::Color};
+use crate::color::Color;
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -76,17 +76,15 @@ impl Piece {
     }
 }
 
-// Allows indexing with Piece
-impl Index<Piece> for [Bitboard; 12] {
-    type Output = Bitboard;
+impl<T, const N: usize> Index<Piece> for [T; N] {
+    type Output = T;
 
     fn index(&self, index: Piece) -> &Self::Output {
         &self[index as usize]
     }
 }
 
-// Allows modifying array elements when indexing with Piece
-impl IndexMut<Piece> for [Bitboard; 12] {
+impl<T, const N: usize> IndexMut<Piece> for [T; N] {
     fn index_mut(&mut self, index: Piece) -> &mut Self::Output {
         &mut self[index as usize]
     }

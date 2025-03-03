@@ -2,7 +2,7 @@ use std::mem;
 
 use ctor::ctor;
 
-use crate::{bitboard::Bitboard, color::Color, rank::Rank, square::Square, file::File};
+use crate::{bitboard::Bitboard, color::Color, file::File, piece::Piece, rank::Rank, square::Square};
 
 const NUM_ROOK_MOVE_PERMUTATIONS: usize = 4096;
 const NUM_BISHOP_MOVE_PERMUTATIONS: usize = 512;
@@ -206,14 +206,14 @@ impl MoveMasks {
 
             for occupancy_index in 0..max_bishop_occupancy_index {
                 let occupancy = Self::generate_occupancy_permutation(occupancy_index, num_bishop_relevant_bits, bishop_mask);
-                let magic_index = occupancy.0.wrapping_mul(BISHOP_MAGIC_BITBOARDS[square].0) >> (64 - num_bishop_relevant_bits);
-                BISHOP_MOVE_CONFIGURATIONS[square][magic_index as usize] = Self::generate_bishop_moves_on_the_fly(square, occupancy);
+                let magic_index = (occupancy.0.wrapping_mul(BISHOP_MAGIC_BITBOARDS[square].0) >> (64 - num_bishop_relevant_bits)) as usize;
+                BISHOP_MOVE_CONFIGURATIONS[square][magic_index] = Self::generate_bishop_moves_on_the_fly(square, occupancy);
             }
 
             for occupancy_index in 0..max_rook_occupancy_index {
                 let occupancy = Self::generate_occupancy_permutation(occupancy_index, num_rook_relevant_bits, rook_mask);
-                let magic_index = occupancy.0.wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> (64 - num_rook_relevant_bits);
-                ROOK_MOVE_CONFIGURATIONS[square][magic_index as usize] = Self::generate_rook_moves_on_the_fly(square, occupancy);
+                let magic_index = (occupancy.0.wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> (64 - num_rook_relevant_bits)) as usize;
+                ROOK_MOVE_CONFIGURATIONS[square][magic_index] = Self::generate_rook_moves_on_the_fly(square, occupancy);
             }
         }
     }
@@ -332,25 +332,25 @@ impl MoveMasks {
         let file_u8 = square.file_as_u8();
 
         // Bottom right
-        for i in 1..=min(6_u8.saturating_sub(rank_u8), 6_u8.saturating_sub(file_u8)) as usize {
+        for i in 1..=min(6_u8.saturating_sub(rank_u8), 6_u8.saturating_sub(file_u8)) {
             let ray = square_bb.shift_downwards(i * 9);
             bb_mask |= ray;
         }
         
         // Top right
-        for i in 1..=min(rank_u8.saturating_sub(1), 6_u8.saturating_sub(file_u8)) as usize {
+        for i in 1..=min(rank_u8.saturating_sub(1), 6_u8.saturating_sub(file_u8)) {
             let ray = square_bb.shift_upwards(i * 7);
             bb_mask |= ray;
         }
 
         // Bottom left
-        for i in 1..=min(6_u8.saturating_sub(rank_u8), file_u8.saturating_sub(1)) as usize {
+        for i in 1..=min(6_u8.saturating_sub(rank_u8), file_u8.saturating_sub(1)) {
             let ray = square_bb.shift_downwards(i * 7);
             bb_mask |= ray;
         }
 
         // Top left
-        for i in 1..=min(rank_u8.saturating_sub(1), file_u8.saturating_sub(1)) as usize {
+        for i in 1..=min(rank_u8.saturating_sub(1), file_u8.saturating_sub(1)) {
             let ray = square_bb.shift_upwards(i * 9);
             bb_mask |= ray;
         }
@@ -366,25 +366,25 @@ impl MoveMasks {
         let file_u8 = square.file_as_u8();
 
         // Down
-        for i in 1..=(6_u8.saturating_sub(rank_u8)) as usize {
+        for i in 1..=(6_u8.saturating_sub(rank_u8)) {
             let ray = square_bb.shift_downwards(i * 8);
             bb_mask |= ray;
         }
         
         // Up
-        for i in 1..=(rank_u8.saturating_sub(1)) as usize {
+        for i in 1..=(rank_u8.saturating_sub(1)) {
             let ray = square_bb.shift_upwards(i * 8);
             bb_mask |= ray;
         }
 
         // Right
-        for i in 1..=(6_u8.saturating_sub(file_u8)) as usize {
+        for i in 1..=(6_u8.saturating_sub(file_u8)) {
             let ray = square_bb.shift_downwards(i);
             bb_mask |= ray;
         }
 
         // Left
-        for i in 1..=(file_u8.saturating_sub(1)) as usize {
+        for i in 1..=(file_u8.saturating_sub(1)) {
             let ray = square_bb.shift_upwards(i);
             bb_mask |= ray;
         }
@@ -402,28 +402,28 @@ impl MoveMasks {
         let file_u8 = square.file_as_u8();
 
         // Bottom right
-        for i in 1..=min(7_u8.saturating_sub(rank_u8), 7_u8.saturating_sub(file_u8)) as usize {
+        for i in 1..=min(7_u8.saturating_sub(rank_u8), 7_u8.saturating_sub(file_u8)) {
             let ray = square_bb.shift_downwards(i * 9);
             bb_mask |= ray;
             if (ray & occupancy).is_not_empty() { break; }
         }
         
         // Top right
-        for i in 1..=min(rank_u8, 7_u8.saturating_sub(file_u8)) as usize {
+        for i in 1..=min(rank_u8, 7_u8.saturating_sub(file_u8)) {
             let ray = square_bb.shift_upwards(i * 7);
             bb_mask |= ray;
             if (ray & occupancy).is_not_empty() { break; }
         }
 
         // Bottom left
-        for i in 1..=min(7_u8.saturating_sub(rank_u8), file_u8) as usize {
+        for i in 1..=min(7_u8.saturating_sub(rank_u8), file_u8) {
             let ray = square_bb.shift_downwards(i * 7);
             bb_mask |= ray;
             if (ray & occupancy).is_not_empty() { break; }
         }
 
         // Top left
-        for i in 1..=min(rank_u8, file_u8) as usize {
+        for i in 1..=min(rank_u8, file_u8) {
             let ray = square_bb.shift_upwards(i * 9);
             bb_mask |= ray;
             if (ray & occupancy).is_not_empty() { break; }
@@ -439,28 +439,28 @@ impl MoveMasks {
         let file_u8 = square.file_as_u8();
 
         // Down
-        for i in 1..=(7_u8.saturating_sub(rank_u8)) as usize {
+        for i in 1..=(7_u8.saturating_sub(rank_u8)) {
             let ray = square_bb.shift_downwards(i * 8);
             bb_mask |= ray;
             if (ray & occupancy).is_not_empty() { break; }
         }
         
         // Up
-        for i in 1..=rank_u8 as usize {
+        for i in 1..=rank_u8 {
             let ray = square_bb.shift_upwards(i * 8);
             bb_mask |= ray;
             if (ray & occupancy).is_not_empty() { break; }
         }
 
         // Right
-        for i in 1..=(7_u8.saturating_sub(file_u8)) as usize {
+        for i in 1..=(7_u8.saturating_sub(file_u8)) {
             let ray = square_bb.shift_downwards(i);
             bb_mask |= ray;
             if (ray & occupancy).is_not_empty() { break; }
         }
 
         // Left
-        for i in 1..=file_u8 as usize {
+        for i in 1..=file_u8 {
             let ray = square_bb.shift_upwards(i);
             bb_mask |= ray;
             if (ray & occupancy).is_not_empty() { break; }
@@ -523,11 +523,11 @@ impl MoveMasks {
     #[cfg(feature = "unit_magic_bbs")]
     pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         unsafe {
-            let mut index = occupancy.0 & BISHOP_MASKS[square].0;
-            index = 
-                index.wrapping_mul(BISHOP_MAGIC_BITBOARDS[square].0) >> 
-                (64 - BISHOP_RELEVANT_BITS[square]);
-            BISHOP_MOVE_CONFIGURATIONS[square][index as usize]
+            let index = (
+                (occupancy.0 & BISHOP_MASKS[square].0).wrapping_mul(BISHOP_MAGIC_BITBOARDS[square].0) >> 
+                (64 - BISHOP_RELEVANT_BITS[square])
+            ) as usize;
+            BISHOP_MOVE_CONFIGURATIONS[square][index]
         }
     }
 
@@ -541,11 +541,11 @@ impl MoveMasks {
     #[cfg(feature = "unit_magic_bbs")]
     pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         unsafe {
-            let mut index = occupancy.0 & ROOK_MASKS[square].0;
-            index = 
-                index.wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> 
-                (64 - ROOK_RELEVANT_BITS[square]);
-            ROOK_MOVE_CONFIGURATIONS[square][index as usize]
+            let index = ( 
+                (occupancy.0 & ROOK_MASKS[square].0).wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> 
+                (64 - ROOK_RELEVANT_BITS[square])
+            ) as usize;
+            ROOK_MOVE_CONFIGURATIONS[square][index]
         }
     }
 
@@ -559,6 +559,20 @@ impl MoveMasks {
     #[cfg(feature = "unit_magic_bbs")]
     pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         Self::get_bishop_mask(square, occupancy) | Self::get_rook_mask(square, occupancy)
+    }
+
+    #[inline(always)]
+    pub fn get_piece_mask(piece: Piece, square: Square, occupancy: Bitboard) -> Bitboard {
+        match piece {
+            Piece::WP => Self::get_pawn_capture_mask(Color::White, square),
+            Piece::BP => Self::get_pawn_capture_mask(Color::Black, square),
+            Piece::WN | Piece::BN => Self::get_knight_mask(square),
+            Piece::WB | Piece::BB => Self::get_bishop_mask(square, occupancy),
+            Piece::WR | Piece::BR => Self::get_rook_mask(square, occupancy),
+            Piece::WQ | Piece::BQ => Self::get_queen_mask(square, occupancy),
+            Piece::WK | Piece::BK => Self::get_king_mask(square),
+            Piece::None => panic!("Can't get piece mask for none piece!"),
+        }
     }
 }
 
