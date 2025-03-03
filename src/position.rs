@@ -17,7 +17,7 @@ pub struct Position {
     pub zobrist_key: ZobristKey,
 
     #[cfg(feature = "unit_interpolated_eval")]
-    pub game_phase_score: i32,
+    pub game_phase_score: i16,
 }
 
 impl Position {

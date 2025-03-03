@@ -17,6 +17,7 @@ pub const VERSIONS: &[&str] = &[
     "late_move_reductions",
     "interpolated_eval",
     "positional_eval",
+    "capture_with_check_eval",
 ];
 
 pub const BASE_FEATURES: &[&str] = &[
