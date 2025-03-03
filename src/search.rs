@@ -19,10 +19,15 @@ const DRAW_BY_STALEMATE: i16 = 0;
 const DRAW_BY_REPETITION: i16 = 0;
 const START_ALPHA: i16 = -32001;
 const START_BETA: i16 = 32001;
-const AVERAGE_AMOUNT_OF_MOVES: u128 = 30;
-const AVERAGE_BRANCHING_FACTOR: u128 = 5;
+const AVERAGE_AMOUNT_OF_MOVES: u128 = 25;
 const MAX_PLY: i16 = 242;
 const NULL_MOVE_DEPTH_REDUCTION: u16 = 3;
+
+#[cfg(not(feature = "unit_late_move_reductions"))]
+const AVERAGE_BRANCHING_FACTOR: u128 = 5;
+
+#[cfg(feature = "unit_late_move_reductions")]
+const AVERAGE_BRANCHING_FACTOR: u128 = 2;
 
 impl Search {
     #[inline(always)]
