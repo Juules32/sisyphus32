@@ -25,10 +25,10 @@ impl EvalMove {
         let source = bit_move.source();
         let target = bit_move.target();
         let piece = position.get_piece(source);
-        let capture = position.get_piece(target);
+        let capture_option = position.try_get_piece(target);
 
-        if capture != Piece::None {
-            score += MVV_LVA[piece][capture];
+        if capture_option.is_some() {
+            score += MVV_LVA[piece][capture_option.unwrap()];
 
             #[cfg(feature = "unit_capture_with_check_eval")]
             {
