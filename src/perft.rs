@@ -89,7 +89,8 @@ impl Perft {
         if print_result { println!("\n  Performance Test\n"); }
 
         for bit_move in MoveGeneration::generate_moves::<BitMove, PseudoLegal>(position) {
-            if let Some(new_position) = position.apply_pseudo_legal_move(bit_move) {
+            let mut new_position = position.clone();
+            if new_position.apply_pseudo_legal_move(bit_move) {
                 current_nodes += Self::perft_driver_single_thread_clone(&new_position, depth - 1);
                 
                 if print_result {
@@ -136,7 +137,8 @@ impl Perft {
         let cumulative_nodes = MoveGeneration::generate_moves::<BitMove, PseudoLegal>(position)
             .par_iter()
             .map(|&bit_move| {
-                if let Some(new_position) = (*position_arc).apply_pseudo_legal_move(bit_move) {
+                let mut new_position = (*position_arc).clone();
+                if new_position.apply_pseudo_legal_move(bit_move) {
                     let nodes = Self::perft_driver_parallelize(Arc::new(new_position), depth - 1);
                     if print_result {
                         println!("  Move: {:<5} Nodes: {}", bit_move.to_uci_string(), nodes);
@@ -201,7 +203,8 @@ impl Perft {
             MoveGeneration::generate_moves::<BitMove, PseudoLegal>(position)
                 .iter()
                 .map(|&bit_move| {
-                    if let Some(new_position) = position.apply_pseudo_legal_move(bit_move) {
+                    let mut new_position = position.clone();
+                    if new_position.apply_pseudo_legal_move(bit_move) {
                         Self::perft_driver_single_thread_clone(&new_position, depth - 1)
                     } else {
                         0
@@ -220,7 +223,8 @@ impl Perft {
             MoveGeneration::generate_moves::<BitMove, PseudoLegal>(&position_arc)
                 .iter()
                 .map(|&bit_move| {
-                    if let Some(new_position) = (*position_arc).apply_pseudo_legal_move(bit_move) {
+                    let mut new_position = (*position_arc).clone();
+                    if new_position.apply_pseudo_legal_move(bit_move) {
                         Self::perft_driver_parallelize(Arc::new(new_position), depth - 1)
                     } else {
                         0
@@ -232,7 +236,8 @@ impl Perft {
             MoveGeneration::generate_moves::<BitMove, PseudoLegal>(&position_arc)
                 .par_iter()
                 .map(|&bit_move| {
-                    if let Some(new_position) = (*position_arc).apply_pseudo_legal_move(bit_move) {
+                    let mut new_position = (*position_arc).clone();
+                    if new_position.apply_pseudo_legal_move(bit_move) {
                         Self::perft_driver_parallelize(Arc::new(new_position), depth - 1)
                     } else {
                         0

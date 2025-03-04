@@ -40,7 +40,7 @@ late_move_reductions =      ["null_move_pruning", "unit_late_move_reductions"]
 interpolated_eval =         ["late_move_reductions", "unit_interpolated_eval"]
 positional_eval =           ["interpolated_eval", "unit_positional_eval"]
 capture_with_check_eval =   ["interpolated_eval", "unit_capture_with_check_eval"]
-default = ["base_array"] # Should only be one feature from the list of playable versions
+default = ["interpolated_eval"] # Should only be one feature from the list of playable versions
 
 #  /*------------------------------------------------------------*\ 
 #        Base features (should not be set as default feature)

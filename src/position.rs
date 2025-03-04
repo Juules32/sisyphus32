@@ -354,16 +354,15 @@ impl Position {
         self.populate_occupancies();
     }
 
+    // NOTE: In this function, self is supposed to be a clone of the current position state.
     #[inline(always)]
-    pub fn apply_pseudo_legal_move(&self, bit_move: BitMove) -> Option<Position> {
-        let mut position_copy = self.clone();
-        position_copy.make_move(bit_move);
-
-        if !position_copy.in_check(position_copy.side.opposite()) {
-            position_copy.ply += 1;
-            Some(position_copy)
+    pub fn apply_pseudo_legal_move(&mut self, bit_move: BitMove) -> bool {
+        self.make_move(bit_move);
+        if !self.in_check(self.side.opposite()) {
+            self.ply += 1;
+            true
         } else {
-            None
+            false
         }
     }
 
