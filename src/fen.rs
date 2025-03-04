@@ -99,8 +99,8 @@ impl FenString {
         match en_passant_sq_str {
             "-" => Ok(()),
             _ => {
-                position.en_passant_sq = Square::try_from(en_passant_sq_str)
-                .map_err(|SquareParseError(msg)| FenParseError(msg))?;
+                position.en_passant_option = Some(Square::try_from(en_passant_sq_str)
+                    .map_err(|SquareParseError(msg)| FenParseError(msg))?);
                 Ok(())
             }
         }
@@ -178,9 +178,9 @@ impl From<&Position> for FenString {
         fen_str.push(' ');
 
         fen_str.push_str(
-            &match position.en_passant_sq {
-                Square::None => "-".to_owned(),
-                _ => position.en_passant_sq.to_string(),
+            &match position.en_passant_option {
+                None => "-".to_owned(),
+                Some(en_passant_sq) => en_passant_sq.to_string(),
             }
         );
         

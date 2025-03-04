@@ -13,7 +13,6 @@ pub enum Square {
     A3, B3, C3, D3, E3, F3, G3, H3,
     A2, B2, C2, D2, E2, F2, G2, H2,
     A1, B1, C1, D1, E1, F1, G1, H1,
-    None
 }
 
 impl Square {
@@ -127,10 +126,6 @@ impl TryFrom<&str> for Square {
 
 impl fmt::Display for Square {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if *self == Self::None {
-            f.pad("No Square")
-        } else {
-            f.pad(&format!("{}{}", self.file(), self.rank()))
-        }
+        f.pad(&format!("{}{}", self.file(), self.rank()))
     }
 }
