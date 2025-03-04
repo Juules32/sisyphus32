@@ -1,6 +1,6 @@
 use std::mem;
 
-use crate::{bit_move::BitMove, bitboard::Bitboard, butterfly_heuristic::ButterflyHeuristic, color::Color, file::File, killer_moves::KillerMoves, move_masks::MoveMasks, piece::Piece, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
+use crate::{bitboard::Bitboard, color::Color, file::File, move_masks::MoveMasks, piece::Piece, position::Position, square::Square};
 
 const BASE_PIECE_SCORES: [i16; 12] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000];
 
@@ -224,22 +224,6 @@ const ENDGAME_PIECE_POSITION_SCORES: [&[i16; 64]; 12] = [
 const OPENING_PHASE_CUTOFF: i16 = 6192;
 const ENDGAME_PHASE_CUTOFF: i16 = 518;
 
-// Most valuable victim - least valuable attacker [attacker][victim]
-const MVV_LVA: [[i16; 12]; 12] = [
-    [105, 205, 305, 405, 505, 605, 105, 205, 305, 405, 505, 605],
-    [104, 204, 304, 404, 504, 604, 104, 204, 304, 404, 504, 604],
-    [103, 203, 303, 403, 503, 603, 103, 203, 303, 403, 503, 603],
-    [102, 202, 302, 402, 502, 602, 102, 202, 302, 402, 502, 602],
-    [101, 201, 301, 401, 501, 601, 101, 201, 301, 401, 501, 601],
-    [100, 200, 300, 400, 500, 600, 100, 200, 300, 400, 500, 600],
-    [105, 205, 305, 405, 505, 605, 105, 205, 305, 405, 505, 605],
-    [104, 204, 304, 404, 504, 604, 104, 204, 304, 404, 504, 604],
-    [103, 203, 303, 403, 503, 603, 103, 203, 303, 403, 503, 603],
-    [102, 202, 302, 402, 502, 602, 102, 202, 302, 402, 502, 602],
-    [101, 201, 301, 401, 501, 601, 101, 201, 301, 401, 501, 601],
-    [100, 200, 300, 400, 500, 600, 100, 200, 300, 400, 500, 600],
-];
-
 const FLIPPED_SQUARE_INDEX: [usize; 64] = [
     56, 57, 58, 59, 60, 61, 62, 63,
     48, 49, 50, 51, 52, 53, 54, 55,
@@ -275,21 +259,25 @@ enum GamePhase {
 pub struct EvalPosition { }
 
 impl EvalPosition {
-    #[inline(always)]
+    pub unsafe fn init_positional_masks() {
+        Self::init_file_masks();
+        Self::init_rank_masks();
+        Self::init_isolated_masks();
+        Self::init_passed_masks();
+    }
+
     unsafe fn init_file_masks() {
         for square in Square::ALL_SQUARES {
             FILE_MASKS[square] = Bitboard::ALL_FILES[square.file() as usize];
         }
     }
 
-    #[inline(always)]
     unsafe fn init_rank_masks() {
         for square in Square::ALL_SQUARES {
             RANK_MASKS[square] = Bitboard::ALL_RANKS[square.rank() as usize];
         }
     }
 
-    #[inline(always)]
     unsafe fn init_isolated_masks() {
         for square in Square::ALL_SQUARES {
             if square.file() != File::FA {
@@ -302,7 +290,6 @@ impl EvalPosition {
         }
     }
 
-    #[inline(always)]
     unsafe fn init_passed_masks() {
         for square in Square::ALL_SQUARES {
             for color in [Color::White, Color::Black] {
@@ -337,14 +324,6 @@ impl EvalPosition {
                 }
             }
         }
-    }
-
-    #[inline(always)]
-    pub unsafe fn init_positional_masks() {
-        Self::init_file_masks();
-        Self::init_rank_masks();
-        Self::init_isolated_masks();
-        Self::init_passed_masks();
     }
 
     #[inline(always)]
@@ -516,62 +495,5 @@ impl EvalPosition {
             Color::White => 1,
             Color::Black => -1
         }
-    }
-}
-
-pub struct EvalMove { }
-
-impl EvalMove {
-    #[inline(always)]
-    pub fn eval(position: &Position, bit_move: BitMove) -> i16 {
-        let mut score = 0;
-        let source = bit_move.source();
-        let target = bit_move.target();
-        let piece = position.get_piece(source);
-        let capture = position.get_piece(target);
-
-        if capture != Piece::None {
-            score += MVV_LVA[piece][capture];
-
-            #[cfg(feature = "unit_capture_with_check_eval")]
-            {
-                let enemy_king_bb = match position.side {
-                    Color::White => position.bbs[Piece::BK],
-                    Color::Black => position.bbs[Piece::WK],
-                };
-                if (MoveMasks::get_piece_mask(piece, target, position.ao) & enemy_king_bb) != Bitboard::EMPTY {
-                    score += 300
-                }
-            }
-        };
-
-        #[cfg(feature = "unit_eval_tt")]
-        {
-            if let Some(entry) = TranspositionTable::probe(position.zobrist_key) {
-                if entry.best_move.bit_move == bit_move {
-                    match entry.flag {
-                        TTNodeType::Exact => score += 10000,
-                        TTNodeType::LowerBound => score += 4000,
-                        TTNodeType::UpperBound => score += 3000,
-                    }
-                }
-            }
-        }
-
-        #[cfg(feature = "unit_killer_heuristic")]
-        {
-            if KillerMoves::get_primary(position.ply) == Some(bit_move) {
-                score += 2000;
-            } else if KillerMoves::get_secondary(position.ply) == Some(bit_move) {
-                score += 1000;
-            }
-        }
-
-        #[cfg(feature = "unit_butterfly_heuristic")]
-        {
-            score += ButterflyHeuristic::get(position.side, source, target);
-        }
-
-        score
     }
 }

@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use crate::{bit_move::BitMove, color::Color, eval::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, color::Color, eval_position::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 

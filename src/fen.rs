@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{castling_rights::CastlingRights, color::Color, eval::EvalPosition, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
+use crate::{castling_rights::CastlingRights, color::Color, eval_position::EvalPosition, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
 
 #[derive(Debug)]
 pub struct FenParseError(pub &'static str);

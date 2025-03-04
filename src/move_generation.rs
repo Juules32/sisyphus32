@@ -6,12 +6,8 @@ impl MoveGeneration {
     #[inline]
     pub fn generate_moves<T: Move, F: Filter>(position: &Position) -> MoveList<T> {
         let mut move_list = MoveList::new();
-        
-        let side = position.side;
-        let en_passant_sq = position.en_passant_sq;
-        let inv_all_occupancies = !position.ao;
-        
-        let ([pawn, knight, bishop, rook, queen, king], inv_own_occupancies) = match side {
+
+        let ([pawn, knight, bishop, rook, queen, king], inv_own_occupancies) = match position.side {
             Color::White => (Piece::WHITE_PIECES, !position.wo),
             Color::Black => (Piece::BLACK_PIECES, !position.bo),
         };
@@ -20,7 +16,7 @@ impl MoveGeneration {
             /*------------------------------*\ 
                         Pawn moves
             \*------------------------------*/
-            let (pawn_promotion_rank, pawn_starting_rank, en_passant_rank, pawn_double_push_rank, double_pawn_flag, en_passant_flag, enemy_occupancies) = match side {
+            let (pawn_promotion_rank, pawn_starting_rank, en_passant_rank, pawn_double_push_rank, double_pawn_flag, en_passant_flag, enemy_occupancies) = match position.side {
                 Color::White => (Rank::R7, Rank::R2, Rank::R5, Rank::R4, MoveFlag::WDoublePawn, MoveFlag::WEnPassant, position.bo),
                 Color::Black => (Rank::R2, Rank::R7, Rank::R4, Rank::R5, MoveFlag::BDoublePawn, MoveFlag::BEnPassant, position.wo),
             };
@@ -31,7 +27,7 @@ impl MoveGeneration {
                 let source_rank = source.rank();
 
                 // Captures
-                let mut capture_mask = MoveMasks::get_pawn_capture_mask(side, source) & enemy_occupancies;
+                let mut capture_mask = MoveMasks::get_pawn_capture_mask(position.side, source) & enemy_occupancies;
                 while capture_mask.is_not_empty() {
                     let target = capture_mask.pop_lsb();
 
@@ -74,13 +70,13 @@ impl MoveGeneration {
                 }
 
                 // Quiet moves
-                let mut quiet_mask = MoveMasks::get_pawn_quiet_mask(side, source) & inv_all_occupancies;
+                let mut quiet_mask = MoveMasks::get_pawn_quiet_mask(position.side, source) & !position.ao;
                 while quiet_mask.is_not_empty() {
                     let target = quiet_mask.pop_lsb();
                     
                     if source_rank == pawn_starting_rank && target.rank() == pawn_double_push_rank {
                         // Making sure both squares in front of the pawn are empty
-                        if (MoveMasks::get_pawn_quiet_mask(side, source) & position.ao).is_empty() {
+                        if (MoveMasks::get_pawn_quiet_mask(position.side, source) & position.ao).is_empty() {
                             
                             #[cfg(feature = "unit_bb")]
                             Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, Piece::None, double_pawn_flag));
@@ -122,11 +118,11 @@ impl MoveGeneration {
                 }
                 
                 // En-passant
-                if en_passant_sq != Square::None && source_rank == en_passant_rank {
-                    let mut en_passant_mask = MoveMasks::get_pawn_capture_mask(side, source);
+                if position.en_passant_sq != Square::None && source_rank == en_passant_rank {
+                    let mut en_passant_mask = MoveMasks::get_pawn_capture_mask(position.side, source);
                     while en_passant_mask.is_not_empty() {
                         let target = en_passant_mask.pop_lsb();
-                        if target == en_passant_sq {
+                        if target == position.en_passant_sq {
                             #[cfg(feature = "unit_bb")]
                             Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, Piece::None, en_passant_flag));
 
@@ -171,7 +167,7 @@ impl MoveGeneration {
                 king_side_castling_mask, queen_side_castling_mask,
                 king_side_castling_right, queen_side_castling_right,
                 castling_square_c, castling_square_d, castling_square_e, castling_square_f, castling_square_g
-            ) = match side {
+            ) = match position.side {
                 Color::White => (
                     MoveFlag::WKCastle, MoveFlag::WQCastle,
                     Bitboard::W_KING_SIDE_MASK, Bitboard::W_QUEEN_SIDE_MASK,
@@ -317,10 +313,7 @@ impl MoveGeneration {
     pub fn generate_captures<T: Move, F: Filter>(position: &Position) -> MoveList<T> {
         let mut move_list = MoveList::new();
         
-        let side = position.side;
-        let en_passant_sq = position.en_passant_sq;
-        
-        let ([pawn, knight, bishop, rook, queen, king], enemy_occupancies) = match side {
+        let ([pawn, knight, bishop, rook, queen, king], enemy_occupancies) = match position.side {
             Color::White => (Piece::WHITE_PIECES, position.bo),
             Color::Black => (Piece::BLACK_PIECES, position.wo),
         };
@@ -329,7 +322,7 @@ impl MoveGeneration {
             /*------------------------------*\ 
                         Pawn moves
             \*------------------------------*/
-            let (pawn_promotion_rank, en_passant_rank, en_passant_flag) = match side {
+            let (pawn_promotion_rank, en_passant_rank, en_passant_flag) = match position.side {
                 Color::White => (Rank::R7, Rank::R5, MoveFlag::WEnPassant),
                 Color::Black => (Rank::R2, Rank::R4, MoveFlag::BEnPassant),
             };
@@ -340,7 +333,7 @@ impl MoveGeneration {
                 let source_rank = source.rank();
 
                 // Captures
-                let mut capture_mask = MoveMasks::get_pawn_capture_mask(side, source) & enemy_occupancies;
+                let mut capture_mask = MoveMasks::get_pawn_capture_mask(position.side, source) & enemy_occupancies;
                 while capture_mask.is_not_empty() {
                     let target = capture_mask.pop_lsb();
 
@@ -384,11 +377,11 @@ impl MoveGeneration {
 
                 #[cfg(feature = "unit_quiescence_en_passant")]
                 // En-passant
-                if en_passant_sq != Square::None && source_rank == en_passant_rank {
-                    let mut en_passant_mask = MoveMasks::get_pawn_capture_mask(side, source);
+                if position.en_passant_sq != Square::None && source_rank == en_passant_rank {
+                    let mut en_passant_mask = MoveMasks::get_pawn_capture_mask(position.side, source);
                     while en_passant_mask.is_not_empty() {
                         let target = en_passant_mask.pop_lsb();
-                        if target == en_passant_sq {
+                        if target == position.en_passant_sq {
                             #[cfg(feature = "unit_bb")]
                             Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, Piece::None, en_passant_flag));
 
