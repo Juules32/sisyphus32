@@ -1,6 +1,6 @@
 use ctor::ctor;
 
-use crate::{eval::EvalPosition, move_masks::MoveMasks, zobrist::ZobristKey};
+use crate::{eval_position::EvalPosition, move_masks::MoveMasks, zobrist::ZobristKey};
 
 #[ctor]
 unsafe fn init() {

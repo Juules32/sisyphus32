@@ -1,5 +1,5 @@
 use core::fmt;
-use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, eval::EvalPosition, fen::FenString, file::File, move_flag::MoveFlag, move_masks::MoveMasks, piece::Piece, square::Square, zobrist::ZobristKey};
+use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, eval_position::EvalPosition, fen::FenString, file::File, move_flag::MoveFlag, move_masks::MoveMasks, piece::Piece, square::Square, zobrist::ZobristKey};
 
 #[derive(Clone)]
 pub struct Position {
