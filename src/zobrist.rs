@@ -53,8 +53,8 @@ impl ZobristKey {
     
             hash ^= CASTLING_KEYS[position.castling_rights.0 as usize];
     
-            if position.en_passant_sq != Square::None {
-                let file = position.en_passant_sq.file();
+            if let Some(en_passant_sq) = position.en_passant_option {
+                let file = en_passant_sq.file();
                 hash ^= EN_PASSANT_KEYS[file as usize];
             }
     
@@ -81,10 +81,10 @@ impl ZobristKey {
     }
 
     #[inline(always)]
-    pub fn mod_en_passant(&mut self, en_passant_square: Square) {
+    pub fn mod_en_passant(&mut self, en_passant_option: Option<Square>) {
         unsafe { 
-            if en_passant_square != Square::None {
-                self.0 ^= EN_PASSANT_KEYS[en_passant_square.file() as usize]; 
+            if let Some(en_passant_sq) = en_passant_option {
+                self.0 ^= EN_PASSANT_KEYS[en_passant_sq.file() as usize]; 
             }
         }
     }
@@ -164,13 +164,13 @@ mod tests {
         let hash1 = ZobristKey::generate(&position);
 
         // Set an en passant square
-        position.en_passant_sq = Square::E3;
+        position.en_passant_option = Some(Square::E3);
         let hash2 = ZobristKey::generate(&position);
 
         assert_ne!(hash1, hash2, "Setting an en passant square should change the hash");
 
         // Reset en passant square
-        position.en_passant_sq = Square::None;
+        position.en_passant_option = None;
         let hash3 = ZobristKey::generate(&position);
 
         assert_eq!(hash1, hash3, "Clearing en passant should restore original hash");

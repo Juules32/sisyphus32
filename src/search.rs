@@ -3,7 +3,7 @@ extern crate rand;
 use rand::Rng;
 use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, square::Square, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
 const BLANK: i16 = 0;
 const CHECKMATE: i16 = 10000;
@@ -154,7 +154,7 @@ impl Search {
             let mut position_copy = position.clone();
             position_copy.zobrist_mods();
             position_copy.side.switch();
-            position_copy.en_passant_sq = Square::None;
+            position_copy.en_passant_option = None;
             position_copy.zobrist_mods();
             let null_move_score = -self.negamax_best_move(&position_copy, -beta, -beta + 1, depth - NULL_MOVE_DEPTH_REDUCTION).score;
             if null_move_score >= beta {

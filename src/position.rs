@@ -11,7 +11,7 @@ pub struct Position {
     pub bo: Bitboard,
     pub ao: Bitboard,
     pub side: Color,
-    pub en_passant_sq: Square,
+    pub en_passant_option: Option<Square>,
     pub castling_rights: CastlingRights,
     pub ply: u16,
     pub zobrist_key: ZobristKey,
@@ -76,7 +76,7 @@ impl Position {
             bo: Bitboard::BLACK_STARTING_PIECES,
             ao: Bitboard::ALL_STARTING_PIECES,
             side: Color::White,
-            en_passant_sq: Square::None,
+            en_passant_option: None,
             castling_rights: CastlingRights::DEFAULT,
             ply: 0,
             zobrist_key: ZobristKey(0),
@@ -117,7 +117,7 @@ impl Position {
     pub fn zobrist_mods(&mut self) {
         self.zobrist_key.mod_side(self.side);
         self.zobrist_key.mod_castling(self.castling_rights);
-        self.zobrist_key.mod_en_passant(self.en_passant_sq);
+        self.zobrist_key.mod_en_passant(self.en_passant_option);
     }
 
     #[inline]
@@ -156,42 +156,42 @@ impl Position {
         self.remove_piece(piece, source);
         self.set_piece(piece, target);
 
-        // Resets en-passant square
-        self.en_passant_sq = Square::None;
+        // Resets en-passant square option
+        self.en_passant_option = None;
 
         match flag {
-            MoveFlag::None => (),
-            MoveFlag::WDoublePawn => self.en_passant_sq = target.below(),
-            MoveFlag::BDoublePawn => self.en_passant_sq = target.above(),
-            MoveFlag::WEnPassant => {
+            None => (),
+            Some(MoveFlag::WDoublePawn) => self.en_passant_option = Some(target.below()),
+            Some(MoveFlag::BDoublePawn) => self.en_passant_option = Some(target.above()),
+            Some(MoveFlag::WEnPassant) => {
                 self.remove_piece(Piece::BP, target.below());
                 
                 #[cfg(feature = "unit_interpolated_eval")]
                 { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(Piece::BP); }
             },
-            MoveFlag::BEnPassant => {
+            Some(MoveFlag::BEnPassant) => {
                 self.remove_piece(Piece::WP, target.above());
                 
                 #[cfg(feature = "unit_interpolated_eval")]
                 { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(Piece::WP); }
             },
-            MoveFlag::WKCastle => {
+            Some(MoveFlag::WKCastle) => {
                 self.remove_piece(Piece::WR, Square::H1);
                 self.set_piece(Piece::WR, Square::F1);
             }
-            MoveFlag::WQCastle => {
+            Some(MoveFlag::WQCastle) => {
                 self.remove_piece(Piece::WR, Square::A1);
                 self.set_piece(Piece::WR, Square::D1);
             }
-            MoveFlag::BKCastle => {
+            Some(MoveFlag::BKCastle) => {
                 self.remove_piece(Piece::BR, Square::H8);
                 self.set_piece(Piece::BR, Square::F8);
             }
-            MoveFlag::BQCastle => {
+            Some(MoveFlag::BQCastle) => {
                 self.remove_piece(Piece::BR, Square::A8);
                 self.set_piece(Piece::BR, Square::D8);
             }
-            MoveFlag::PromoQ => {
+            Some(MoveFlag::PromoQ) => {
                 self.remove_piece(piece, target);
                 self.set_piece(
                     match self.side {
@@ -207,7 +207,7 @@ impl Position {
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WQ);
                 }
             }
-            MoveFlag::PromoR => {
+            Some(MoveFlag::PromoR) => {
                 self.remove_piece(piece, target);
                 self.set_piece(
                     match self.side {
@@ -223,7 +223,7 @@ impl Position {
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
                 }
             }
-            MoveFlag::PromoN => {
+            Some(MoveFlag::PromoN) => {
                 self.remove_piece(piece, target);
                 self.set_piece(
                     match self.side {
@@ -239,7 +239,7 @@ impl Position {
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
                 }
             }
-            MoveFlag::PromoB => {
+            Some(MoveFlag::PromoB) => {
                 self.remove_piece(piece, target);
                 self.set_piece(
                     match self.side {
@@ -284,35 +284,35 @@ impl Position {
             self.set_piece(capture, target);
         }
 
-        self.en_passant_sq = Square::None;
+        self.en_passant_option = None;
 
         match flag {
-            MoveFlag::None | MoveFlag::WDoublePawn | MoveFlag::BDoublePawn => (),
-            MoveFlag::WEnPassant => {
-                self.en_passant_sq = target;
+            None | Some(MoveFlag::WDoublePawn) | Some(MoveFlag::BDoublePawn) => (),
+            Some(MoveFlag::WEnPassant) => {
+                self.en_passant_option = Some(target);
                 self.set_piece(Piece::BP, target.below())
             }
-            MoveFlag::BEnPassant => {
-                self.en_passant_sq = target;
+            Some(MoveFlag::BEnPassant) => {
+                self.en_passant_option = Some(target);
                 self.set_piece(Piece::WP, target.above())
             }
-            MoveFlag::WKCastle => {
+            Some(MoveFlag::WKCastle) => {
                 self.set_piece(Piece::WR, Square::H1);
                 self.remove_piece(Piece::WR, Square::F1);
             }
-            MoveFlag::WQCastle => {
+            Some(MoveFlag::WQCastle) => {
                 self.set_piece(Piece::WR, Square::A1);
                 self.remove_piece(Piece::WR, Square::D1);
             }
-            MoveFlag::BKCastle => {
+            Some(MoveFlag::BKCastle) => {
                 self.set_piece(Piece::BR, Square::H8);
                 self.remove_piece(Piece::BR, Square::F8);
             }
-            MoveFlag::BQCastle => {
+            Some(MoveFlag::BQCastle) => {
                 self.set_piece(Piece::BR, Square::A8);
                 self.remove_piece(Piece::BR, Square::D8);
             }
-            MoveFlag::PromoQ => {
+            Some(MoveFlag::PromoQ) => {
                 self.remove_piece(
                     match self.side {
                         Color::White => Piece::WQ,
@@ -321,7 +321,7 @@ impl Position {
                     target,
                 );
             }
-            MoveFlag::PromoR => {
+            Some(MoveFlag::PromoR) => {
                 self.remove_piece(
                     match self.side {
                         Color::White => Piece::WR,
@@ -330,7 +330,7 @@ impl Position {
                     target,
                 );
             }
-            MoveFlag::PromoN => {
+            Some(MoveFlag::PromoN) => {
                 self.remove_piece(
                     match self.side {
                         Color::White => Piece::WN,
@@ -339,7 +339,7 @@ impl Position {
                     target,
                 );
             }
-            MoveFlag::PromoB => {
+            Some(MoveFlag::PromoB) => {
                 self.remove_piece(
                     match self.side {
                         Color::White => Piece::WB,
@@ -418,7 +418,7 @@ impl Default for Position {
             bo: Bitboard::EMPTY,
             ao: Bitboard::EMPTY,
             side: Color::White,
-            en_passant_sq: Square::None,
+            en_passant_option: None,
             castling_rights: CastlingRights::NONE,
             ply: 0,
             zobrist_key: ZobristKey(0),
@@ -451,12 +451,12 @@ impl fmt::Display for Position {
         s += &format!("
           FEN: {}
          Side: {}
-   En-passant: {}
+   En-passant: {:?}
      Castling: {}
   Zobrist Key: {:#x}\n",
             FenString::from(self),
             self.side,
-            self.en_passant_sq,
+            self.en_passant_option,
             self.castling_rights,
             self.zobrist_key.0,
         );
