@@ -1,7 +1,5 @@
 use std::mem;
 
-use ctor::ctor;
-
 use crate::{bitboard::Bitboard, color::Color, file::File, piece::Piece, rank::Rank, square::Square};
 
 const NUM_ROOK_MOVE_PERMUTATIONS: usize = 4096;
@@ -177,7 +175,7 @@ pub static ROOK_MAGIC_BITBOARDS: [Bitboard; 64] = [
 pub struct MoveMasks { }
 
 impl MoveMasks {
-    unsafe fn init_masks() {
+    pub unsafe fn init_move_masks() {
         for square in Square::ALL_SQUARES {
             WHITE_PAWN_QUIET_MASKS[square] = Self::generate_pawn_quiet_mask(Color::White, square);
             BLACK_PAWN_QUIET_MASKS[square] = Self::generate_pawn_quiet_mask(Color::Black, square);
@@ -188,13 +186,6 @@ impl MoveMasks {
             BISHOP_MASKS[square] = Self::generate_bishop_mask(square);
             ROOK_MASKS[square] = Self::generate_rook_mask(square);
 
-            debug_assert_eq!(BISHOP_MASKS[square].count_bits(), BISHOP_RELEVANT_BITS[square]);
-            debug_assert_eq!(ROOK_MASKS[square].count_bits(), ROOK_RELEVANT_BITS[square]);
-        }
-    }
-
-    unsafe fn init_slider_configurations() {
-        for square in Square::ALL_SQUARES {
             let bishop_mask = BISHOP_MASKS[square];
             let rook_mask = ROOK_MASKS[square];
 
@@ -215,6 +206,9 @@ impl MoveMasks {
                 let magic_index = (occupancy.0.wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> (64 - num_rook_relevant_bits)) as usize;
                 ROOK_MOVE_CONFIGURATIONS[square][magic_index] = Self::generate_rook_moves_on_the_fly(square, occupancy);
             }
+
+            debug_assert_eq!(BISHOP_MASKS[square].count_bits(), BISHOP_RELEVANT_BITS[square]);
+            debug_assert_eq!(ROOK_MASKS[square].count_bits(), ROOK_RELEVANT_BITS[square]);
         }
     }
 
@@ -574,10 +568,4 @@ impl MoveMasks {
             Piece::None => panic!("Can't get piece mask for none piece!"),
         }
     }
-}
-
-#[ctor]
-unsafe fn init_masks_and_slider_configurations() {
-    MoveMasks::init_masks();
-    MoveMasks::init_slider_configurations();
 }

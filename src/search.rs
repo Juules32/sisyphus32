@@ -5,14 +5,6 @@ use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, 
 
 use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, square::Square, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
-pub struct Search {
-    timer: Timer,
-    stop_time: Option<u128>,
-    pub stop_calculating: Arc<AtomicBool>,
-    nodes: u64,
-    pub zobrist_key_history: Vec<ZobristKey>,
-}
-
 const BLANK: i16 = 0;
 const CHECKMATE: i16 = 10000;
 const DRAW_BY_STALEMATE: i16 = 0;
@@ -28,6 +20,14 @@ const AVERAGE_BRANCHING_FACTOR: u128 = 5;
 
 #[cfg(feature = "unit_late_move_reductions")]
 const AVERAGE_BRANCHING_FACTOR: u128 = 2;
+
+pub struct Search {
+    timer: Timer,
+    stop_time: Option<u128>,
+    pub stop_calculating: Arc<AtomicBool>,
+    nodes: u64,
+    pub zobrist_key_history: Vec<ZobristKey>,
+}
 
 impl Search {
     #[inline(always)]
