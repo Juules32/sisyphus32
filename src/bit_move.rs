@@ -136,16 +136,16 @@ impl BitMove {
 
     #[inline(always)]
     pub fn is_capture_or_promotion(self, position: &Position) -> bool {
-        position.get_piece(self.target()) != Piece::None || self.flag().is_some_and(|f| f.is_promotion())
+        position.try_get_piece(self.target()).is_some() || self.flag().is_some_and(|f| f.is_promotion())
     }
 
     #[inline(always)]
     pub fn is_pp_capture_or_castle(self, position: &Position) -> bool {
-        let source_piece = position.get_piece(self.source());
-        let target_piece = position.get_piece(self.target());
-        source_piece == Piece::WP ||
-        source_piece == Piece::BP ||
-        target_piece != Piece::None ||
+        let source_piece = position.try_get_piece(self.source());
+        let target_piece = position.try_get_piece(self.target());
+        source_piece == Some(Piece::WP) ||
+        source_piece == Some(Piece::BP) ||
+        target_piece != None ||
         self.flag().is_some_and(|f| f.is_castle())
     }
 

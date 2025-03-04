@@ -135,10 +135,10 @@ impl From<&Position> for FenString {
         for square in Square::ALL_SQUARES {
             curr_width += 1;
 
-            let piece = position.get_piece(square);
-            match piece {
-                Piece::None => curr_empty += 1,
-                _ => {
+            let piece_option = position.try_get_piece(square);
+            match piece_option {
+                None => curr_empty += 1,
+                Some(piece) => {
                     if curr_empty != 0 {
                         fen_str.push_str(&curr_empty.to_string());
                         curr_empty = 0;
@@ -146,7 +146,6 @@ impl From<&Position> for FenString {
                     fen_str.push(piece.into())
                 }
             }
-
 
             if curr_width == 8 {
                 if curr_empty != 0 {

@@ -45,8 +45,8 @@ impl ZobristKey {
     
         unsafe {
             for square in Square::ALL_SQUARES {
-                let piece = position.get_piece(square);
-                if piece != Piece::None {
+                let piece_option = position.try_get_piece(square);
+                if let Some(piece) = piece_option {
                     hash ^= PIECE_KEYS[piece][square];
                 }
             }
@@ -69,9 +69,7 @@ impl ZobristKey {
     #[inline(always)]
     pub fn mod_piece(&mut self, piece: Piece, square: Square) {
         unsafe {
-            if piece != Piece::None {
-                self.0 ^= PIECE_KEYS[piece][square];
-            }
+            self.0 ^= PIECE_KEYS[piece][square];
         }
     }
 
@@ -125,8 +123,8 @@ mod tests {
         let mut position2 = Position::starting_position();
 
         // Modify position2 by moving e2 to e4
-        position2.pps[Square::E2] = Piece::None;
-        position2.pps[Square::E4] = Piece::WP;
+        position2.pps[Square::E2] = None;
+        position2.pps[Square::E4] = Some(Piece::WP);
 
         let hash1 = ZobristKey::generate(&position1);
         let hash2 = ZobristKey::generate(&position2);

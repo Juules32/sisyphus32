@@ -4,7 +4,7 @@ use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRigh
 #[derive(Clone)]
 pub struct Position {
     #[cfg(feature = "unit_bb_array")]
-    pub pps: [Piece; 64],
+    pub pps: [Option<Piece>; 64],
 
     pub bbs: [Bitboard; 12],
     pub wo: Bitboard,
@@ -48,14 +48,14 @@ impl Position {
         let mut position = Position {
             #[cfg(feature = "unit_bb_array")]
             pps: [
-                Piece::BR, Piece::BN, Piece::BB, Piece::BQ, Piece::BK, Piece::BB, Piece::BN, Piece::BR,
-                Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP,
-                Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None,
-                Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None,
-                Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None,
-                Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None,
-                Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP,
-                Piece::WR, Piece::WN, Piece::WB, Piece::WQ, Piece::WK, Piece::WB, Piece::WN, Piece::WR,
+                Some(Piece::BR), Some(Piece::BN), Some(Piece::BB), Some(Piece::BQ), Some(Piece::BK), Some(Piece::BB), Some(Piece::BN), Some(Piece::BR),
+                Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP),
+                None,            None,            None,            None,            None,            None,            None,            None,
+                None,            None,            None,            None,            None,            None,            None,            None,
+                None,            None,            None,            None,            None,            None,            None,            None,
+                None,            None,            None,            None,            None,            None,            None,            None,
+                Some(Piece::WP), Some(Piece::WP), Some(Piece::WP), Some(Piece::WP), Some(Piece::WP), Some(Piece::WP), Some(Piece::WP), Some(Piece::WP),
+                Some(Piece::WR), Some(Piece::WN), Some(Piece::WB), Some(Piece::WQ), Some(Piece::WK), Some(Piece::WB), Some(Piece::WN), Some(Piece::WR),
             ],
 
             bbs: [
@@ -98,7 +98,7 @@ impl Position {
         self.bbs[piece].set_sq(sq);
 
         #[cfg(feature = "unit_bb_array")]
-        { self.pps[sq] = piece; }
+        { self.pps[sq] = Some(piece); }
         
         self.zobrist_key.mod_piece(piece, sq);
     }
@@ -108,7 +108,7 @@ impl Position {
         self.bbs[piece].pop_sq(sq);
 
         #[cfg(feature = "unit_bb_array")]
-        { self.pps[sq] = Piece::None; }
+        { self.pps[sq] = None; }
 
         self.zobrist_key.mod_piece(piece, sq);
     }
@@ -123,21 +123,27 @@ impl Position {
     #[inline]
     pub fn make_move(&mut self, bit_move: BitMove) {
         #[cfg(feature = "unit_bb")]
-        let (source, target, piece, capture, flag) = bit_move.decode();
+        let (source, target, piece, capture, flag_option) = bit_move.decode();
+
+        #[cfg(feature = "unit_bb")]
+        let capture_option = match capture {
+            Piece::None => None,
+            piece => Some(piece),
+        };
 
         #[cfg(feature = "unit_bb_array")]
-        let (source, target, flag) = bit_move.decode();
+        let (source, target, flag_option) = bit_move.decode();
 
         #[cfg(feature = "unit_bb_array")]
-        let piece = self.pps[source];
+        let piece = self.get_piece(source);
 
         #[cfg(feature = "unit_bb_array")]
-        let capture = self.pps[target];
+        let capture_option = self.try_get_piece(target);
 
         debug_assert_eq!(piece.color(), self.side);
-        debug_assert!(capture == Piece::None || capture.color() == self.side.opposite());
+        debug_assert!(capture_option.is_none_or(|capture| capture.color() == self.side.opposite()));
         debug_assert!(self.bbs[piece].is_set_sq(source));
-        debug_assert!(capture == Piece::None || self.bbs[capture].is_set_sq(target));
+        debug_assert!(capture_option.is_none_or(|capture| self.bbs[capture].is_set_sq(target)));
 
         // Modify the zobrist key before making the move
         self.zobrist_mods();
@@ -145,7 +151,7 @@ impl Position {
         // Removes captured piece
         // NOTE: Because of the way zobrist hashing is implemented,
         // it is important that the capture is removed before moving the piece.
-        if capture != Piece::None {
+        if let Some(capture) = capture_option {
             self.remove_piece(capture, target);
 
             #[cfg(feature = "unit_interpolated_eval")]
@@ -159,7 +165,7 @@ impl Position {
         // Resets en-passant square option
         self.en_passant_option = None;
 
-        match flag {
+        match flag_option {
             None => (),
             Some(MoveFlag::WDoublePawn) => self.en_passant_option = Some(target.below()),
             Some(MoveFlag::BDoublePawn) => self.en_passant_option = Some(target.above()),
@@ -400,8 +406,25 @@ impl Position {
     }
 
     #[inline(always)]
+    #[cfg(feature = "unit_bb")]
+    pub fn try_get_piece(&self, square: Square) -> Option<Piece> {
+        for piece in Piece::ALL_PIECES {
+            if self.bbs[piece].is_set_sq(square) {
+                Some(piece);
+            }
+        }
+        None
+    }
+
+    #[inline(always)]
     #[cfg(feature = "unit_bb_array")]
     pub fn get_piece(&self, square: Square) -> Piece {
+        self.pps[square].unwrap()
+    }
+
+    #[inline(always)]
+    #[cfg(feature = "unit_bb_array")]
+    pub fn try_get_piece(&self, square: Square) -> Option<Piece> {
         self.pps[square]
     }
 }
@@ -410,7 +433,7 @@ impl Default for Position {
     fn default() -> Position {
         Position {
             #[cfg(feature = "unit_bb_array")]
-            pps: [Piece::None; 64],
+            pps: [None; 64],
 
             bbs: [Bitboard::EMPTY; 12],
             wo: Bitboard::EMPTY,
@@ -436,9 +459,9 @@ impl fmt::Display for Position {
                 s += &format!("  {}  ", sq.rank());
             }
             
-            match self.get_piece(sq) {
-                Piece::None => s += ". ",
-                piece => s += &format!("{} ", piece),
+            match self.try_get_piece(sq) {
+                None => s += ". ",
+                Some(piece) => s += &format!("{} ", piece),
             }
 
             if sq.file() == File::FH {
