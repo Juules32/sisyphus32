@@ -1,7 +1,5 @@
 use std::mem;
 
-use ctor::ctor;
-
 use crate::{bit_move::BitMove, bitboard::Bitboard, butterfly_heuristic::ButterflyHeuristic, color::Color, file::File, killer_moves::KillerMoves, move_masks::MoveMasks, piece::Piece, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
 
 const BASE_PIECE_SCORES: [i16; 12] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000];
@@ -253,12 +251,6 @@ const FLIPPED_SQUARE_INDEX: [usize; 64] = [
      0,  1,  2,  3,  4,  5,  6,  7,
 ];
 
-static mut FILE_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-static mut RANK_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-static mut ISOLATED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-static mut WHITE_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-static mut BLACK_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-
 const DOUBLED_PAWN_SCORE: i16 = -30;
 const ISOLATED_PAWN_SCORE: i16 = -15;
 const PASSED_PAWN_SCORES: [i16; 8] = [0, 10, 30, 50, 75, 100, 150, 200];
@@ -266,6 +258,12 @@ const SEMI_OPEN_FILE_SCORE: i16 = 10;
 const OPEN_FILE_SCORE: i16 = 15;
 const KING_ON_SEMI_OPEN_FILE_SCORE: i16 = -30;
 const KING_ADJACENCY_SCORE: i16 = 15;
+
+static mut FILE_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+static mut RANK_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+static mut ISOLATED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+static mut WHITE_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+static mut BLACK_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 
 #[derive(Clone, Copy, Debug)]
 enum GamePhase {
@@ -339,6 +337,14 @@ impl EvalPosition {
                 }
             }
         }
+    }
+
+    #[inline(always)]
+    pub unsafe fn init_positional_masks() {
+        Self::init_file_masks();
+        Self::init_rank_masks();
+        Self::init_isolated_masks();
+        Self::init_passed_masks();
     }
 
     #[inline(always)]
@@ -568,12 +574,4 @@ impl EvalMove {
 
         score
     }
-}
-
-#[ctor]
-pub unsafe fn init_all_masks() {
-    EvalPosition::init_file_masks();
-    EvalPosition::init_rank_masks();
-    EvalPosition::init_isolated_masks();
-    EvalPosition::init_passed_masks();
 }
