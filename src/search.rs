@@ -88,7 +88,8 @@ impl Search {
         moves.sort_by_score();
 
         for scoring_capture in moves.iter_mut() {
-            if let Some(new_position) = position.apply_pseudo_legal_move(scoring_capture.bit_move) {
+            let mut new_position = position.clone();
+            if new_position.apply_pseudo_legal_move(scoring_capture.bit_move) {
                 self.nodes += 1;
                 scoring_capture.score = -self.quiescence(&new_position, -beta, -best_move.score).score;
                 if scoring_capture.score > best_move.score {
@@ -178,7 +179,8 @@ impl Search {
         let original_depth = depth;
         let mut move_index = 0;
         for scoring_move in moves.iter_mut() {
-            if let Some(new_position) = position.apply_pseudo_legal_move(scoring_move.bit_move) {
+            let mut new_position = position.clone();
+            if new_position.apply_pseudo_legal_move(scoring_move.bit_move) {
                 let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
                 moves_has_legal_move = true;
 
