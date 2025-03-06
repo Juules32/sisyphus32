@@ -3,7 +3,23 @@ extern crate rand;
 use rand::Rng;
 use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, square::Square, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
+
+const BLANK: i16 = 0;
+const CHECKMATE: i16 = 10000;
+const DRAW_BY_STALEMATE: i16 = 0;
+const DRAW_BY_REPETITION: i16 = 0;
+const START_ALPHA: i16 = -32001;
+const START_BETA: i16 = 32001;
+const AVERAGE_AMOUNT_OF_MOVES: u128 = 25;
+const MAX_PLY: i16 = 242;
+const NULL_MOVE_DEPTH_REDUCTION: u16 = 3;
+
+#[cfg(not(feature = "unit_late_move_reductions"))]
+const AVERAGE_BRANCHING_FACTOR: u128 = 5;
+
+#[cfg(feature = "unit_late_move_reductions")]
+const AVERAGE_BRANCHING_FACTOR: u128 = 2;
 
 pub struct Search {
     timer: Timer,
@@ -12,17 +28,6 @@ pub struct Search {
     nodes: u64,
     pub zobrist_key_history: Vec<ZobristKey>,
 }
-
-const BLANK: i16 = 0;
-const CHECKMATE: i16 = 10000;
-const DRAW_BY_STALEMATE: i16 = 0;
-const DRAW_BY_REPETITION: i16 = 0;
-const START_ALPHA: i16 = -32001;
-const START_BETA: i16 = 32001;
-const AVERAGE_AMOUNT_OF_MOVES: u128 = 30;
-const AVERAGE_BRANCHING_FACTOR: u128 = 5;
-const MAX_PLY: i16 = 242;
-const NULL_MOVE_DEPTH_REDUCTION: u16 = 3;
 
 impl Search {
     #[inline(always)]
@@ -83,7 +88,8 @@ impl Search {
         moves.sort_by_score();
 
         for scoring_capture in moves.iter_mut() {
-            if let Some(new_position) = position.apply_pseudo_legal_move(scoring_capture.bit_move) {
+            let mut new_position = position.clone();
+            if new_position.apply_pseudo_legal_move(scoring_capture.bit_move) {
                 self.nodes += 1;
                 scoring_capture.score = -self.quiescence(&new_position, -beta, -best_move.score).score;
                 if scoring_capture.score > best_move.score {
@@ -149,7 +155,7 @@ impl Search {
             let mut position_copy = position.clone();
             position_copy.zobrist_mods();
             position_copy.side.switch();
-            position_copy.en_passant_sq = Square::None;
+            position_copy.en_passant_option = None;
             position_copy.zobrist_mods();
             let null_move_score = -self.negamax_best_move(&position_copy, -beta, -beta + 1, depth - NULL_MOVE_DEPTH_REDUCTION).score;
             if null_move_score >= beta {
@@ -173,7 +179,8 @@ impl Search {
         let original_depth = depth;
         let mut move_index = 0;
         for scoring_move in moves.iter_mut() {
-            if let Some(new_position) = position.apply_pseudo_legal_move(scoring_move.bit_move) {
+            let mut new_position = position.clone();
+            if new_position.apply_pseudo_legal_move(scoring_move.bit_move) {
                 let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
                 moves_has_legal_move = true;
 

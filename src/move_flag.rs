@@ -4,7 +4,6 @@ use core::fmt;
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum MoveFlag {
-    None,
     WEnPassant,
     BEnPassant,
     WDoublePawn,
@@ -40,8 +39,7 @@ impl From<u8> for MoveFlag {
 
 impl fmt::Display for MoveFlag {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match self {
-            MoveFlag::None => "None",
+        f.pad(match self {
             MoveFlag::WDoublePawn => "Double Pawn Push",
             MoveFlag::BDoublePawn => "Double Pawn Push",
             MoveFlag::WEnPassant => "En-passant",
@@ -54,7 +52,6 @@ impl fmt::Display for MoveFlag {
             MoveFlag::PromoB => "Bishop Promotion",
             MoveFlag::PromoR => "Rook Promotion",
             MoveFlag::PromoQ => "Queen Promotion",
-        };
-        f.pad(name)
+        })
     }
 }

@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{castling_rights::CastlingRights, color::Color, eval::EvalPosition, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
+use crate::{castling_rights::CastlingRights, color::Color, eval_position::EvalPosition, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
 
 #[derive(Debug)]
 pub struct FenParseError(pub &'static str);
@@ -99,8 +99,8 @@ impl FenString {
         match en_passant_sq_str {
             "-" => Ok(()),
             _ => {
-                position.en_passant_sq = Square::try_from(en_passant_sq_str)
-                .map_err(|SquareParseError(msg)| FenParseError(msg))?;
+                position.en_passant_option = Some(Square::try_from(en_passant_sq_str)
+                    .map_err(|SquareParseError(msg)| FenParseError(msg))?);
                 Ok(())
             }
         }
@@ -135,10 +135,10 @@ impl From<&Position> for FenString {
         for square in Square::ALL_SQUARES {
             curr_width += 1;
 
-            let piece = position.get_piece(square);
-            match piece {
-                Piece::None => curr_empty += 1,
-                _ => {
+            let piece_option = position.get_piece_option(square);
+            match piece_option {
+                None => curr_empty += 1,
+                Some(piece) => {
                     if curr_empty != 0 {
                         fen_str.push_str(&curr_empty.to_string());
                         curr_empty = 0;
@@ -146,7 +146,6 @@ impl From<&Position> for FenString {
                     fen_str.push(piece.into())
                 }
             }
-
 
             if curr_width == 8 {
                 if curr_empty != 0 {
@@ -178,9 +177,9 @@ impl From<&Position> for FenString {
         fen_str.push(' ');
 
         fen_str.push_str(
-            &match position.en_passant_sq {
-                Square::None => "-".to_owned(),
-                _ => position.en_passant_sq.to_string(),
+            &match position.en_passant_option {
+                None => "-".to_owned(),
+                Some(en_passant_sq) => en_passant_sq.to_string(),
             }
         );
         

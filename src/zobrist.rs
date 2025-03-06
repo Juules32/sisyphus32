@@ -1,7 +1,5 @@
 use std::{fmt::Display, mem};
 
-use ctor::ctor;
-
 use crate::{castling_rights::CastlingRights, color::Color, piece::Piece, position::Position, rng::RandomNumberGenerator, square::Square};
 
 // Constants for Zobrist hashing
@@ -20,22 +18,43 @@ static mut SIDE_KEY: u64 = 0;
 pub struct ZobristKey(pub u64);
 
 impl ZobristKey {
+    #[allow(static_mut_refs)]
+    pub unsafe fn init_zobrist_keys() {
+        let mut rng = RandomNumberGenerator::default();
+        
+        for piece_array_key in PIECE_KEYS.iter_mut() {
+            for square_key in piece_array_key.iter_mut() {
+                *square_key = rng.generate_u64();
+            }
+        }
+
+        for castling_key in CASTLING_KEYS.iter_mut() {
+            *castling_key = rng.generate_u64();
+        }
+
+        for en_passant_key in EN_PASSANT_KEYS.iter_mut() {
+            *en_passant_key = rng.generate_u64();
+        }
+
+        SIDE_KEY = rng.generate_u64();
+    }
+
     #[inline(always)]
     pub fn generate(position: &Position) -> ZobristKey {
         let mut hash = 0_u64;
     
         unsafe {
             for square in Square::ALL_SQUARES {
-                let piece = position.get_piece(square);
-                if piece != Piece::None {
-                    hash ^= PIECE_KEYS[piece as usize][square];
+                let piece_option = position.get_piece_option(square);
+                if let Some(piece) = piece_option {
+                    hash ^= PIECE_KEYS[piece][square];
                 }
             }
     
             hash ^= CASTLING_KEYS[position.castling_rights.0 as usize];
     
-            if position.en_passant_sq != Square::None {
-                let file = position.en_passant_sq.file();
+            if let Some(en_passant_sq) = position.en_passant_option {
+                let file = en_passant_sq.file();
                 hash ^= EN_PASSANT_KEYS[file as usize];
             }
     
@@ -50,9 +69,7 @@ impl ZobristKey {
     #[inline(always)]
     pub fn mod_piece(&mut self, piece: Piece, square: Square) {
         unsafe {
-            if piece != Piece::None {
-                self.0 ^= PIECE_KEYS[piece as usize][square];
-            }
+            self.0 ^= PIECE_KEYS[piece][square];
         }
     }
 
@@ -62,10 +79,10 @@ impl ZobristKey {
     }
 
     #[inline(always)]
-    pub fn mod_en_passant(&mut self, en_passant_square: Square) {
+    pub fn mod_en_passant(&mut self, en_passant_option: Option<Square>) {
         unsafe { 
-            if en_passant_square != Square::None {
-                self.0 ^= EN_PASSANT_KEYS[en_passant_square.file() as usize]; 
+            if let Some(en_passant_sq) = en_passant_option {
+                self.0 ^= EN_PASSANT_KEYS[en_passant_sq.file() as usize]; 
             }
         }
     }
@@ -86,27 +103,6 @@ impl Display for ZobristKey {
     }
 }
 
-#[ctor]
-#[allow(static_mut_refs)]
-unsafe fn init_zobrist() {
-    let mut rng = RandomNumberGenerator::default();
-    
-    for piece_array_key in PIECE_KEYS.iter_mut() {
-        for square_key in piece_array_key.iter_mut() {
-            *square_key = rng.generate_u64();
-        }
-    }
-
-    for castling_key in CASTLING_KEYS.iter_mut() {
-        *castling_key = rng.generate_u64();
-    }
-
-    for en_passant_key in EN_PASSANT_KEYS.iter_mut() {
-        *en_passant_key = rng.generate_u64();
-    }
-
-    SIDE_KEY = rng.generate_u64();
-}
 
 #[cfg(test)]
 mod tests {
@@ -127,8 +123,8 @@ mod tests {
         let mut position2 = Position::starting_position();
 
         // Modify position2 by moving e2 to e4
-        position2.pps[Square::E2 as usize] = Piece::None;
-        position2.pps[Square::E4 as usize] = Piece::WP;
+        position2.pps[Square::E2] = None;
+        position2.pps[Square::E4] = Some(Piece::WP);
 
         let hash1 = ZobristKey::generate(&position1);
         let hash2 = ZobristKey::generate(&position2);
@@ -166,13 +162,13 @@ mod tests {
         let hash1 = ZobristKey::generate(&position);
 
         // Set an en passant square
-        position.en_passant_sq = Square::E3;
+        position.en_passant_option = Some(Square::E3);
         let hash2 = ZobristKey::generate(&position);
 
         assert_ne!(hash1, hash2, "Setting an en passant square should change the hash");
 
         // Reset en passant square
-        position.en_passant_sq = Square::None;
+        position.en_passant_option = None;
         let hash3 = ZobristKey::generate(&position);
 
         assert_eq!(hash1, hash3, "Clearing en passant should restore original hash");

@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{ops::{Index, IndexMut}, mem::transmute};
 
-use crate::{bitboard::Bitboard, color::Color};
+use crate::color::Color;
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -18,7 +18,6 @@ pub enum Piece {
     BR = 0b1001,
     BQ = 0b1010,
     BK = 0b1011,
-    None = 0b1100,
 }
 
 impl Piece {
@@ -76,17 +75,15 @@ impl Piece {
     }
 }
 
-// Allows indexing with Piece
-impl Index<Piece> for [Bitboard; 12] {
-    type Output = Bitboard;
+impl<T, const N: usize> Index<Piece> for [T; N] {
+    type Output = T;
 
     fn index(&self, index: Piece) -> &Self::Output {
         &self[index as usize]
     }
 }
 
-// Allows modifying array elements when indexing with Piece
-impl IndexMut<Piece> for [Bitboard; 12] {
+impl<T, const N: usize> IndexMut<Piece> for [T; N] {
     fn index_mut(&mut self, index: Piece) -> &mut Self::Output {
         &mut self[index as usize]
     }
@@ -135,7 +132,6 @@ impl From<Piece> for char {
             Piece::BR => 'r',
             Piece::BQ => 'q',
             Piece::BK => 'k',
-            Piece::None => panic!("Can't convert none piece type to char!"),
         }
     }
 }
@@ -155,7 +151,6 @@ impl fmt::Display for Piece {
             Piece::BR => "♖",
             Piece::BQ => "♕",
             Piece::BK => "♔",
-            Piece::None => "None",
         };
         f.pad(s)
     }
