@@ -1,6 +1,9 @@
 use std::mem;
 
-use crate::{bitboard::Bitboard, color::Color, file::File, move_masks::MoveMasks, piece::Piece, position::Position, square::Square};
+use crate::{bitboard::Bitboard, color::Color, file::File, piece::Piece, position::Position, square::Square};
+
+#[allow(unused_imports)]
+use crate::move_masks::MoveMasks;
 
 const BASE_PIECE_SCORES: [i16; 12] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000];
 
@@ -413,6 +416,8 @@ impl EvalPosition {
             };
 
             let positional_index = Self::get_positional_index(sq, piece.color());
+
+            #[allow(unused_mut)]
             let mut piece_score = 0;
 
             #[cfg(not(feature = "unit_interpolated_eval"))]
