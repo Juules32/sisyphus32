@@ -2,7 +2,7 @@ use std::mem;
 
 use crate::{bit_move::BitMove, color::Color, square::Square};
 
-const SIDE_COUNT: usize = 2; // White and Black
+const SIDE_COUNT: usize = 2;
 const SQUARES: usize = 64;
 const MAX_SCORE: i16 = 100; // Deliberately lower than any MVV-LVA values
 

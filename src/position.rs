@@ -1,23 +1,23 @@
 use core::fmt;
-use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, eval::EvalPosition, fen::FenString, file::File, move_flag::MoveFlag, move_masks::MoveMasks, piece::Piece, square::Square, zobrist::ZobristKey};
+use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, eval_position::EvalPosition, fen::FenString, file::File, move_flag::MoveFlag, move_masks::MoveMasks, piece::Piece, square::Square, zobrist::ZobristKey};
 
 #[derive(Clone)]
 pub struct Position {
     #[cfg(feature = "unit_bb_array")]
-    pub pps: [Piece; 64],
+    pub pps: [Option<Piece>; 64],
 
     pub bbs: [Bitboard; 12],
     pub wo: Bitboard,
     pub bo: Bitboard,
     pub ao: Bitboard,
     pub side: Color,
-    pub en_passant_sq: Square,
+    pub en_passant_option: Option<Square>,
     pub castling_rights: CastlingRights,
     pub ply: u16,
     pub zobrist_key: ZobristKey,
 
     #[cfg(feature = "unit_interpolated_eval")]
-    pub game_phase_score: i32,
+    pub game_phase_score: i16,
 }
 
 impl Position {
@@ -48,14 +48,14 @@ impl Position {
         let mut position = Position {
             #[cfg(feature = "unit_bb_array")]
             pps: [
-                Piece::BR, Piece::BN, Piece::BB, Piece::BQ, Piece::BK, Piece::BB, Piece::BN, Piece::BR,
-                Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP, Piece::BP,
-                Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None,
-                Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None,
-                Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None,
-                Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None, Piece::None,
-                Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP, Piece::WP,
-                Piece::WR, Piece::WN, Piece::WB, Piece::WQ, Piece::WK, Piece::WB, Piece::WN, Piece::WR,
+                Some(Piece::BR), Some(Piece::BN), Some(Piece::BB), Some(Piece::BQ), Some(Piece::BK), Some(Piece::BB), Some(Piece::BN), Some(Piece::BR),
+                Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP),
+                None,            None,            None,            None,            None,            None,            None,            None,
+                None,            None,            None,            None,            None,            None,            None,            None,
+                None,            None,            None,            None,            None,            None,            None,            None,
+                None,            None,            None,            None,            None,            None,            None,            None,
+                Some(Piece::WP), Some(Piece::WP), Some(Piece::WP), Some(Piece::WP), Some(Piece::WP), Some(Piece::WP), Some(Piece::WP), Some(Piece::WP),
+                Some(Piece::WR), Some(Piece::WN), Some(Piece::WB), Some(Piece::WQ), Some(Piece::WK), Some(Piece::WB), Some(Piece::WN), Some(Piece::WR),
             ],
 
             bbs: [
@@ -76,7 +76,7 @@ impl Position {
             bo: Bitboard::BLACK_STARTING_PIECES,
             ao: Bitboard::ALL_STARTING_PIECES,
             side: Color::White,
-            en_passant_sq: Square::None,
+            en_passant_option: None,
             castling_rights: CastlingRights::DEFAULT,
             ply: 0,
             zobrist_key: ZobristKey(0),
@@ -98,7 +98,7 @@ impl Position {
         self.bbs[piece].set_sq(sq);
 
         #[cfg(feature = "unit_bb_array")]
-        { self.pps[sq] = piece; }
+        { self.pps[sq] = Some(piece); }
         
         self.zobrist_key.mod_piece(piece, sq);
     }
@@ -108,7 +108,7 @@ impl Position {
         self.bbs[piece].pop_sq(sq);
 
         #[cfg(feature = "unit_bb_array")]
-        { self.pps[sq] = Piece::None; }
+        { self.pps[sq] = None; }
 
         self.zobrist_key.mod_piece(piece, sq);
     }
@@ -117,27 +117,28 @@ impl Position {
     pub fn zobrist_mods(&mut self) {
         self.zobrist_key.mod_side(self.side);
         self.zobrist_key.mod_castling(self.castling_rights);
-        self.zobrist_key.mod_en_passant(self.en_passant_sq);
+        self.zobrist_key.mod_en_passant(self.en_passant_option);
     }
 
     #[inline]
     pub fn make_move(&mut self, bit_move: BitMove) {
         #[cfg(feature = "unit_bb")]
-        let (source, target, piece, capture, flag) = bit_move.decode();
+        let (source, target, piece, capture_option, flag_option) = bit_move.decode();
 
         #[cfg(feature = "unit_bb_array")]
-        let (source, target, flag) = bit_move.decode();
+        let (source, target, flag_option) = bit_move.decode();
 
         #[cfg(feature = "unit_bb_array")]
-        let piece = self.pps[source];
+        let piece = self.get_piece(source);
 
         #[cfg(feature = "unit_bb_array")]
-        let capture = self.pps[target];
+        let capture_option = self.get_piece_option(target);
 
+        debug_assert_eq!(capture_option, self.get_piece_option(target));
         debug_assert_eq!(piece.color(), self.side);
-        debug_assert!(capture == Piece::None || capture.color() == self.side.opposite());
+        debug_assert!(capture_option.is_none_or(|capture| capture.color() == self.side.opposite()));
         debug_assert!(self.bbs[piece].is_set_sq(source));
-        debug_assert!(capture == Piece::None || self.bbs[capture].is_set_sq(target));
+        debug_assert!(capture_option.is_none_or(|capture| self.bbs[capture].is_set_sq(target)));
 
         // Modify the zobrist key before making the move
         self.zobrist_mods();
@@ -145,7 +146,7 @@ impl Position {
         // Removes captured piece
         // NOTE: Because of the way zobrist hashing is implemented,
         // it is important that the capture is removed before moving the piece.
-        if capture != Piece::None {
+        if let Some(capture) = capture_option {
             self.remove_piece(capture, target);
 
             #[cfg(feature = "unit_interpolated_eval")]
@@ -156,42 +157,42 @@ impl Position {
         self.remove_piece(piece, source);
         self.set_piece(piece, target);
 
-        // Resets en-passant square
-        self.en_passant_sq = Square::None;
+        // Resets en-passant square option
+        self.en_passant_option = None;
 
-        match flag {
-            MoveFlag::None => (),
-            MoveFlag::WDoublePawn => self.en_passant_sq = target.below(),
-            MoveFlag::BDoublePawn => self.en_passant_sq = target.above(),
-            MoveFlag::WEnPassant => {
+        match flag_option {
+            None => (),
+            Some(MoveFlag::WDoublePawn) => self.en_passant_option = Some(target.below()),
+            Some(MoveFlag::BDoublePawn) => self.en_passant_option = Some(target.above()),
+            Some(MoveFlag::WEnPassant) => {
                 self.remove_piece(Piece::BP, target.below());
                 
                 #[cfg(feature = "unit_interpolated_eval")]
                 { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(Piece::BP); }
             },
-            MoveFlag::BEnPassant => {
+            Some(MoveFlag::BEnPassant) => {
                 self.remove_piece(Piece::WP, target.above());
                 
                 #[cfg(feature = "unit_interpolated_eval")]
                 { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(Piece::WP); }
             },
-            MoveFlag::WKCastle => {
+            Some(MoveFlag::WKCastle) => {
                 self.remove_piece(Piece::WR, Square::H1);
                 self.set_piece(Piece::WR, Square::F1);
             }
-            MoveFlag::WQCastle => {
+            Some(MoveFlag::WQCastle) => {
                 self.remove_piece(Piece::WR, Square::A1);
                 self.set_piece(Piece::WR, Square::D1);
             }
-            MoveFlag::BKCastle => {
+            Some(MoveFlag::BKCastle) => {
                 self.remove_piece(Piece::BR, Square::H8);
                 self.set_piece(Piece::BR, Square::F8);
             }
-            MoveFlag::BQCastle => {
+            Some(MoveFlag::BQCastle) => {
                 self.remove_piece(Piece::BR, Square::A8);
                 self.set_piece(Piece::BR, Square::D8);
             }
-            MoveFlag::PromoQ => {
+            Some(MoveFlag::PromoQ) => {
                 self.remove_piece(piece, target);
                 self.set_piece(
                     match self.side {
@@ -207,7 +208,7 @@ impl Position {
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WQ);
                 }
             }
-            MoveFlag::PromoR => {
+            Some(MoveFlag::PromoR) => {
                 self.remove_piece(piece, target);
                 self.set_piece(
                     match self.side {
@@ -223,7 +224,7 @@ impl Position {
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
                 }
             }
-            MoveFlag::PromoN => {
+            Some(MoveFlag::PromoN) => {
                 self.remove_piece(piece, target);
                 self.set_piece(
                     match self.side {
@@ -239,7 +240,7 @@ impl Position {
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
                 }
             }
-            MoveFlag::PromoB => {
+            Some(MoveFlag::PromoB) => {
                 self.remove_piece(piece, target);
                 self.set_piece(
                     match self.side {
@@ -269,50 +270,50 @@ impl Position {
     #[inline]
     #[cfg(feature = "unit_revert_undo")]
     pub fn undo_move(&mut self, bit_move: BitMove, old_castling_rights: CastlingRights) {
-        let (source, target, piece, capture, flag) = bit_move.decode();
+        let (source, target, piece, capture_option, flag_option) = bit_move.decode();
 
         // Switches side first to make it easier to conceptualize
         self.side.switch();
 
         debug_assert_eq!(piece.color(), self.side);
-        debug_assert!(capture == Piece::None || capture.color() == self.side.opposite());
+        debug_assert!(capture_option.is_none_or(|capture| capture.color() == self.side.opposite()));
 
         self.set_piece(piece, source);
         self.remove_piece(piece, target);
 
-        if capture != Piece::None {
+        if let Some(capture) = capture_option {
             self.set_piece(capture, target);
         }
 
-        self.en_passant_sq = Square::None;
+        self.en_passant_option = None;
 
-        match flag {
-            MoveFlag::None | MoveFlag::WDoublePawn | MoveFlag::BDoublePawn => (),
-            MoveFlag::WEnPassant => {
-                self.en_passant_sq = target;
+        match flag_option {
+            None | Some(MoveFlag::WDoublePawn) | Some(MoveFlag::BDoublePawn) => (),
+            Some(MoveFlag::WEnPassant) => {
+                self.en_passant_option = Some(target);
                 self.set_piece(Piece::BP, target.below())
             }
-            MoveFlag::BEnPassant => {
-                self.en_passant_sq = target;
+            Some(MoveFlag::BEnPassant) => {
+                self.en_passant_option = Some(target);
                 self.set_piece(Piece::WP, target.above())
             }
-            MoveFlag::WKCastle => {
+            Some(MoveFlag::WKCastle) => {
                 self.set_piece(Piece::WR, Square::H1);
                 self.remove_piece(Piece::WR, Square::F1);
             }
-            MoveFlag::WQCastle => {
+            Some(MoveFlag::WQCastle) => {
                 self.set_piece(Piece::WR, Square::A1);
                 self.remove_piece(Piece::WR, Square::D1);
             }
-            MoveFlag::BKCastle => {
+            Some(MoveFlag::BKCastle) => {
                 self.set_piece(Piece::BR, Square::H8);
                 self.remove_piece(Piece::BR, Square::F8);
             }
-            MoveFlag::BQCastle => {
+            Some(MoveFlag::BQCastle) => {
                 self.set_piece(Piece::BR, Square::A8);
                 self.remove_piece(Piece::BR, Square::D8);
             }
-            MoveFlag::PromoQ => {
+            Some(MoveFlag::PromoQ) => {
                 self.remove_piece(
                     match self.side {
                         Color::White => Piece::WQ,
@@ -321,7 +322,7 @@ impl Position {
                     target,
                 );
             }
-            MoveFlag::PromoR => {
+            Some(MoveFlag::PromoR) => {
                 self.remove_piece(
                     match self.side {
                         Color::White => Piece::WR,
@@ -330,7 +331,7 @@ impl Position {
                     target,
                 );
             }
-            MoveFlag::PromoN => {
+            Some(MoveFlag::PromoN) => {
                 self.remove_piece(
                     match self.side {
                         Color::White => Piece::WN,
@@ -339,7 +340,7 @@ impl Position {
                     target,
                 );
             }
-            MoveFlag::PromoB => {
+            Some(MoveFlag::PromoB) => {
                 self.remove_piece(
                     match self.side {
                         Color::White => Piece::WB,
@@ -354,16 +355,15 @@ impl Position {
         self.populate_occupancies();
     }
 
+    // NOTE: In this function, self is supposed to be a clone of the current position state.
     #[inline(always)]
-    pub fn apply_pseudo_legal_move(&self, bit_move: BitMove) -> Option<Position> {
-        let mut position_copy = self.clone();
-        position_copy.make_move(bit_move);
-
-        if !position_copy.in_check(position_copy.side.opposite()) {
-            position_copy.ply += 1;
-            Some(position_copy)
+    pub fn apply_pseudo_legal_move(&mut self, bit_move: BitMove) -> bool {
+        self.make_move(bit_move);
+        if !self.in_check(self.side.opposite()) {
+            self.ply += 1;
+            true
         } else {
-            None
+            false
         }
     }
 
@@ -397,12 +397,29 @@ impl Position {
                 return piece;
             }
         }
-        Piece::None
+        panic!("Couldn't find some piece on {}", square);
+    }
+
+    #[inline(always)]
+    #[cfg(feature = "unit_bb")]
+    pub fn get_piece_option(&self, square: Square) -> Option<Piece> {
+        for piece in Piece::ALL_PIECES {
+            if self.bbs[piece].is_set_sq(square) {
+                return Some(piece);
+            }
+        }
+        None
     }
 
     #[inline(always)]
     #[cfg(feature = "unit_bb_array")]
     pub fn get_piece(&self, square: Square) -> Piece {
+        self.pps[square].unwrap()
+    }
+
+    #[inline(always)]
+    #[cfg(feature = "unit_bb_array")]
+    pub fn get_piece_option(&self, square: Square) -> Option<Piece> {
         self.pps[square]
     }
 }
@@ -411,14 +428,14 @@ impl Default for Position {
     fn default() -> Position {
         Position {
             #[cfg(feature = "unit_bb_array")]
-            pps: [Piece::None; 64],
+            pps: [None; 64],
 
             bbs: [Bitboard::EMPTY; 12],
             wo: Bitboard::EMPTY,
             bo: Bitboard::EMPTY,
             ao: Bitboard::EMPTY,
             side: Color::White,
-            en_passant_sq: Square::None,
+            en_passant_option: None,
             castling_rights: CastlingRights::NONE,
             ply: 0,
             zobrist_key: ZobristKey(0),
@@ -437,9 +454,9 @@ impl fmt::Display for Position {
                 s += &format!("  {}  ", sq.rank());
             }
             
-            match self.get_piece(sq) {
-                Piece::None => s += ". ",
-                piece => s += &format!("{} ", piece),
+            match self.get_piece_option(sq) {
+                None => s += ". ",
+                Some(piece) => s += &format!("{} ", piece),
             }
 
             if sq.file() == File::FH {
@@ -451,12 +468,12 @@ impl fmt::Display for Position {
         s += &format!("
           FEN: {}
          Side: {}
-   En-passant: {}
+   En-passant: {:?}
      Castling: {}
   Zobrist Key: {:#x}\n",
             FenString::from(self),
             self.side,
-            self.en_passant_sq,
+            self.en_passant_option,
             self.castling_rights,
             self.zobrist_key.0,
         );

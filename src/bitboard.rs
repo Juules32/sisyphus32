@@ -32,12 +32,12 @@ impl Bitboard {
     }
 
     #[inline(always)]
-    pub fn shift_upwards(&self, amount: usize) -> Bitboard {
+    pub fn shift_upwards(&self, amount: u8) -> Bitboard {
         Bitboard(self.0 >> amount)
     }
 
     #[inline(always)]
-    pub fn shift_downwards(&self, amount: usize) -> Bitboard {
+    pub fn shift_downwards(&self, amount: u8) -> Bitboard {
         Bitboard(self.0 << amount)
     }
 

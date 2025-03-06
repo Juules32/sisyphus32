@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use crate::{bit_move::BitMove, color::Color, eval::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}};
+use crate::{bit_move::BitMove, color::Color, eval_position::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}};
 
 pub struct UciParseError(pub &'static str);
 
@@ -108,16 +108,16 @@ impl Uci {
             for m in MoveGeneration::generate_moves::<BitMove, Legal>(&self.position) {
                 let s = m.source();
                 let t = m.target();
-                let f = m.flag();
+                let f = m.flag_option();
                 
                 if source == s && target == t {
                     match promotion_piece_option {
                         Some(promotion_piece_string) => {
                             match promotion_piece_string {
-                                "q" => if f == MoveFlag::PromoQ { return Ok(m); },
-                                "r" => if f == MoveFlag::PromoR { return Ok(m); },
-                                "b" => if f == MoveFlag::PromoB { return Ok(m); },
-                                "n" => if f == MoveFlag::PromoN { return Ok(m); },
+                                "q" => if f == Some(MoveFlag::PromoQ) { return Ok(m); },
+                                "r" => if f == Some(MoveFlag::PromoR) { return Ok(m); },
+                                "b" => if f == Some(MoveFlag::PromoB) { return Ok(m); },
+                                "n" => if f == Some(MoveFlag::PromoN) { return Ok(m); },
                                 _ => return Err(UciParseError("Found illegal promotion piece string!"))
                             }
                         },

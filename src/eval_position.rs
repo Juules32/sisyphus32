@@ -1,19 +1,17 @@
-// NOTE: Many of the lookup score arrays use i32s for scores instead of i16.
-// This is because the interpolating scoring functions can cause overflows for i16s.
-
 use std::mem;
 
-use ctor::ctor;
+use crate::{bitboard::Bitboard, color::Color, file::File, piece::Piece, position::Position, square::Square};
 
-use crate::{bit_move::BitMove, bitboard::Bitboard, butterfly_heuristic::ButterflyHeuristic, color::Color, file::File, killer_moves::KillerMoves, move_masks::MoveMasks, piece::Piece, position::Position, square::Square, transposition_table::{TTNodeType, TranspositionTable}};
+#[allow(unused_imports)]
+use crate::move_masks::MoveMasks;
 
-const BASE_PIECE_SCORES: [i32; 12] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000];
+const BASE_PIECE_SCORES: [i16; 12] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000];
 
-const OPENING_PIECE_SCORES: [i32; 12] = [82, 337, 365, 477, 1025, 12000, 82, 337, 365, 477, 1025, 12000];
+const OPENING_PIECE_SCORES: [i16; 12] = [82, 337, 365, 477, 1025, 12000, 82, 337, 365, 477, 1025, 12000];
 
-const ENDGAME_PIECE_SCORES: [i32; 12] = [94, 281, 297, 512,  936, 12000, 94, 281, 297, 512, 936, 12000];
+const ENDGAME_PIECE_SCORES: [i16; 12] = [94, 281, 297, 512,  936, 12000, 94, 281, 297, 512, 936, 12000];
 
-const BASE_PAWN_POSITION_SCORES: [i32; 64] = [
+const BASE_PAWN_POSITION_SCORES: [i16; 64] = [
      90,  90,  90,  90,  90,  90,  90,  90, 
      30,  30,  30,  40,  40,  30,  30,  30,
      20,  20,  25,  30,  30,  25,  20,  20,
@@ -24,7 +22,7 @@ const BASE_PAWN_POSITION_SCORES: [i32; 64] = [
       0,   0,   0,   0,   0,   0,   0,   0,
 ];
 
-const BASE_KNIGHT_POSITION_SCORES: [i32; 64] = [
+const BASE_KNIGHT_POSITION_SCORES: [i16; 64] = [
     -15,  -5,   0,   0,   0,   0,  -5, -15, 
      -5,   0,   0,  10,  10,   0,   0,  -5,
      -5,   5,  20,  20,  20,  20,   5,  -5,
@@ -35,7 +33,7 @@ const BASE_KNIGHT_POSITION_SCORES: [i32; 64] = [
     -10, -10,   0,   0,   0,   0, -10, -10,
 ];
 
-const BASE_BISHOP_POSITION_SCORES: [i32; 64] = [
+const BASE_BISHOP_POSITION_SCORES: [i16; 64] = [
      -5,   0,   0,   0,   0,   0,   0,  -5, 
       0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   5,   5,   0,   0,   0,
@@ -46,7 +44,7 @@ const BASE_BISHOP_POSITION_SCORES: [i32; 64] = [
       0,   0, -10,   0,   0, -10,   0,   0,
 ];
 
-const BASE_ROOK_POSITION_SCORES: [i32; 64] = [
+const BASE_ROOK_POSITION_SCORES: [i16; 64] = [
      50,  50,  50,  50,  50,  50,  50,  50, 
      50,  50,  50,  50,  50,  50,  50,  50,
       0,   0,  10,  20,  20,  10,   0,   0,
@@ -57,7 +55,7 @@ const BASE_ROOK_POSITION_SCORES: [i32; 64] = [
       0,   0,  10,  20,  20,  10,   0,   0,
 ];
 
-const BASE_QUEEN_POSITION_SCORES: [i32; 64] = [
+const BASE_QUEEN_POSITION_SCORES: [i16; 64] = [
       0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,
@@ -68,7 +66,7 @@ const BASE_QUEEN_POSITION_SCORES: [i32; 64] = [
       0,   0,   0,   0,   0,   0,   0,   0,
 ];
 
-const BASE_KING_POSITION_SCORES: [i32; 64] = [
+const BASE_KING_POSITION_SCORES: [i16; 64] = [
      -5,   0,   0,   0,   0,   0,   0,  -5, 
       0,   0,   5,   5,   5,   5,   0,   0,
       0,   5,   5,  10,  10,   5,   5,   0,
@@ -79,12 +77,12 @@ const BASE_KING_POSITION_SCORES: [i32; 64] = [
       0,   5,   5,  -5, -15,  -5,  10,   0,
 ];
 
-const BASE_PIECE_POSITION_SCORES: [&[i32; 64]; 12] = [
+const BASE_PIECE_POSITION_SCORES: [&[i16; 64]; 12] = [
     &BASE_PAWN_POSITION_SCORES, &BASE_KNIGHT_POSITION_SCORES, &BASE_BISHOP_POSITION_SCORES, &BASE_ROOK_POSITION_SCORES, &BASE_QUEEN_POSITION_SCORES, &BASE_KING_POSITION_SCORES,
     &BASE_PAWN_POSITION_SCORES, &BASE_KNIGHT_POSITION_SCORES, &BASE_BISHOP_POSITION_SCORES, &BASE_ROOK_POSITION_SCORES, &BASE_QUEEN_POSITION_SCORES, &BASE_KING_POSITION_SCORES,
 ];
 
-const OPENING_PAWN_POSITION_SCORES: [i32; 64] = [
+const OPENING_PAWN_POSITION_SCORES: [i16; 64] = [
     0,   0,   0,   0,   0,   0,  0,   0,
     98, 134,  61,  95,  68, 126, 34, -11,
     -6,   7,  26,  31,  65,  56, 25, -20,
@@ -95,7 +93,7 @@ const OPENING_PAWN_POSITION_SCORES: [i32; 64] = [
     0,   0,   0,   0,   0,   0,  0,   0,
 ];
     
-const OPENING_KNIGHT_POSITION_SCORES: [i32; 64] = [
+const OPENING_KNIGHT_POSITION_SCORES: [i16; 64] = [
     -167, -89, -34, -49,  61, -97, -15, -107,
     -73, -41,  72,  36,  23,  62,   7,  -17,
     -47,  60,  37,  65,  84, 129,  73,   44,
@@ -106,7 +104,7 @@ const OPENING_KNIGHT_POSITION_SCORES: [i32; 64] = [
     -105, -21, -58, -33, -17, -28, -19,  -23,
 ];
 
-const OPENING_BISHOP_POSITION_SCORES: [i32; 64] = [
+const OPENING_BISHOP_POSITION_SCORES: [i16; 64] = [
     -29,   4, -82, -37, -25, -42,   7,  -8,
     -26,  16, -18, -13,  30,  59,  18, -47,
     -16,  37,  43,  40,  35,  50,  37,  -2,
@@ -117,7 +115,7 @@ const OPENING_BISHOP_POSITION_SCORES: [i32; 64] = [
     -33,  -3, -14, -21, -13, -12, -39, -21,
 ];
 
-const OPENING_ROOK_POSITION_SCORES: [i32; 64] = [
+const OPENING_ROOK_POSITION_SCORES: [i16; 64] = [
     32,  42,  32,  51, 63,  9,  31,  43,
     27,  32,  58,  62, 80, 67,  26,  44,
     -5,  19,  26,  36, 17, 45,  61,  16,
@@ -128,7 +126,7 @@ const OPENING_ROOK_POSITION_SCORES: [i32; 64] = [
     -19, -13,   1,  17, 16,  7, -37, -26,
 ];
 
-const OPENING_QUEEN_POSITION_SCORES: [i32; 64] = [
+const OPENING_QUEEN_POSITION_SCORES: [i16; 64] = [
     -28,   0,  29,  12,  59,  44,  43,  45,
     -24, -39,  -5,   1, -16,  57,  28,  54,
     -13, -17,   7,   8,  29,  56,  47,  57,
@@ -139,7 +137,7 @@ const OPENING_QUEEN_POSITION_SCORES: [i32; 64] = [
     -1, -18,  -9,  10, -15, -25, -31, -50,
 ];
 
-const OPENING_KING_POSITION_SCORES: [i32; 64] = [
+const OPENING_KING_POSITION_SCORES: [i16; 64] = [
     -65,  23,  16, -15, -56, -34,   2,  13,
     29,  -1, -20,  -7,  -8,  -4, -38, -29,
     -9,  24,   2, -16, -20,   6,  22, -22,
@@ -150,12 +148,12 @@ const OPENING_KING_POSITION_SCORES: [i32; 64] = [
     -15,  36,  12, -54,   8, -28,  24,  14,
 ];
 
-const OPENING_PIECE_POSITION_SCORES: [&[i32; 64]; 12] = [
+const OPENING_PIECE_POSITION_SCORES: [&[i16; 64]; 12] = [
     &OPENING_PAWN_POSITION_SCORES, &OPENING_KNIGHT_POSITION_SCORES, &OPENING_BISHOP_POSITION_SCORES, &OPENING_ROOK_POSITION_SCORES, &OPENING_QUEEN_POSITION_SCORES, &OPENING_KING_POSITION_SCORES,
     &OPENING_PAWN_POSITION_SCORES, &OPENING_KNIGHT_POSITION_SCORES, &OPENING_BISHOP_POSITION_SCORES, &OPENING_ROOK_POSITION_SCORES, &OPENING_QUEEN_POSITION_SCORES, &OPENING_KING_POSITION_SCORES,
 ];
 
-const ENDGAME_PAWN_POSITION_SCORES: [i32; 64] = [
+const ENDGAME_PAWN_POSITION_SCORES: [i16; 64] = [
     0,   0,   0,   0,   0,   0,   0,   0,
     178, 173, 158, 134, 147, 132, 165, 187,
     94, 100,  85,  67,  56,  53,  82,  84,
@@ -166,7 +164,7 @@ const ENDGAME_PAWN_POSITION_SCORES: [i32; 64] = [
     0,   0,   0,   0,   0,   0,   0,   0,
 ];
 
-const ENDGAME_KNIGHT_POSITION_SCORES: [i32; 64] = [
+const ENDGAME_KNIGHT_POSITION_SCORES: [i16; 64] = [
     -58, -38, -13, -28, -31, -27, -63, -99,
     -25,  -8, -25,  -2,  -9, -25, -24, -52,
     -24, -20,  10,   9,  -1,  -9, -19, -41,
@@ -177,7 +175,7 @@ const ENDGAME_KNIGHT_POSITION_SCORES: [i32; 64] = [
     -29, -51, -23, -15, -22, -18, -50, -64,
 ];
 
-const ENDGAME_BISHOP_POSITION_SCORES: [i32; 64] = [
+const ENDGAME_BISHOP_POSITION_SCORES: [i16; 64] = [
     -14, -21, -11,  -8, -7,  -9, -17, -24,
     -8,  -4,   7, -12, -3, -13,  -4, -14,
     2,  -8,   0,  -1, -2,   6,   0,   4,
@@ -188,7 +186,7 @@ const ENDGAME_BISHOP_POSITION_SCORES: [i32; 64] = [
     -23,  -9, -23,  -5, -9, -16,  -5, -17,
 ];
 
-const ENDGAME_ROOK_POSITION_SCORES: [i32; 64] = [
+const ENDGAME_ROOK_POSITION_SCORES: [i16; 64] = [
     13, 10, 18, 15, 12,  12,   8,   5,
     11, 13, 13, 11, -3,   3,   8,   3,
     7,  7,  7,  5,  4,  -3,  -5,  -3,
@@ -199,7 +197,7 @@ const ENDGAME_ROOK_POSITION_SCORES: [i32; 64] = [
     -9,  2,  3, -1, -5, -13,   4, -20,
 ];
 
-const ENDGAME_QUEEN_POSITION_SCORES: [i32; 64] = [
+const ENDGAME_QUEEN_POSITION_SCORES: [i16; 64] = [
     -9,  22,  22,  27,  27,  19,  10,  20,
     -17,  20,  32,  41,  58,  25,  30,   0,
     -20,   6,   9,  49,  47,  35,  19,   9,
@@ -210,7 +208,7 @@ const ENDGAME_QUEEN_POSITION_SCORES: [i32; 64] = [
     -33, -28, -22, -43,  -5, -32, -20, -41,
 ];
 
-const ENDGAME_KING_POSITION_SCORES: [i32; 64] = [
+const ENDGAME_KING_POSITION_SCORES: [i16; 64] = [
     -74, -35, -18, -18, -11,  15,   4, -17,
     -12,  17,  14,  17,  17,  38,  23,  11,
     10,  17,  23,  15,  20,  45,  44,  13,
@@ -221,36 +219,13 @@ const ENDGAME_KING_POSITION_SCORES: [i32; 64] = [
     -53, -34, -21, -11, -28, -14, -24, -43
 ];
 
-const ENDGAME_PIECE_POSITION_SCORES: [&[i32; 64]; 12] = [
+const ENDGAME_PIECE_POSITION_SCORES: [&[i16; 64]; 12] = [
     &ENDGAME_PAWN_POSITION_SCORES, &ENDGAME_KNIGHT_POSITION_SCORES, &ENDGAME_BISHOP_POSITION_SCORES, &ENDGAME_ROOK_POSITION_SCORES, &ENDGAME_QUEEN_POSITION_SCORES, &ENDGAME_KING_POSITION_SCORES,
     &ENDGAME_PAWN_POSITION_SCORES, &ENDGAME_KNIGHT_POSITION_SCORES, &ENDGAME_BISHOP_POSITION_SCORES, &ENDGAME_ROOK_POSITION_SCORES, &ENDGAME_QUEEN_POSITION_SCORES, &ENDGAME_KING_POSITION_SCORES,
 ];
 
-const OPENING_PHASE_CUTOFF: i32 = 6192;
-const ENDGAME_PHASE_CUTOFF: i32 = 518;
-
-#[derive(Clone, Copy, Debug)]
-enum GamePhase {
-    Opening,
-    Middlegame,
-    Endgame,
-}
-
-// Most valuable victim - least valuable attacker [attacker][victim]
-const MVV_LVA: [[i16; 12]; 12] = [
-    [105, 205, 305, 405, 505, 605, 105, 205, 305, 405, 505, 605],
-    [104, 204, 304, 404, 504, 604, 104, 204, 304, 404, 504, 604],
-    [103, 203, 303, 403, 503, 603, 103, 203, 303, 403, 503, 603],
-    [102, 202, 302, 402, 502, 602, 102, 202, 302, 402, 502, 602],
-    [101, 201, 301, 401, 501, 601, 101, 201, 301, 401, 501, 601],
-    [100, 200, 300, 400, 500, 600, 100, 200, 300, 400, 500, 600],
-    [105, 205, 305, 405, 505, 605, 105, 205, 305, 405, 505, 605],
-    [104, 204, 304, 404, 504, 604, 104, 204, 304, 404, 504, 604],
-    [103, 203, 303, 403, 503, 603, 103, 203, 303, 403, 503, 603],
-    [102, 202, 302, 402, 502, 602, 102, 202, 302, 402, 502, 602],
-    [101, 201, 301, 401, 501, 601, 101, 201, 301, 401, 501, 601],
-    [100, 200, 300, 400, 500, 600, 100, 200, 300, 400, 500, 600],
-];
+const OPENING_PHASE_CUTOFF: i16 = 6192;
+const ENDGAME_PHASE_CUTOFF: i16 = 518;
 
 const FLIPPED_SQUARE_INDEX: [usize; 64] = [
     56, 57, 58, 59, 60, 61, 62, 63,
@@ -263,38 +238,49 @@ const FLIPPED_SQUARE_INDEX: [usize; 64] = [
      0,  1,  2,  3,  4,  5,  6,  7,
 ];
 
+const DOUBLED_PAWN_SCORE: i16 = -30;
+const ISOLATED_PAWN_SCORE: i16 = -15;
+const PASSED_PAWN_SCORES: [i16; 8] = [0, 10, 30, 50, 75, 100, 150, 200];
+const SEMI_OPEN_FILE_SCORE: i16 = 10;
+const OPEN_FILE_SCORE: i16 = 15;
+const KING_ON_SEMI_OPEN_FILE_SCORE: i16 = -30;
+const KING_ADJACENCY_SCORE: i16 = 15;
+
 static mut FILE_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 static mut RANK_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 static mut ISOLATED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 static mut WHITE_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 static mut BLACK_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 
-const DOUBLED_PAWN_SCORE: i32 = -30;
-const ISOLATED_PAWN_SCORE: i32 = -15;
-const PASSED_PAWN_SCORES: [i32; 8] = [0, 10, 30, 50, 75, 100, 150, 200];
-const SEMI_OPEN_FILE_SCORE: i32 = 10;
-const OPEN_FILE_SCORE: i32 = 15;
-const KING_ON_SEMI_OPEN_FILE_SCORE: i32 = -30;
-const KING_ADJACENCY_SCORE: i32 = 15;
+#[derive(Clone, Copy, Debug)]
+enum GamePhase {
+    Opening,
+    Middlegame,
+    Endgame,
+}
 
 pub struct EvalPosition { }
 
 impl EvalPosition {
-    #[inline(always)]
+    pub unsafe fn init_positional_masks() {
+        Self::init_file_masks();
+        Self::init_rank_masks();
+        Self::init_isolated_masks();
+        Self::init_passed_masks();
+    }
+
     unsafe fn init_file_masks() {
         for square in Square::ALL_SQUARES {
             FILE_MASKS[square] = Bitboard::ALL_FILES[square.file() as usize];
         }
     }
 
-    #[inline(always)]
     unsafe fn init_rank_masks() {
         for square in Square::ALL_SQUARES {
             RANK_MASKS[square] = Bitboard::ALL_RANKS[square.rank() as usize];
         }
     }
 
-    #[inline(always)]
     unsafe fn init_isolated_masks() {
         for square in Square::ALL_SQUARES {
             if square.file() != File::FA {
@@ -307,7 +293,6 @@ impl EvalPosition {
         }
     }
 
-    #[inline(always)]
     unsafe fn init_passed_masks() {
         for square in Square::ALL_SQUARES {
             for color in [Color::White, Color::Black] {
@@ -365,23 +350,23 @@ impl EvalPosition {
     }
 
     #[inline(always)]
-    pub fn get_game_phase_score(position: &Position) -> i32 {
+    pub fn get_game_phase_score(position: &Position) -> i16 {
         let mut game_phase_score = 0;
 
         for piece in Piece::ALL_PIECES_EXPECT_PAWNS_AND_KINGS {
-            game_phase_score += position.bbs[piece].count_bits() as i32 * OPENING_PIECE_SCORES[piece as usize];
+            game_phase_score += position.bbs[piece].count_bits() as i16 * OPENING_PIECE_SCORES[piece];
         }
 
         game_phase_score
     }
 
     #[inline(always)]
-    pub fn get_game_phase_piece_score(piece: Piece) -> i32 {
-        OPENING_PIECE_SCORES[piece as usize]
+    pub fn get_game_phase_piece_score(piece: Piece) -> i16 {
+        OPENING_PIECE_SCORES[piece]
     }
 
     #[inline(always)]
-    fn get_game_phase(game_phase_score: i32) -> GamePhase {
+    fn get_game_phase(game_phase_score: i16) -> GamePhase {
         if game_phase_score > OPENING_PHASE_CUTOFF {
             GamePhase::Opening
         } else if game_phase_score < ENDGAME_PHASE_CUTOFF {
@@ -396,6 +381,19 @@ impl EvalPosition {
         match color {
             Color::White => square as usize,
             Color::Black => FLIPPED_SQUARE_INDEX[square as usize],
+        }
+    }
+
+    #[inline(always)]
+    fn get_interpolated_score(game_phase: GamePhase, game_phase_score: i16, opening_score: i16, endgame_score: i16) -> i16 {
+        match game_phase {
+            // NOTE: The i32 casting is necessary to avoid scoring overflows
+            GamePhase::Middlegame => ((
+                opening_score as i32 * game_phase_score as i32 +
+                endgame_score as i32 * (OPENING_PHASE_CUTOFF as i32 - game_phase_score as i32)
+            ) / OPENING_PHASE_CUTOFF as i32) as i16,
+            GamePhase::Opening => opening_score,
+            GamePhase::Endgame => endgame_score,
         }
     }
 
@@ -418,24 +416,26 @@ impl EvalPosition {
             };
 
             let positional_index = Self::get_positional_index(sq, piece.color());
+
+            #[allow(unused_mut)]
             let mut piece_score = 0;
 
             #[cfg(not(feature = "unit_interpolated_eval"))]
             {
-                piece_score += BASE_PIECE_SCORES[piece as usize];
+                piece_score += BASE_PIECE_SCORES[piece];
                 #[cfg(feature = "unit_eval_pps")]
-                { piece_score += BASE_PIECE_POSITION_SCORES[piece as usize][positional_index]; }
+                { piece_score += BASE_PIECE_POSITION_SCORES[piece][positional_index]; }
             }
 
             #[cfg(feature = "unit_interpolated_eval")]
             {
-                opening_score += OPENING_PIECE_SCORES[piece as usize] * piece_color_modifier;
-                endgame_score += ENDGAME_PIECE_SCORES[piece as usize] * piece_color_modifier;
+                opening_score += OPENING_PIECE_SCORES[piece] * piece_color_modifier;
+                endgame_score += ENDGAME_PIECE_SCORES[piece] * piece_color_modifier;
 
                 #[cfg(feature = "unit_eval_pps")]
                 {
-                    opening_score += OPENING_PIECE_POSITION_SCORES[piece as usize][positional_index] * piece_color_modifier;
-                    endgame_score += ENDGAME_PIECE_POSITION_SCORES[piece as usize][positional_index] * piece_color_modifier;
+                    opening_score += OPENING_PIECE_POSITION_SCORES[piece][positional_index] * piece_color_modifier;
+                    endgame_score += ENDGAME_PIECE_POSITION_SCORES[piece][positional_index] * piece_color_modifier;
                 }
             }
 
@@ -478,15 +478,15 @@ impl EvalPosition {
                         piece_score += KING_ON_SEMI_OPEN_FILE_SCORE;
                     }
 
-                    piece_score += (position.wo & MoveMasks::get_king_mask(sq)).count_bits() as i32 * KING_ADJACENCY_SCORE;
-                    piece_score -= (position.bo & MoveMasks::get_king_mask(sq)).count_bits() as i32 * KING_ADJACENCY_SCORE;
+                    piece_score += (position.wo & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
+                    piece_score -= (position.bo & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
                 } else {
                     if (position.bbs[Piece::BP] & Self::get_file_mask(sq)).is_empty() {
                         piece_score += KING_ON_SEMI_OPEN_FILE_SCORE;
                     }
 
-                    piece_score += (position.bo & MoveMasks::get_king_mask(sq)).count_bits() as i32 * KING_ADJACENCY_SCORE;
-                    piece_score -= (position.wo & MoveMasks::get_king_mask(sq)).count_bits() as i32 * KING_ADJACENCY_SCORE;
+                    piece_score += (position.bo & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
+                    piece_score -= (position.wo & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
                 }
             }
 
@@ -494,69 +494,11 @@ impl EvalPosition {
         }
         
         #[cfg(feature = "unit_interpolated_eval")]
-        match game_phase {
-            GamePhase::Middlegame => {
-                score += (
-                    opening_score * position.game_phase_score +
-                    endgame_score * (OPENING_PHASE_CUTOFF - position.game_phase_score)
-                ) / OPENING_PHASE_CUTOFF
-            },
-            GamePhase::Opening => { score += opening_score; },
-            GamePhase::Endgame => { score += endgame_score; },
-        };
+        { score += Self::get_interpolated_score(game_phase, position.game_phase_score, opening_score, endgame_score); }
 
         score as i16 * match position.side {
             Color::White => 1,
             Color::Black => -1
         }
     }
-}
-
-pub struct EvalMove { }
-
-impl EvalMove {
-    #[inline(always)]
-    pub fn eval(position: &Position, bit_move: BitMove) -> i16 {
-        let mut score = if position.get_piece(bit_move.target()) == Piece::None {
-            0
-        } else {
-            MVV_LVA[position.get_piece(bit_move.source()) as usize][position.get_piece(bit_move.target()) as usize]
-        };
-
-        #[cfg(feature = "unit_eval_tt")]
-        {
-            if let Some(entry) = TranspositionTable::probe(position.zobrist_key) {
-                if entry.best_move.bit_move == bit_move {
-                    match entry.flag {
-                        TTNodeType::Exact => score += 50,
-                        TTNodeType::LowerBound => score += 30,
-                        TTNodeType::UpperBound => score += 20,
-                    }
-                }
-            }
-        }
-
-        #[cfg(feature = "unit_killer_heuristic")]
-        {
-            if KillerMoves::get_primary(position.ply) == Some(bit_move) {
-                score += 100;
-            } else if KillerMoves::get_secondary(position.ply) == Some(bit_move) {
-                score += 50;
-            }
-        }
-
-        #[cfg(feature = "unit_butterfly_heuristic")]
-        {
-            score += ButterflyHeuristic::get(position.side, bit_move.source(), bit_move.target());
-        }
-        score
-    }
-}
-
-#[ctor]
-pub unsafe fn init_all_masks() {
-    EvalPosition::init_file_masks();
-    EvalPosition::init_rank_masks();
-    EvalPosition::init_isolated_masks();
-    EvalPosition::init_passed_masks();
 }
