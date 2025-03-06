@@ -69,20 +69,20 @@ impl BitMove {
 
     #[cfg(feature = "unit_bb")]
     #[inline(always)]
-    pub fn capture(&self) -> Piece {
-        Piece::from(((self.0 & CAPTURE_MASK) >> 16) as u8)
+    pub fn capture_option(&self) -> Option<Piece> {
+        unsafe { std::mem::transmute::<u8, Option<Piece>>(((self.0 & CAPTURE_MASK) >> 16) as u8) }
     }
 
     #[cfg(feature = "unit_bb")]
     #[inline(always)]
-    pub fn flag(&self) -> Option<MoveFlag> {
+    pub fn flag_option(&self) -> Option<MoveFlag> {
         unsafe { std::mem::transmute::<u8, Option<MoveFlag>>(((self.0 & FLAG_MASK) >> 20) as u8) }
     }
 
     // NOTE: For the array representation, the flag mask is offset by 12 instead of 20
     #[cfg(feature = "unit_bb_array")]
     #[inline(always)]
-    pub fn flag(&self) -> Option<MoveFlag> {
+    pub fn flag_option(&self) -> Option<MoveFlag> {
         unsafe { std::mem::transmute::<u8, Option<MoveFlag>>(((self.0 & FLAG_MASK) >> 12) as u8) }
     }
 
@@ -92,16 +92,16 @@ impl BitMove {
         source: Square, 
         target: Square, 
         piece: Piece, 
-        capture: Piece, 
-        flag: Option<MoveFlag>
+        capture_option: Option<Piece>, 
+        flag_option: Option<MoveFlag>
     ) -> BitMove {
         unsafe {
             BitMove(
                 source as u32 | 
                 (target as u32) << 6 | 
                 (piece as u32) << 12 | 
-                (capture as u32) << 16 | 
-                (std::mem::transmute::<Option<MoveFlag>, u8>(flag) as u32) << 20
+                (std::mem::transmute::<Option<Piece>, u8>(capture_option) as u32) << 16 |
+                (std::mem::transmute::<Option<MoveFlag>, u8>(flag_option) as u32) << 20
             )
         }
     }
@@ -124,19 +124,19 @@ impl BitMove {
 
     #[cfg(feature = "unit_bb")]
     #[inline(always)]
-    pub fn decode(&self) -> (Square, Square, Piece, Piece, Option<MoveFlag>) {
-        (self.source(), self.target(), self.piece(), self.capture(), self.flag())
+    pub fn decode(&self) -> (Square, Square, Piece, Option<Piece>, Option<MoveFlag>) {
+        (self.source(), self.target(), self.piece(), self.capture_option(), self.flag_option())
     }
 
     #[cfg(feature = "unit_bb_array")]
     #[inline(always)]
     pub fn decode(&self) -> (Square, Square, Option<MoveFlag>) {
-        (self.source(), self.target(), self.flag())
+        (self.source(), self.target(), self.flag_option())
     }
 
     #[inline(always)]
     pub fn is_capture_or_promotion(self, position: &Position) -> bool {
-        position.try_get_piece(self.target()).is_some() || self.flag().is_some_and(|f| f.is_promotion())
+        position.try_get_piece(self.target()).is_some() || self.flag_option().is_some_and(|f| f.is_promotion())
     }
 
     #[inline(always)]
@@ -146,18 +146,18 @@ impl BitMove {
         source_piece == Some(Piece::WP) ||
         source_piece == Some(Piece::BP) ||
         target_piece != None ||
-        self.flag().is_some_and(|f| f.is_castle())
+        self.flag_option().is_some_and(|f| f.is_castle())
     }
 
     #[cfg(feature = "unit_bb")]
     pub fn to_row_string(self) -> String {
         format!(
-            "  | {:<8} | {:<8} | {:<8} | {:<8} | {:<19?} |\n",
+            "  | {:<8} | {:<8} | {:<8} | {:<8?} | {:<19?} |\n",
             self.source(),
             self.target(),
             self.piece(),
-            self.capture(),
-            self.flag()
+            self.capture_option(),
+            self.flag_option()
         )
     }
 
@@ -169,7 +169,7 @@ impl BitMove {
             self.target(),
             "",
             "",
-            self.flag()
+            self.flag_option()
         )
     }
 
@@ -178,7 +178,7 @@ impl BitMove {
             "{}{}{}",
             self.source(),
             self.target(),
-            match self.flag() {
+            match self.flag_option() {
                 Some(MoveFlag::PromoN) => "n",
                 Some(MoveFlag::PromoB) => "b",
                 Some(MoveFlag::PromoR) => "r",
@@ -204,14 +204,14 @@ impl Display for BitMove {
   Source Square: {}
   Target Square: {}
   Piece Type:    {}
-  Capture:       {}
+  Capture:       {:?}
   Move Flag:     {:?}\n",
             self.0,
             self.source(),
             self.target(),
             self.piece(),
-            self.capture(),
-            self.flag()
+            self.capture_option(),
+            self.flag_option()
         ))
     }
 }
@@ -228,7 +228,7 @@ impl Display for BitMove {
             self.0,
             self.source(),
             self.target(),
-            self.flag()
+            self.flag_option()
         ))
     }
 }
@@ -308,24 +308,24 @@ mod tests {
     #[test]
     #[cfg(feature = "unit_bb")]
     fn encode_and_decode_works() {
-        let bit_move = BitMove::encode(Square::A1, Square::B1, Piece::WP, Piece::None, None);
-        let (source, target, piece, capture, flag) = bit_move.decode();
+        let bit_move = BitMove::encode(Square::A1, Square::B1, Piece::WP, None, None);
+        let (source, target, piece, capture_option, flag_option) = bit_move.decode();
 
         assert_eq!(source, Square::A1);
         assert_eq!(target, Square::B1);
         assert_eq!(piece, Piece::WP);
-        assert_eq!(capture, Piece::None);
-        assert_eq!(flag, None);
+        assert_eq!(capture_option, None);
+        assert_eq!(flag_option, None);
     }
 
     #[test]
     #[cfg(feature = "unit_bb_array")]
     fn encode_and_decode_works() {
         let bit_move = BitMove::encode(Square::A1, Square::B1, None);
-        let (source, target, flag) = bit_move.decode();
+        let (source, target, flag_option) = bit_move.decode();
 
         assert_eq!(source, Square::A1);
         assert_eq!(target, Square::B1);
-        assert_eq!(flag, None);
+        assert_eq!(flag_option, None);
     }
 }

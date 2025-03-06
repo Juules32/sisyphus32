@@ -123,13 +123,7 @@ impl Position {
     #[inline]
     pub fn make_move(&mut self, bit_move: BitMove) {
         #[cfg(feature = "unit_bb")]
-        let (source, target, piece, capture, flag_option) = bit_move.decode();
-
-        #[cfg(feature = "unit_bb")]
-        let capture_option = match capture {
-            Piece::None => None,
-            piece => Some(piece),
-        };
+        let (source, target, piece, capture_option, flag_option) = bit_move.decode();
 
         #[cfg(feature = "unit_bb_array")]
         let (source, target, flag_option) = bit_move.decode();
@@ -140,6 +134,7 @@ impl Position {
         #[cfg(feature = "unit_bb_array")]
         let capture_option = self.try_get_piece(target);
 
+        debug_assert_eq!(capture_option, self.try_get_piece(target));
         debug_assert_eq!(piece.color(), self.side);
         debug_assert!(capture_option.is_none_or(|capture| capture.color() == self.side.opposite()));
         debug_assert!(self.bbs[piece].is_set_sq(source));
@@ -275,24 +270,24 @@ impl Position {
     #[inline]
     #[cfg(feature = "unit_revert_undo")]
     pub fn undo_move(&mut self, bit_move: BitMove, old_castling_rights: CastlingRights) {
-        let (source, target, piece, capture, flag) = bit_move.decode();
+        let (source, target, piece, capture_option, flag_option) = bit_move.decode();
 
         // Switches side first to make it easier to conceptualize
         self.side.switch();
 
         debug_assert_eq!(piece.color(), self.side);
-        debug_assert!(capture == Piece::None || capture.color() == self.side.opposite());
+        debug_assert!(capture_option.is_none_or(|capture| capture.color() == self.side.opposite()));
 
         self.set_piece(piece, source);
         self.remove_piece(piece, target);
 
-        if capture != Piece::None {
+        if let Some(capture) = capture_option {
             self.set_piece(capture, target);
         }
 
         self.en_passant_option = None;
 
-        match flag {
+        match flag_option {
             None | Some(MoveFlag::WDoublePawn) | Some(MoveFlag::BDoublePawn) => (),
             Some(MoveFlag::WEnPassant) => {
                 self.en_passant_option = Some(target);
@@ -402,7 +397,7 @@ impl Position {
                 return piece;
             }
         }
-        Piece::None
+        panic!("Couldn't find some piece on {}", square);
     }
 
     #[inline(always)]
@@ -410,7 +405,7 @@ impl Position {
     pub fn try_get_piece(&self, square: Square) -> Option<Piece> {
         for piece in Piece::ALL_PIECES {
             if self.bbs[piece].is_set_sq(square) {
-                Some(piece);
+                return Some(piece);
             }
         }
         None

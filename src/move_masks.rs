@@ -565,7 +565,6 @@ impl MoveMasks {
             Piece::WR | Piece::BR => Self::get_rook_mask(square, occupancy),
             Piece::WQ | Piece::BQ => Self::get_queen_mask(square, occupancy),
             Piece::WK | Piece::BK => Self::get_king_mask(square),
-            Piece::None => panic!("Can't get piece mask for none piece!"),
         }
     }
 }
