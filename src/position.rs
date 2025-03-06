@@ -132,9 +132,9 @@ impl Position {
         let piece = self.get_piece(source);
 
         #[cfg(feature = "unit_bb_array")]
-        let capture_option = self.try_get_piece(target);
+        let capture_option = self.get_piece_option(target);
 
-        debug_assert_eq!(capture_option, self.try_get_piece(target));
+        debug_assert_eq!(capture_option, self.get_piece_option(target));
         debug_assert_eq!(piece.color(), self.side);
         debug_assert!(capture_option.is_none_or(|capture| capture.color() == self.side.opposite()));
         debug_assert!(self.bbs[piece].is_set_sq(source));
@@ -402,7 +402,7 @@ impl Position {
 
     #[inline(always)]
     #[cfg(feature = "unit_bb")]
-    pub fn try_get_piece(&self, square: Square) -> Option<Piece> {
+    pub fn get_piece_option(&self, square: Square) -> Option<Piece> {
         for piece in Piece::ALL_PIECES {
             if self.bbs[piece].is_set_sq(square) {
                 return Some(piece);
@@ -419,7 +419,7 @@ impl Position {
 
     #[inline(always)]
     #[cfg(feature = "unit_bb_array")]
-    pub fn try_get_piece(&self, square: Square) -> Option<Piece> {
+    pub fn get_piece_option(&self, square: Square) -> Option<Piece> {
         self.pps[square]
     }
 }
@@ -454,7 +454,7 @@ impl fmt::Display for Position {
                 s += &format!("  {}  ", sq.rank());
             }
             
-            match self.try_get_piece(sq) {
+            match self.get_piece_option(sq) {
                 None => s += ". ",
                 Some(piece) => s += &format!("{} ", piece),
             }

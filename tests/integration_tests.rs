@@ -11,7 +11,7 @@ fn test_fen_parsing_and_move_generation() {
     assert_eq!(move_list.len(), 8);
 
     for bit_move in move_list {
-        assert_ne!(position.try_get_piece(bit_move.target()), None);
+        assert_ne!(position.get_piece_option(bit_move.target()), None);
     }
 }
 

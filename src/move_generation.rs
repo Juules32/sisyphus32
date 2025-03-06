@@ -32,7 +32,7 @@ impl MoveGeneration {
                     let target = capture_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let capture_option = position.try_get_piece(target);
+                    let capture_option = position.get_piece_option(target);
 
                     if source_rank == pawn_promotion_rank {
                         
@@ -149,7 +149,7 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let capture_option = position.try_get_piece(target);
+                    let capture_option = position.get_piece_option(target);
                     
                     #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, knight, capture_option, None));
@@ -191,7 +191,7 @@ impl MoveGeneration {
                 let target = move_mask.pop_lsb();
 
                 #[cfg(feature = "unit_bb")]
-                let capture_option = position.try_get_piece(target);
+                let capture_option = position.get_piece_option(target);
                 
                 #[cfg(feature = "unit_bb")]
                 Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, king, capture_option, None));
@@ -245,7 +245,7 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let capture_option = position.try_get_piece(target);
+                    let capture_option = position.get_piece_option(target);
                     
                     #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, bishop, capture_option, None));
@@ -268,7 +268,7 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let capture_option = position.try_get_piece(target);
+                    let capture_option = position.get_piece_option(target);
                     
                     #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, rook, capture_option, None));
@@ -291,7 +291,7 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let capture_option = position.try_get_piece(target);
+                    let capture_option = position.get_piece_option(target);
                     
                     #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, queen, capture_option, None));
@@ -340,7 +340,7 @@ impl MoveGeneration {
                     let target = capture_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let capture_option = position.try_get_piece(target);
+                    let capture_option = position.get_piece_option(target);
 
                     if source_rank == pawn_promotion_rank {
                         
@@ -410,7 +410,7 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let capture_option = position.try_get_piece(target);
+                    let capture_option = position.get_piece_option(target);
                     
                     #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, knight, capture_option, None));
@@ -432,7 +432,7 @@ impl MoveGeneration {
                 let target = move_mask.pop_lsb();
 
                 #[cfg(feature = "unit_bb")]
-                let capture_option = position.try_get_piece(target);
+                let capture_option = position.get_piece_option(target);
                 
                 #[cfg(feature = "unit_bb")]
                 Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, king, capture_option, None));
@@ -454,7 +454,7 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let capture_option = position.try_get_piece(target);
+                    let capture_option = position.get_piece_option(target);
                     
                     #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, bishop, capture_option, None));
@@ -477,7 +477,7 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let capture_option = position.try_get_piece(target);
+                    let capture_option = position.get_piece_option(target);
                     
                     #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, rook, capture_option, None));
@@ -500,7 +500,7 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let capture_option = position.try_get_piece(target);
+                    let capture_option = position.get_piece_option(target);
                     
                     #[cfg(feature = "unit_bb")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, queen, capture_option, None));
