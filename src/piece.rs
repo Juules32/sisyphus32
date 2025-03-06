@@ -18,7 +18,6 @@ pub enum Piece {
     BR = 0b1001,
     BQ = 0b1010,
     BK = 0b1011,
-    None = 0b1100,
 }
 
 impl Piece {
@@ -133,7 +132,6 @@ impl From<Piece> for char {
             Piece::BR => 'r',
             Piece::BQ => 'q',
             Piece::BK => 'k',
-            Piece::None => panic!("Can't convert none piece type to char!"),
         }
     }
 }
@@ -153,7 +151,6 @@ impl fmt::Display for Piece {
             Piece::BR => "♖",
             Piece::BQ => "♕",
             Piece::BK => "♔",
-            Piece::None => "None",
         };
         f.pad(s)
     }

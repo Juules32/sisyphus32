@@ -259,7 +259,7 @@ impl Perft {
             let position = perft_position.fen.parse().expect("FEN parser could not parse given position!");
             let perft_result = Self::perft_test(&position, perft_position.depth, false);
             if perft_result.nodes != perft_position.target_nodes {
-                panic!("Perft test of {} did not get the target nodes!", perft_position.name);
+                panic!("Perft test of {} did not get the target nodes! Found {} instead of {}", perft_position.name, perft_result.nodes, perft_position.target_nodes);
             }
             let performance = perft_result.nodes as u128 / perft_result.time;
             performances.push(performance);

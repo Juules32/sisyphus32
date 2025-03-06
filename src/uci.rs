@@ -108,7 +108,7 @@ impl Uci {
             for m in MoveGeneration::generate_moves::<BitMove, Legal>(&self.position) {
                 let s = m.source();
                 let t = m.target();
-                let f = m.flag();
+                let f = m.flag_option();
                 
                 if source == s && target == t {
                     match promotion_piece_option {

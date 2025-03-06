@@ -32,37 +32,37 @@ impl MoveGeneration {
                     let target = capture_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let target_piece = position.get_piece(target);
+                    let capture_option = position.try_get_piece(target);
 
                     if source_rank == pawn_promotion_rank {
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, Some(MoveFlag::PromoN)));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, capture_option, Some(MoveFlag::PromoN)));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, Some(MoveFlag::PromoN)));
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, Some(MoveFlag::PromoB)));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, capture_option, Some(MoveFlag::PromoB)));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, Some(MoveFlag::PromoB)));
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, Some(MoveFlag::PromoR)));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, capture_option, Some(MoveFlag::PromoR)));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, Some(MoveFlag::PromoR)));
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, Some(MoveFlag::PromoQ)));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, capture_option, Some(MoveFlag::PromoQ)));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, Some(MoveFlag::PromoQ)));
                     } else {
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, None));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, capture_option, None));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
@@ -79,38 +79,38 @@ impl MoveGeneration {
                         if (MoveMasks::get_pawn_quiet_mask(position.side, source) & position.ao).is_empty() {
                             
                             #[cfg(feature = "unit_bb")]
-                            Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, Piece::None, double_pawn_flag));
+                            Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, None, double_pawn_flag));
 
                             #[cfg(feature = "unit_bb_array")]
                                 Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, double_pawn_flag));
                         } 
                     } else if source_rank == pawn_promotion_rank {
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, Piece::None, Some(MoveFlag::PromoN)));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, None, Some(MoveFlag::PromoN)));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, Some(MoveFlag::PromoN)));
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, Piece::None, Some(MoveFlag::PromoB)));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, None, Some(MoveFlag::PromoB)));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, Some(MoveFlag::PromoB)));
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, Piece::None, Some(MoveFlag::PromoR)));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, None, Some(MoveFlag::PromoR)));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, Some(MoveFlag::PromoR)));
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, Piece::None, Some(MoveFlag::PromoQ)));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, None, Some(MoveFlag::PromoQ)));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, Some(MoveFlag::PromoQ)));
                     } else {
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, Piece::None, None));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, None, None));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
@@ -125,7 +125,7 @@ impl MoveGeneration {
                             let target = en_passant_mask.pop_lsb();
                             if target == en_passant_sq {
                                 #[cfg(feature = "unit_bb")]
-                                Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, Piece::None, en_passant_flag));
+                                Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, None, en_passant_flag));
 
                                 #[cfg(feature = "unit_bb_array")]
                                 Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, en_passant_flag));
@@ -149,10 +149,10 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let target_piece = position.get_piece(target);
+                    let capture_option = position.try_get_piece(target);
                     
                     #[cfg(feature = "unit_bb")]
-                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, knight, target_piece, None));
+                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, knight, capture_option, None));
 
                     #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
@@ -191,10 +191,10 @@ impl MoveGeneration {
                 let target = move_mask.pop_lsb();
 
                 #[cfg(feature = "unit_bb")]
-                let target_piece = position.get_piece(target);
+                let capture_option = position.try_get_piece(target);
                 
                 #[cfg(feature = "unit_bb")]
-                Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, king, target_piece, None));
+                Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, king, capture_option, None));
 
                 #[cfg(feature = "unit_bb_array")]
                 Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
@@ -209,7 +209,7 @@ impl MoveGeneration {
                 {
                     
                     #[cfg(feature = "unit_bb")]
-                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, castling_square_g, king, Piece::None, king_side_castling_flag));
+                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, castling_square_g, king, None, king_side_castling_flag));
 
                     #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, castling_square_g, king_side_castling_flag));
@@ -225,7 +225,7 @@ impl MoveGeneration {
                 {
                     
                     #[cfg(feature = "unit_bb")]
-                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, castling_square_c, king, Piece::None, queen_side_castling_flag));
+                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, castling_square_c, king, None, queen_side_castling_flag));
 
                     #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, castling_square_c, queen_side_castling_flag));
@@ -245,10 +245,10 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let target_piece = position.get_piece(target);
+                    let capture_option = position.try_get_piece(target);
                     
                     #[cfg(feature = "unit_bb")]
-                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, bishop, target_piece, None));
+                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, bishop, capture_option, None));
 
                     #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
@@ -268,10 +268,10 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let target_piece = position.get_piece(target);
+                    let capture_option = position.try_get_piece(target);
                     
                     #[cfg(feature = "unit_bb")]
-                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, rook, target_piece, None));
+                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, rook, capture_option, None));
 
                     #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
@@ -291,10 +291,10 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let target_piece = position.get_piece(target);
+                    let capture_option = position.try_get_piece(target);
                     
                     #[cfg(feature = "unit_bb")]
-                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, queen, target_piece, None));
+                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, queen, capture_option, None));
 
                     #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
@@ -340,37 +340,37 @@ impl MoveGeneration {
                     let target = capture_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let target_piece = position.get_piece(target);
+                    let capture_option = position.try_get_piece(target);
 
                     if source_rank == pawn_promotion_rank {
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, Some(MoveFlag::PromoN)));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, capture_option, Some(MoveFlag::PromoN)));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, Some(MoveFlag::PromoN)));
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, Some(MoveFlag::PromoB)));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, capture_option, Some(MoveFlag::PromoB)));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, Some(MoveFlag::PromoB)));
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, Some(MoveFlag::PromoR)));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, capture_option, Some(MoveFlag::PromoR)));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, Some(MoveFlag::PromoR)));
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, Some(MoveFlag::PromoQ)));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, capture_option, Some(MoveFlag::PromoQ)));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, Some(MoveFlag::PromoQ)));
                     } else {
                         
                         #[cfg(feature = "unit_bb")]
-                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, target_piece, None));
+                        Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, capture_option, None));
 
                         #[cfg(feature = "unit_bb_array")]
                         Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
@@ -386,7 +386,7 @@ impl MoveGeneration {
                             let target = en_passant_mask.pop_lsb();
                             if target == en_passant_sq {
                                 #[cfg(feature = "unit_bb")]
-                                Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, Piece::None, en_passant_flag));
+                                Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, pawn, None, en_passant_flag));
 
                                 #[cfg(feature = "unit_bb_array")]
                                 Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, en_passant_flag));
@@ -410,10 +410,10 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let target_piece = position.get_piece(target);
+                    let capture_option = position.try_get_piece(target);
                     
                     #[cfg(feature = "unit_bb")]
-                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, knight, target_piece, None));
+                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, knight, capture_option, None));
 
                     #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
@@ -432,10 +432,10 @@ impl MoveGeneration {
                 let target = move_mask.pop_lsb();
 
                 #[cfg(feature = "unit_bb")]
-                let target_piece = position.get_piece(target);
+                let capture_option = position.try_get_piece(target);
                 
                 #[cfg(feature = "unit_bb")]
-                Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, king, target_piece, None));
+                Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, king, capture_option, None));
 
                 #[cfg(feature = "unit_bb_array")]
                 Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
@@ -454,10 +454,10 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let target_piece = position.get_piece(target);
+                    let capture_option = position.try_get_piece(target);
                     
                     #[cfg(feature = "unit_bb")]
-                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, bishop, target_piece, None));
+                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, bishop, capture_option, None));
 
                     #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
@@ -477,10 +477,10 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let target_piece = position.get_piece(target);
+                    let capture_option = position.try_get_piece(target);
                     
                     #[cfg(feature = "unit_bb")]
-                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, rook, target_piece, None));
+                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, rook, capture_option, None));
 
                     #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
@@ -500,10 +500,10 @@ impl MoveGeneration {
                     let target = move_mask.pop_lsb();
 
                     #[cfg(feature = "unit_bb")]
-                    let target_piece = position.get_piece(target);
+                    let capture_option = position.try_get_piece(target);
                     
                     #[cfg(feature = "unit_bb")]
-                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, queen, target_piece, None));
+                    Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, queen, capture_option, None));
 
                     #[cfg(feature = "unit_bb_array")]
                     Self::add_move::<T, F>(position, &mut move_list, BitMove::encode(source, target, None));
