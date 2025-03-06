@@ -135,7 +135,7 @@ impl From<&Position> for FenString {
         for square in Square::ALL_SQUARES {
             curr_width += 1;
 
-            let piece_option = position.try_get_piece(square);
+            let piece_option = position.get_piece_option(square);
             match piece_option {
                 None => curr_empty += 1,
                 Some(piece) => {

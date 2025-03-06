@@ -111,13 +111,13 @@ impl BitMove {
     pub fn encode(
         source: Square, 
         target: Square, 
-        flag: Option<MoveFlag>
+        flag_option: Option<MoveFlag>
     ) -> BitMove {
         unsafe {
             BitMove(
                 source as u16 | 
                 (target as u16) << 6 | 
-                (std::mem::transmute::<Option<MoveFlag>, u8>(flag) as u16) << 12
+                (std::mem::transmute::<Option<MoveFlag>, u8>(flag_option) as u16) << 12
             )
         }
     }
@@ -136,13 +136,13 @@ impl BitMove {
 
     #[inline(always)]
     pub fn is_capture_or_promotion(self, position: &Position) -> bool {
-        position.try_get_piece(self.target()).is_some() || self.flag_option().is_some_and(|f| f.is_promotion())
+        position.get_piece_option(self.target()).is_some() || self.flag_option().is_some_and(|f| f.is_promotion())
     }
 
     #[inline(always)]
     pub fn is_pp_capture_or_castle(self, position: &Position) -> bool {
-        let source_piece = position.try_get_piece(self.source());
-        let target_piece = position.try_get_piece(self.target());
+        let source_piece = position.get_piece_option(self.source());
+        let target_piece = position.get_piece_option(self.target());
         source_piece == Some(Piece::WP) ||
         source_piece == Some(Piece::BP) ||
         target_piece != None ||

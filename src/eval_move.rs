@@ -28,7 +28,7 @@ impl EvalMove {
         let source = bit_move.source();
         let target = bit_move.target();
         let piece = position.get_piece(source);
-        let capture_option = position.try_get_piece(target);
+        let capture_option = position.get_piece_option(target);
 
         if capture_option.is_some() {
             score += MVV_LVA[piece][capture_option.unwrap()];

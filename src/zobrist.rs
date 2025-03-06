@@ -45,7 +45,7 @@ impl ZobristKey {
     
         unsafe {
             for square in Square::ALL_SQUARES {
-                let piece_option = position.try_get_piece(square);
+                let piece_option = position.get_piece_option(square);
                 if let Some(piece) = piece_option {
                     hash ^= PIECE_KEYS[piece][square];
                 }
