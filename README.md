@@ -24,3 +24,4 @@ Sisyphus32 is UCI-compliant, implementing the following UCI commands:
 - `bench | benchmedium`
 - `benchlong`
 - `benchshort`
+- `setoption name Clear Hash`

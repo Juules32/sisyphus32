@@ -330,6 +330,11 @@ impl EvalPosition {
     }
 
     #[inline(always)]
+    pub fn get_base_piece_position_score(piece: Piece, square: Square, color: Color) -> i16 {
+        BASE_PIECE_POSITION_SCORES[piece][Self::get_positional_index(square, color)]
+    }
+
+    #[inline(always)]
     fn get_file_mask(square: Square) -> Bitboard {
         unsafe { FILE_MASKS[square] }
     }

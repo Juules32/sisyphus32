@@ -2,12 +2,10 @@ use std::mem;
 
 use crate::{bit_move::BitMove, color::Color, square::Square};
 
-const SIDE_COUNT: usize = 2;
-const SQUARES: usize = 64;
-const MAX_SCORE: i16 = 100; // Deliberately lower than any MVV-LVA values
+const MAX_SCORE: i16 = 1000;
 
 // Butterfly heuristic table: [side][source][target]
-static mut BUTTERFLY_HEURISTIC: [[[i16; SQUARES]; SQUARES]; SIDE_COUNT] = unsafe { mem::zeroed() };
+static mut BUTTERFLY_HEURISTIC: [[[i16; 64]; 64]; 2] = unsafe { mem::zeroed() };
 
 pub struct ButterflyHeuristic;
 
@@ -42,7 +40,7 @@ impl ButterflyHeuristic {
     #[inline(always)]
     pub fn reset() {
         unsafe {
-            BUTTERFLY_HEURISTIC = [[[0; SQUARES]; SQUARES]; SIDE_COUNT];
+            BUTTERFLY_HEURISTIC = mem::zeroed();
         }
     }
 }
