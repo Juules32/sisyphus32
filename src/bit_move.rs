@@ -23,6 +23,7 @@ const FLAG_MASK: u16 =    0b1111_0000_0000_0000;
 pub trait Move: Copy + Default + Eq + Hash {
     fn get_bit_move(self) -> BitMove;
     fn new(position: &Position, bit_move: BitMove) -> Self;
+    fn to_row_string(self) -> String;
 }
 
 /*------------------------------*\ 
@@ -45,6 +46,31 @@ impl Move for BitMove {
     
     fn new(_position: &Position, bit_move: BitMove) -> Self {
         bit_move
+    }
+
+    
+    #[cfg(feature = "unit_bb")]
+    fn to_row_string(self) -> String {
+        format!(
+            "  | {:<8} | {:<8} | {:<8} | {:<8?} | {:<19?} |\n",
+            self.source(),
+            self.target(),
+            self.piece(),
+            self.capture_option(),
+            self.flag_option()
+        )
+    }
+
+    #[cfg(feature = "unit_bb_array")]
+    fn to_row_string(self) -> String {
+        format!(
+            "  | {:<8} | {:<8} | {:<8} | {:<8} | {:<19?} |\n",
+            self.source(),
+            self.target(),
+            "",
+            "",
+            self.flag_option()
+        )
     }
 }
 
@@ -149,30 +175,6 @@ impl BitMove {
         self.flag_option().is_some_and(|f| f.is_castle())
     }
 
-    #[cfg(feature = "unit_bb")]
-    pub fn to_row_string(self) -> String {
-        format!(
-            "  | {:<8} | {:<8} | {:<8} | {:<8?} | {:<19?} |\n",
-            self.source(),
-            self.target(),
-            self.piece(),
-            self.capture_option(),
-            self.flag_option()
-        )
-    }
-
-    #[cfg(feature = "unit_bb_array")]
-    pub fn to_row_string(self) -> String {
-        format!(
-            "  | {:<8} | {:<8} | {:<8} | {:<8} | {:<19?} |\n",
-            self.source(),
-            self.target(),
-            "",
-            "",
-            self.flag_option()
-        )
-    }
-
     pub fn to_uci_string(self) -> String {
         format!(
             "{}{}{}",
@@ -252,6 +254,14 @@ impl Move for ScoringMove {
     fn new(position: &Position, bit_move: BitMove) -> Self {
         let score = EvalMove::eval(position, bit_move);
         Self { bit_move, score }
+    }
+    
+    fn to_row_string(self) -> String {
+        format!(
+            "  | {:<7} | {:<53} |\n",
+            self.bit_move.to_uci_string(),
+            self.score,
+        )
     }
 }
 
