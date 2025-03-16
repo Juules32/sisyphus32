@@ -256,7 +256,6 @@ impl Move for ScoringMove {
         Self { bit_move, score }
     }
     
-    #[cfg(feature = "unit_bb_array")]
     fn to_row_string(self) -> String {
         format!(
             "  | {:<7} | {:<53} |\n",
