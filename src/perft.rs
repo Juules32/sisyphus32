@@ -277,7 +277,7 @@ impl Perft {
         Self::perft_tests([
             PerftPosition {
                 name: "Starting Position",
-                fen: FenString::starting(),
+                fen: FenString::startpos(),
                 depth: 6,
                 target_nodes: 119_060_324
             },
@@ -312,7 +312,7 @@ impl Perft {
         Self::perft_tests([
             PerftPosition {
                 name: "Starting Position",
-                fen: FenString::starting(),
+                fen: FenString::startpos(),
                 depth: 5,
                 target_nodes: 4_865_609
             },
@@ -347,7 +347,7 @@ impl Perft {
         Self::perft_tests([
             PerftPosition {
                 name: "Starting Position",
-                fen: FenString::starting(),
+                fen: FenString::startpos(),
                 depth: 4,
                 target_nodes: 197_281
             },

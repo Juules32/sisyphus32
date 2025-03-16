@@ -8,7 +8,7 @@ pub struct FenParseError(pub &'static str);
 pub struct FenString { string: String }
 
 impl FenString {
-    pub fn starting() -> FenString {
+    pub fn startpos() -> FenString {
         FenString::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -")
     }
 
