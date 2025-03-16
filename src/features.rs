@@ -18,6 +18,7 @@ pub const VERSIONS: &[&str] = &[
     "interpolated_eval",
     "positional_eval",
     "capture_with_check_eval",
+    "move_flag_eval",
 ];
 
 pub const BASE_FEATURES: &[&str] = &[

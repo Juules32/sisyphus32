@@ -142,6 +142,24 @@ impl fmt::Display for MoveList<BitMove> {
     }
 }
 
+impl fmt::Display for MoveList<ScoringMove> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut s = format!("
+    Printing move data for {} moves:
+  |-----------------------------------------------------------------|
+  | BitMove | Score                                                 |
+  |-----------------------------------------------------------------|\n", self.size);
+
+        for i in 0..self.size {
+            s += &self[i].to_row_string();
+        }
+
+        s += "  |-----------------------------------------------------------------|";
+
+        f.pad(&s)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 

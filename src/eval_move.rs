@@ -1,4 +1,4 @@
-use crate::{bit_move::BitMove, butterfly_heuristic::ButterflyHeuristic, killer_moves::KillerMoves, position::Position, transposition_table::{TTNodeType, TranspositionTable}};
+use crate::{bit_move::BitMove, butterfly_heuristic::ButterflyHeuristic, killer_moves::KillerMoves, move_flag::MoveFlag, position::Position, transposition_table::{TTNodeType, TranspositionTable}};
 
 #[allow(unused_imports)]
 use crate::{color::Color, move_masks::MoveMasks, piece::Piece};
@@ -29,6 +29,21 @@ impl EvalMove {
         let target = bit_move.target();
         let piece = position.get_piece(source);
         let capture_option = position.get_piece_option(target);
+
+        #[cfg(feature = "unit_move_flag_eval")]
+        {
+            score += match bit_move.flag_option() {
+                None | Some(MoveFlag::WDoublePawn) | Some(MoveFlag::BDoublePawn) => 0,
+                Some(MoveFlag::WKCastle) | Some(MoveFlag::BKCastle) => 200, 
+                Some(MoveFlag::WQCastle) | Some(MoveFlag::BQCastle) => 50,
+                Some(MoveFlag::WEnPassant) | Some(MoveFlag::BEnPassant) => 150,
+                Some(MoveFlag::PromoQ) => 500,
+                Some(MoveFlag::PromoR) | Some(MoveFlag::PromoB) | Some(MoveFlag::PromoN) => -100,
+            };
+        }
+
+        // NOTE: Although the following idea seems logical, it yields 10-20% worse performance!
+        // score += EvalPosition::get_base_piece_position_score(piece, target, position.side) - EvalPosition::get_base_piece_position_score(piece, source, position.side); 
 
         if capture_option.is_some() {
             score += MVV_LVA[piece][capture_option.unwrap()];
