@@ -19,6 +19,7 @@ pub const VERSIONS: &[&str] = &[
     "positional_eval",
     "capture_with_check_eval",
     "move_flag_eval",
+    "lazy_smp",
 ];
 
 pub const BASE_FEATURES: &[&str] = &[
