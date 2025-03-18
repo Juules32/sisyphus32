@@ -15,10 +15,11 @@ pub const VERSIONS: &[&str] = &[
     "tt_two_tier",
     "null_move_pruning",
     "late_move_reductions",
-    "interpolated_eval",
+    "tapered_eval",
     "positional_eval",
     "capture_with_check_eval",
     "move_flag_eval",
+    "lazy_smp",
 ];
 
 pub const BASE_FEATURES: &[&str] = &[
