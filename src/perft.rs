@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{bit_move::BitMove, fen::FenString, move_generation::{MoveGeneration, PseudoLegal}, position::Position, timer::Timer};
 
 use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
@@ -6,6 +8,22 @@ pub struct PerftResult {
     depth: u8,
     nodes: u64,
     time: u128,
+}
+
+impl Display for PerftResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.pad(&format!(
+            "
+Depth: {}
+Nodes: {}
+ Time: {} milliseconds
+  Nps: {:.3} Mn/s\n",
+            self.depth,
+            self.nodes,
+            self.time,
+            self.nodes as f64 / self.time as f64 / 1000_f64,
+        ))
+    }
 }
 
 struct PerftPosition {
@@ -67,14 +85,7 @@ impl Perft {
         };
 
         if print_result {
-            println!("
-    Depth: {}
-    Nodes: {}
-    Time: {} milliseconds\n",
-                perft_result.depth,
-                perft_result.nodes,
-                perft_result.time
-            );
+            println!("{perft_result}");
         }
 
         perft_result
@@ -109,14 +120,7 @@ impl Perft {
         };
 
         if print_result {
-            println!("
-    Depth: {}
-    Nodes: {}
-     Time: {} milliseconds\n",
-                perft_result.depth,
-                perft_result.nodes,
-                perft_result.time
-            );
+            println!("{perft_result}");
         }
 
         perft_result
@@ -152,23 +156,17 @@ impl Perft {
             .into_iter()
             .sum();
 
-        if print_result {
-            println!(
-                "
-    Depth: {}
-    Nodes: {}
-     Time: {} milliseconds\n",
-                depth,
-                cumulative_nodes,
-                timer.get_time_passed_millis()
-            );
-        }
-
-        PerftResult {
+        let perft_result = PerftResult {
             depth,
             nodes: cumulative_nodes,
             time: timer.get_time_passed_millis(),
+        };
+
+        if print_result {
+            println!("{perft_result}");
         }
+
+        perft_result
     }
 
     #[inline(always)]
@@ -248,7 +246,7 @@ impl Perft {
     }
 
     fn perft_tests(perft_positions: [PerftPosition; 5]) {
-        let mut performances: Vec<u128> = vec![];
+        let mut performances: Vec<f64> = vec![];
 
         println!("\n    Printing performance test results:");
         println!("  |-----------------------------------------------------------------|");
@@ -261,15 +259,15 @@ impl Perft {
             if perft_result.nodes != perft_position.target_nodes {
                 panic!("Perft test of {} did not get the target nodes! Found {} instead of {}", perft_position.name, perft_result.nodes, perft_position.target_nodes);
             }
-            let performance = perft_result.nodes as u128 / perft_result.time;
+            let performance = (perft_result.nodes as f64 / perft_result.time as f64) / 1000_f64;
             performances.push(performance);
-            println!("  | {:<18} | {:<6} | {:<10} | {:<6} | {:<11} |", perft_position.name, perft_position.depth, perft_result.nodes, perft_result.time, performance);
+            println!("  | {:<18} | {:<6} | {:<10} | {:<6} | {:<11.3} |", perft_position.name, perft_position.depth, perft_result.nodes, perft_result.time, performance);
         }
 
-        let score = performances.iter().sum::<u128>() / performances.len() as u128;
+        let score = performances.iter().sum::<f64>() / performances.len() as f64;
 
         println!("  |-----------------------------------------------------------------|");
-        println!("  | Overall score: {:<13}                                    |", score);
+        println!("  | Overall score: {:<48.3} |", score);
         println!("  |-----------------------------------------------------------------|");
     }
 
