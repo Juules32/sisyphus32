@@ -390,7 +390,7 @@ impl EvalPosition {
     }
 
     #[inline(always)]
-    fn get_interpolated_score(game_phase: GamePhase, game_phase_score: i16, opening_score: i16, endgame_score: i16) -> i16 {
+    fn get_tapered_score(game_phase: GamePhase, game_phase_score: i16, opening_score: i16, endgame_score: i16) -> i16 {
         match game_phase {
             // NOTE: The i32 casting is necessary to avoid scoring overflows
             GamePhase::Middlegame => ((
@@ -409,7 +409,7 @@ impl EvalPosition {
         let mut endgame_score = 0;
         let mut ao_copy = position.ao;
 
-        #[cfg(feature = "unit_interpolated_eval")]
+        #[cfg(feature = "unit_tapered_eval")]
         let game_phase = Self::get_game_phase(position.game_phase_score);
 
         while ao_copy != Bitboard::EMPTY {
@@ -425,14 +425,14 @@ impl EvalPosition {
             #[allow(unused_mut)]
             let mut piece_score = 0;
 
-            #[cfg(not(feature = "unit_interpolated_eval"))]
+            #[cfg(not(feature = "unit_tapered_eval"))]
             {
                 piece_score += BASE_PIECE_SCORES[piece];
                 #[cfg(feature = "unit_eval_pps")]
                 { piece_score += BASE_PIECE_POSITION_SCORES[piece][positional_index]; }
             }
 
-            #[cfg(feature = "unit_interpolated_eval")]
+            #[cfg(feature = "unit_tapered_eval")]
             {
                 opening_score += OPENING_PIECE_SCORES[piece] * piece_color_modifier;
                 endgame_score += ENDGAME_PIECE_SCORES[piece] * piece_color_modifier;
@@ -498,8 +498,8 @@ impl EvalPosition {
             score += piece_score * piece_color_modifier;
         }
         
-        #[cfg(feature = "unit_interpolated_eval")]
-        { score += Self::get_interpolated_score(game_phase, position.game_phase_score, opening_score, endgame_score); }
+        #[cfg(feature = "unit_tapered_eval")]
+        { score += Self::get_tapered_score(game_phase, position.game_phase_score, opening_score, endgame_score); }
 
         score as i16 * match position.side {
             Color::White => 1,
