@@ -53,12 +53,6 @@ impl Uci {
     }
     
     fn parse_line(&mut self, line: String) -> Result<(), UciParseError> {
-        if line == "setoption name Clear Hash" {
-            TranspositionTable::reset();
-            println!("Reset transposition table successfully!");
-            return Ok(());
-        }
-
         let mut words = line.split_whitespace();
         match words.next() {
             Some(keyword) => {
@@ -94,6 +88,27 @@ impl Uci {
                         Perft::short_perft_tests();
                         Ok(())
                     },
+                    "setoption" => {
+                        if line == "setoption name Clear Hash" {
+                            TranspositionTable::reset();
+                            println!("Reset transposition table successfully!");
+                            Ok(())
+                        }
+                        else if line.starts_with("setoption name Threads value") {
+                            match words.last().unwrap().parse() {
+                                Ok(num_threads) => {
+                                    // NOTE: This is done because rayon needs at least two threads to continually flush stdout.
+                                    let num_threads = if num_threads == 1 { 2 } else {num_threads};
+                                    self.search.num_threads = num_threads;
+                                    println!("Set number of threads to {num_threads} successfully!");
+                                    Ok(())
+                                },
+                                Err(_) => Err(UciParseError("Couldn't parse threads value!")),
+                            }
+                        } else {
+                            Err(UciParseError("Couldn't find option name!"))
+                        }
+                    }
                     _ => Err(UciParseError("Couldn't parse keyword!")),
                 }
             }

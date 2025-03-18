@@ -28,6 +28,7 @@ pub struct Search {
     pub stop_calculating: Arc<AtomicBool>,
     nodes: u64,
     pub zobrist_key_history: Vec<ZobristKey>,
+    pub num_threads: usize,
 }
 
 impl Search {
@@ -336,7 +337,11 @@ impl Search {
         let stop_early = Arc::new(AtomicBool::new(false));
         let best_scoring_move = Arc::new(Mutex::new(ScoringMove::blank(BLANK)));
 
-        rayon::scope(|s| {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(self.num_threads)
+            .build()
+            .unwrap()
+            .scope(|s| {
             let stop_time = self.stop_time;
             for current_depth in 1..=depth {
                 let stop_calculating = self.stop_calculating.clone();
@@ -360,8 +365,7 @@ impl Search {
                         return;
                     }
 
-                    let mut best_scoring_move_guard = best_scoring_move.lock().unwrap();
-                    *best_scoring_move_guard = new_best_move;
+                    *best_scoring_move.lock().unwrap() = new_best_move;
                     let found_mate = new_best_move.score.abs() > CHECKMATE - MAX_PLY;
 
                     println!(
@@ -476,6 +480,7 @@ impl Default for Search {
             stop_calculating: Arc::new(AtomicBool::new(false)),
             nodes: 0,
             zobrist_key_history: Vec::new(),
+            num_threads: rayon::current_num_threads(),
         }
     }
 }
