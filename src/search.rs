@@ -1,7 +1,7 @@
 extern crate rand;
 
 use rand::Rng;
-use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::{self, scope}, time::Duration};
+use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
 use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
@@ -21,6 +21,7 @@ const AVERAGE_BRANCHING_FACTOR: u128 = 5;
 #[cfg(feature = "unit_late_move_reductions")]
 const AVERAGE_BRANCHING_FACTOR: u128 = 2;
 
+#[derive(Clone)]
 pub struct Search {
     timer: Timer,
     stop_time: Option<u128>,
@@ -329,6 +330,64 @@ impl Search {
         println!("bestmove {}", best_scoring_move.bit_move.to_uci_string());
     }
 
+    #[inline(always)]
+    fn go_lazy_smp(&mut self, position: &Position, depth: u16) {
+        let stop_calculating = self.stop_calculating.clone();
+        let stop_early = Arc::new(AtomicBool::new(false));
+        let best_scoring_move = Arc::new(Mutex::new(ScoringMove::blank(BLANK)));
+
+        rayon::scope(|s| {
+            let stop_time = self.stop_time;
+            for current_depth in 1..=depth {
+                let stop_calculating = self.stop_calculating.clone();
+                let stop_early = stop_early.clone();
+                let mut self_ref = self.clone();
+                let best_scoring_move = best_scoring_move.clone();
+                let timer = self.timer.clone();
+
+                s.spawn(move |_| {
+                    if let Some(time) = stop_time {
+                        if current_depth != 1 && timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR > time {
+                            stop_early.store(true, Ordering::Relaxed);
+                            stop_calculating.store(true, Ordering::Relaxed);
+                            return;
+                        }
+                    }
+
+                    let new_best_move = self_ref.best_move(&position, current_depth);
+
+                    if stop_calculating.load(Ordering::Relaxed) {
+                        return;
+                    }
+
+                    let mut best_scoring_move_guard = best_scoring_move.lock().unwrap();
+                    *best_scoring_move_guard = new_best_move;
+                    let found_mate = new_best_move.score.abs() > CHECKMATE - MAX_PLY;
+
+                    println!(
+                        "info depth {} score {} nodes {} time {} pv {}",
+                        current_depth,
+                        Self::score_or_mate_string(new_best_move.score, found_mate),
+                        self_ref.nodes,
+                        self_ref.timer.get_time_passed_millis(),
+                        self_ref.get_pv(&position, current_depth, new_best_move.bit_move),
+                    );
+                });
+            }
+
+        });
+
+        if stop_early.load(Ordering::Relaxed) {
+            println!("info string ended iterative search early based on time prediction and reset transposition table");
+            TranspositionTable::reset();
+        } else if stop_calculating.load(Ordering::Relaxed) {
+            println!("info string ended iterative search and reset transposition table");
+            TranspositionTable::reset();
+        }
+
+        println!("bestmove {}", best_scoring_move.lock().unwrap().bit_move.to_uci_string());
+    }
+
     fn score_or_mate_string(score: i16, found_mate: bool) -> String {
         if found_mate {
             format!("mate {}", ((CHECKMATE - score.abs()) as f32 / 2.0).ceil() as i16 * score.signum())
@@ -349,7 +408,7 @@ impl Search {
 
         // NOTE: Scoping the following thread helps prevent an excess amount of threads being created
         // and future calculations being stopped because of old threads.
-        scope(|s| {
+        thread::scope(|s| {
             if let Some(time) = self.stop_time {
                 s.spawn(move || {
                     for _ in 0..time / 10 {
@@ -365,8 +424,11 @@ impl Search {
             #[cfg(not(feature = "unit_iterative_deepening"))]
             self.go_no_iterative_deepening(position, depth);
 
-            #[cfg(feature = "unit_iterative_deepening")]
+            #[cfg(all(not(feature = "unit_lazy_smp"), feature = "unit_iterative_deepening"))]
             self.go_iterative_deepening(position, depth);
+
+            #[cfg(feature = "unit_lazy_smp")]
+            self.go_lazy_smp(position, depth);
 
             self.stop_calculating.store(true, Ordering::Relaxed);
         });

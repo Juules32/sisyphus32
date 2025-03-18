@@ -41,7 +41,8 @@ interpolated_eval =         ["late_move_reductions", "unit_interpolated_eval"]
 positional_eval =           ["interpolated_eval", "unit_positional_eval"]
 capture_with_check_eval =   ["interpolated_eval", "unit_capture_with_check_eval"]
 move_flag_eval =            ["interpolated_eval", "unit_move_flag_eval"]
-default = ["move_flag_eval"] # Should only be one feature from the list of playable versions
+lazy_smp =                  ["move_flag_eval", "unit_lazy_smp"]
+default = ["lazy_smp"] # Should only be one feature from the list of playable versions
 
 #  /*------------------------------------------------------------*\ 
 #        Base features (should not be set as default feature)
@@ -105,3 +106,5 @@ unit_positional_eval = []
 unit_capture_with_check_eval = []
 
 unit_move_flag_eval = []
+
+unit_lazy_smp = []
