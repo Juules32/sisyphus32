@@ -16,7 +16,7 @@ pub struct Position {
     pub ply: u16,
     pub zobrist_key: ZobristKey,
 
-    #[cfg(feature = "unit_interpolated_eval")]
+    #[cfg(feature = "unit_tapered_eval")]
     pub game_phase_score: i16,
 }
 
@@ -81,13 +81,13 @@ impl Position {
             ply: 0,
             zobrist_key: ZobristKey(0),
             
-            #[cfg(feature = "unit_interpolated_eval")]
+            #[cfg(feature = "unit_tapered_eval")]
             game_phase_score: 0,
         };
 
         position.zobrist_key = ZobristKey::generate(&position);
 
-        #[cfg(feature = "unit_interpolated_eval")]
+        #[cfg(feature = "unit_tapered_eval")]
         { position.game_phase_score = EvalPosition::get_game_phase_score(&position); }
 
         position
@@ -149,7 +149,7 @@ impl Position {
         if let Some(capture) = capture_option {
             self.remove_piece(capture, target);
 
-            #[cfg(feature = "unit_interpolated_eval")]
+            #[cfg(feature = "unit_tapered_eval")]
             { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(capture); }
         }
 
@@ -167,13 +167,13 @@ impl Position {
             Some(MoveFlag::WEnPassant) => {
                 self.remove_piece(Piece::BP, target.below());
                 
-                #[cfg(feature = "unit_interpolated_eval")]
+                #[cfg(feature = "unit_tapered_eval")]
                 { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(Piece::BP); }
             },
             Some(MoveFlag::BEnPassant) => {
                 self.remove_piece(Piece::WP, target.above());
                 
-                #[cfg(feature = "unit_interpolated_eval")]
+                #[cfg(feature = "unit_tapered_eval")]
                 { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(Piece::WP); }
             },
             Some(MoveFlag::WKCastle) => {
@@ -202,7 +202,7 @@ impl Position {
                     target,
                 );
 
-                #[cfg(feature = "unit_interpolated_eval")]
+                #[cfg(feature = "unit_tapered_eval")]
                 {
                     self.game_phase_score -= EvalPosition::get_game_phase_piece_score(piece);
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WQ);
@@ -218,7 +218,7 @@ impl Position {
                     target,
                 );
 
-                #[cfg(feature = "unit_interpolated_eval")]
+                #[cfg(feature = "unit_tapered_eval")]
                 {
                     self.game_phase_score -= EvalPosition::get_game_phase_piece_score(piece);
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
@@ -234,7 +234,7 @@ impl Position {
                     target,
                 );
 
-                #[cfg(feature = "unit_interpolated_eval")]
+                #[cfg(feature = "unit_tapered_eval")]
                 {
                     self.game_phase_score -= EvalPosition::get_game_phase_piece_score(piece);
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
@@ -250,7 +250,7 @@ impl Position {
                     target,
                 );
 
-                #[cfg(feature = "unit_interpolated_eval")]
+                #[cfg(feature = "unit_tapered_eval")]
                 {
                     self.game_phase_score -= EvalPosition::get_game_phase_piece_score(piece);
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
@@ -440,7 +440,7 @@ impl Default for Position {
             ply: 0,
             zobrist_key: ZobristKey(0),
 
-            #[cfg(feature = "unit_interpolated_eval")]
+            #[cfg(feature = "unit_tapered_eval")]
             game_phase_score: 0,
         }
     }
