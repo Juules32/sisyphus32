@@ -3,7 +3,7 @@ extern crate rand;
 use rand::Rng;
 use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTData, TTEntry, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
 const BLANK: i16 = 0;
 const CHECKMATE: i16 = 10000;
@@ -358,7 +358,7 @@ impl Search {
                         }
                     }
 
-                    let new_best_move = self_ref.best_move(&position, current_depth);
+                    let new_best_move = self_ref.best_move(position, current_depth);
 
                     if stop_calculating.load(Ordering::Relaxed) {
                         return;
@@ -373,7 +373,7 @@ impl Search {
                         Self::score_or_mate_string(new_best_move.score, found_mate),
                         self_ref.nodes,
                         self_ref.timer.get_time_passed_millis(),
-                        self_ref.get_pv(&position, current_depth, new_best_move.bit_move),
+                        self_ref.get_pv(position, current_depth, new_best_move.bit_move),
                     );
                 });
             }

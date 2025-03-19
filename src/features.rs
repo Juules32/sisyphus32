@@ -20,6 +20,7 @@ pub const VERSIONS: &[&str] = &[
     "capture_with_check_eval",
     "move_flag_eval",
     "lazy_smp",
+    "lockless_hashing",
 ];
 
 pub const BASE_FEATURES: &[&str] = &[
