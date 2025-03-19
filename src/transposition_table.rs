@@ -30,11 +30,24 @@ struct TTSlot {
 #[derive(Clone, Copy)]
 pub struct TTEntry {
     pub zobrist_key: ZobristKey,
+    pub data: TTData,
+}
+
+impl TTEntry {
+    #[inline(always)]
+    fn new(zobrist_key: ZobristKey, data: TTData) -> TTEntry {
+        TTEntry { zobrist_key, data }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct TTData {
     pub best_move: ScoringMove,
     pub depth: u16,
     pub flag: TTNodeType,
 }
 
+#[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TTNodeType {
     Exact,
@@ -53,38 +66,38 @@ impl TranspositionTable {
 impl TranspositionTable {
     // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]
-    pub fn store(zobrist_key: ZobristKey, entry: TTEntry) {
+    pub fn store(zobrist_key: ZobristKey, data: TTData) {
         unsafe {
             let index = (zobrist_key.0 as usize) % TT_SIZE;
             let mut slot = TRANSPOSITION_TABLE[index].lock().unwrap();
 
             if let Some(existing_entry) = slot.main_entry {
-                if entry.depth >= existing_entry.depth {
-                    slot.main_entry = Some(entry);
+                if data.depth >= existing_entry.data.depth {
+                    slot.main_entry = Some(TTEntry::new(zobrist_key, data));
                 } else {
-                    slot.secondary_entry = Some(entry);
+                    slot.secondary_entry = Some(TTEntry::new(zobrist_key, data));
                 }
             } else {
-                slot.main_entry = Some(entry);
+                slot.main_entry = Some(TTEntry::new(zobrist_key, data));
             }
         }
     }
 
     #[inline(always)]
-    pub fn probe(zobrist_key: ZobristKey) -> Option<TTEntry> {
+    pub fn probe(zobrist_key: ZobristKey) -> Option<TTData> {
         unsafe {
             let index = (zobrist_key.0 as usize) % TT_SIZE;
             let slot = TRANSPOSITION_TABLE[index].lock().unwrap();
 
             if let Some(entry) = slot.main_entry {
                 if entry.zobrist_key == zobrist_key {
-                    return Some(entry);
+                    return Some(entry.data);
                 }
             }
 
             if let Some(entry) = slot.secondary_entry {
                 if entry.zobrist_key == zobrist_key {
-                    return Some(entry);
+                    return Some(entry.data);
                 }
             }
 
@@ -97,23 +110,23 @@ impl TranspositionTable {
 impl TranspositionTable {
     // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]
-    pub fn store(zobrist_key: ZobristKey, entry: TTEntry) {
+    pub fn store(zobrist_key: ZobristKey, data: TTData) {
         unsafe {
             let index = (zobrist_key.0 as usize) % TT_SIZE;
             let mut slot = TRANSPOSITION_TABLE[index].lock().unwrap();
-            slot.entry = Some(entry);
+            slot.entry = Some(TTEntry::new(zobrist_key, data));
         }
     }
 
     #[inline(always)]
-    pub fn probe(zobrist_key: ZobristKey) -> Option<TTEntry> {
+    pub fn probe(zobrist_key: ZobristKey) -> Option<TTData> {
         unsafe {
             let index = (zobrist_key.0 as usize) % TT_SIZE;
             let slot = TRANSPOSITION_TABLE[index].lock().unwrap();
 
             if let Some(entry) = slot.entry {
                 if entry.zobrist_key == zobrist_key {
-                    return Some(entry);
+                    return Some(entry.data);
                 }
             }
 
