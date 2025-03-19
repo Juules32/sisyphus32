@@ -501,7 +501,7 @@ impl EvalPosition {
         #[cfg(feature = "unit_tapered_eval")]
         { score += Self::get_tapered_score(game_phase, position.game_phase_score, opening_score, endgame_score); }
 
-        score as i16 * match position.side {
+        score * match position.side {
             Color::White => 1,
             Color::Black => -1
         }
