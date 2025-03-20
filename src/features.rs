@@ -18,6 +18,7 @@ pub const VERSIONS: &[&str] = &[
     "tapered_eval",
     "positional_eval",
     "capture_with_check_eval",
+    "pseudo_pins",
     "move_flag_eval",
     "lazy_smp",
     "lockless_hashing",

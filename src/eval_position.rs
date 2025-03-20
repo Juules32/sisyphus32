@@ -245,6 +245,10 @@ const SEMI_OPEN_FILE_SCORE: i16 = 10;
 const OPEN_FILE_SCORE: i16 = 15;
 const KING_ON_SEMI_OPEN_FILE_SCORE: i16 = -30;
 const KING_ADJACENCY_SCORE: i16 = 15;
+const PSEUDO_PIN_SCORE: i16 = 20;
+const BISHOP_PAIR_SCORE: i16 = 20;
+const CHECK_SCORE: i16 = 30;
+const ATTACK_UNITS_SCORE: i16 = 10;
 
 static mut FILE_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
 static mut RANK_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
@@ -500,6 +504,31 @@ impl EvalPosition {
         
         #[cfg(feature = "unit_tapered_eval")]
         { score += Self::get_tapered_score(game_phase, position.game_phase_score, opening_score, endgame_score); }
+
+        #[cfg(feature = "unit_pseudo_pins")]
+        {
+            let wk_square = Square::from(position.bbs[Piece::WK]);
+            let bk_square = Square::from(position.bbs[Piece::BK]);
+
+            score -= (MoveMasks::get_bishop_mask_empty_occupancy(wk_square) & position.bbs[Piece::BB]).count_bits() as i16 * PSEUDO_PIN_SCORE;
+            score -= (MoveMasks::get_rook_mask_empty_occupancy(wk_square) & position.bbs[Piece::BR]).count_bits() as i16 * PSEUDO_PIN_SCORE;
+            score -= (MoveMasks::get_queen_mask_empty_occupancy(wk_square) & position.bbs[Piece::BQ]).count_bits() as i16 * PSEUDO_PIN_SCORE;
+            score += (MoveMasks::get_bishop_mask_empty_occupancy(bk_square) & position.bbs[Piece::WB]).count_bits() as i16 * PSEUDO_PIN_SCORE;
+            score += (MoveMasks::get_rook_mask_empty_occupancy(bk_square) & position.bbs[Piece::WR]).count_bits() as i16 * PSEUDO_PIN_SCORE;
+            score += (MoveMasks::get_queen_mask_empty_occupancy(bk_square) & position.bbs[Piece::WQ]).count_bits() as i16 * PSEUDO_PIN_SCORE;
+        }
+
+        if position.bbs[Piece::WB].count_bits() >= 2 {
+            score += BISHOP_PAIR_SCORE;
+        }
+
+        if position.bbs[Piece::BB].count_bits() >= 2 {
+            score -= BISHOP_PAIR_SCORE;
+        }
+
+        if position.in_check(position.side) {
+            score -= CHECK_SCORE;
+        }
 
         score * match position.side {
             Color::White => 1,

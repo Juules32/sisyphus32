@@ -526,6 +526,13 @@ impl MoveMasks {
     }
 
     #[inline(always)]
+    pub fn get_bishop_mask_empty_occupancy(square: Square) -> Bitboard {
+        unsafe {
+            BISHOP_MOVE_CONFIGURATIONS[square][0]
+        }
+    }
+
+    #[inline(always)]
     #[cfg(not(feature = "unit_magic_bbs"))]
     pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         MoveMasks::generate_rook_moves_on_the_fly(square, occupancy)
@@ -544,6 +551,13 @@ impl MoveMasks {
     }
 
     #[inline(always)]
+    pub fn get_rook_mask_empty_occupancy(square: Square) -> Bitboard {
+        unsafe {
+            ROOK_MOVE_CONFIGURATIONS[square][0]
+        }
+    }
+
+    #[inline(always)]
     #[cfg(not(feature = "unit_magic_bbs"))]
     pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         MoveMasks::get_bishop_mask(square, occupancy) | MoveMasks::get_rook_mask(square, occupancy)
@@ -553,6 +567,11 @@ impl MoveMasks {
     #[cfg(feature = "unit_magic_bbs")]
     pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         Self::get_bishop_mask(square, occupancy) | Self::get_rook_mask(square, occupancy)
+    }
+
+    #[inline(always)]
+    pub fn get_queen_mask_empty_occupancy(square: Square) -> Bitboard {
+        Self::get_bishop_mask_empty_occupancy(square) | Self::get_rook_mask_empty_occupancy(square)
     }
 
     #[inline(always)]
