@@ -1,7 +1,7 @@
 use std::{mem, ops::BitXor};
 
 #[cfg(not(feature = "unit_lockless_hashing"))]
-use sync::{Mutex, MutexGuard};
+use std::sync::{Mutex, MutexGuard};
 
 use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
 
@@ -111,7 +111,8 @@ impl TranspositionTable {
     // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]
     pub fn store(zobrist_key: ZobristKey, data: TTData) {
-        let slot = Self::get_slot(zobrist_key);
+        #[allow(unused_mut)]
+        let mut slot = Self::get_slot(zobrist_key);
         if let Some(existing_entry) = slot.main_entry {
             if data.depth >= existing_entry.data.depth {
                 Self::store_entry(&mut slot.main_entry, zobrist_key, data);
@@ -148,7 +149,7 @@ impl TranspositionTable {
     // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]
     pub fn store(zobrist_key: ZobristKey, data: TTData) {
-        let slot = Self::get_slot(zobrist_key);
+        let mut slot = Self::get_slot(zobrist_key);
         Self::store_entry(&mut slot.entry, zobrist_key, data);
     }
 
