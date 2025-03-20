@@ -431,7 +431,11 @@ impl Search {
             self.go_iterative_deepening(position, depth);
 
             #[cfg(feature = "unit_lazy_smp")]
-            self.go_lazy_smp(position, depth);
+            if self.num_threads >= 3 {
+                self.go_lazy_smp(position, depth);
+            } else {
+                self.go_iterative_deepening(position, depth);
+            }
 
             self.stop_calculating.store(true, Ordering::Relaxed);
         });
