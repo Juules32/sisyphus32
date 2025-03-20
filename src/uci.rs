@@ -97,8 +97,6 @@ impl Uci {
                         else if line.starts_with("setoption name Threads value") {
                             match words.last().unwrap().parse() {
                                 Ok(num_threads) => {
-                                    // NOTE: This is done because rayon needs at least two threads to continually flush stdout.
-                                    let num_threads = if num_threads == 1 { 2 } else {num_threads};
                                     self.search.num_threads = num_threads;
                                     println!("Set number of threads to {num_threads} successfully!");
                                     Ok(())
