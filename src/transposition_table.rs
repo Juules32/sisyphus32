@@ -171,7 +171,17 @@ impl BitXor<TTData> for ZobristKey {
     type Output = ZobristKey;
 
     #[inline(always)]
+    #[cfg(feature = "unit_bb_array")]
     fn bitxor(self, rhs: TTData) -> Self::Output {
         unsafe { std::mem::transmute::<u64, ZobristKey>(self.0 ^ std::mem::transmute::<TTData, u64>(rhs)) }
+    }
+
+    #[inline(always)]
+    #[cfg(feature = "unit_bb")]
+    // NOTE: This should NEVER happen. The function is defined only because of compile time errors
+    // that arise when a bit move is not 16 bits in size, which results in TTData being more than
+    // 64 bits in size.
+    fn bitxor(self, rhs: TTData) -> Self::Output {
+        unsafe { std::mem::zeroed() }
     }
 }
