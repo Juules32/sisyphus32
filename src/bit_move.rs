@@ -171,7 +171,7 @@ impl BitMove {
         let target_piece = position.get_piece_option(self.target());
         source_piece == Some(Piece::WP) ||
         source_piece == Some(Piece::BP) ||
-        target_piece != None ||
+        target_piece.is_some() ||
         self.flag_option().is_some_and(|f| f.is_castle())
     }
 

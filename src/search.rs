@@ -1,9 +1,10 @@
 extern crate rand;
 
 use rand::Rng;
+use rayon::ThreadPool;
 use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, timer::Timer, transposition_table::{TTEntry, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
 const BLANK: i16 = 0;
 const CHECKMATE: i16 = 10000;
@@ -28,7 +29,8 @@ pub struct Search {
     pub stop_calculating: Arc<AtomicBool>,
     nodes: u64,
     pub zobrist_key_history: Vec<ZobristKey>,
-    pub num_threads: usize,
+    pub threadpool: Arc<ThreadPool>,
+    pub tablebase: Arc<Option<SyzygyTablebase>>,
 }
 
 impl Search {
@@ -109,6 +111,15 @@ impl Search {
     #[inline(always)]
     fn negamax_best_move(&mut self, position: &Position, alpha: i16, beta: i16, mut depth: u16) -> ScoringMove {
         self.nodes += 1;
+
+        #[cfg(feature = "unit_syzygy_tablebase")]
+        if position.ao.count_bits() <= 5 {
+            if let Some(tablebase) = self.tablebase.as_ref() {
+                if let Some(best_move) = tablebase.best_move(position) {
+                    return ScoringMove::new(best_move, CHECKMATE);
+                }
+            }
+        }
 
         if self.zobrist_key_history.contains(&position.zobrist_key) {
             self.zobrist_key_history.pop();
@@ -252,8 +263,7 @@ impl Search {
     
             TranspositionTable::store(
                 position.zobrist_key,
-                TTEntry {
-                    zobrist_key: position.zobrist_key,
+                TTData {
                     best_move,
                     depth: original_depth,
                     flag,
@@ -334,18 +344,13 @@ impl Search {
     #[inline(always)]
     fn go_lazy_smp(&mut self, position: &Position, depth: u16) {
         let stop_calculating = self.stop_calculating.clone();
-        let stop_early = Arc::new(AtomicBool::new(false));
         let best_scoring_move = Arc::new(Mutex::new(ScoringMove::blank(BLANK)));
 
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(self.num_threads)
-            .build()
-            .unwrap()
+        self.threadpool
             .scope(|s| {
             let stop_time = self.stop_time;
             for current_depth in 1..=depth {
                 let stop_calculating = self.stop_calculating.clone();
-                let stop_early = stop_early.clone();
                 let mut self_ref = self.clone();
                 let best_scoring_move = best_scoring_move.clone();
                 let timer = self.timer.clone();
@@ -353,13 +358,16 @@ impl Search {
                 s.spawn(move |_| {
                     if let Some(time) = stop_time {
                         if current_depth != 1 && timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR > time {
-                            stop_early.store(true, Ordering::Relaxed);
                             stop_calculating.store(true, Ordering::Relaxed);
                             return;
                         }
                     }
 
-                    let new_best_move = self_ref.best_move(&position, current_depth);
+                    if depth != 1 && stop_calculating.load(Ordering::Relaxed) {
+                        return;
+                    }
+
+                    let new_best_move = self_ref.best_move(position, current_depth);
 
                     if stop_calculating.load(Ordering::Relaxed) {
                         return;
@@ -374,17 +382,19 @@ impl Search {
                         Self::score_or_mate_string(new_best_move.score, found_mate),
                         self_ref.nodes,
                         self_ref.timer.get_time_passed_millis(),
-                        self_ref.get_pv(&position, current_depth, new_best_move.bit_move),
+                        self_ref.get_pv(position, current_depth, new_best_move.bit_move),
                     );
+
+                    if found_mate {
+                        println!("info string ended iterative search because mating line was found");
+                        self_ref.stop_calculating.store(true, Ordering::Relaxed);
+                        return;
+                    }
                 });
             }
-
         });
 
-        if stop_early.load(Ordering::Relaxed) {
-            println!("info string ended iterative search early based on time prediction and reset transposition table");
-            TranspositionTable::reset();
-        } else if stop_calculating.load(Ordering::Relaxed) {
+        if stop_calculating.load(Ordering::Relaxed) {
             println!("info string ended iterative search and reset transposition table");
             TranspositionTable::reset();
         }
@@ -432,7 +442,11 @@ impl Search {
             self.go_iterative_deepening(position, depth);
 
             #[cfg(feature = "unit_lazy_smp")]
-            self.go_lazy_smp(position, depth);
+            if self.threadpool.current_num_threads() >= 3 {
+                self.go_lazy_smp(position, depth);
+            } else {
+                self.go_iterative_deepening(position, depth);
+            }
 
             self.stop_calculating.store(true, Ordering::Relaxed);
         });
@@ -480,7 +494,13 @@ impl Default for Search {
             stop_calculating: Arc::new(AtomicBool::new(false)),
             nodes: 0,
             zobrist_key_history: Vec::new(),
-            num_threads: rayon::current_num_threads(),
+            threadpool: Arc::new(
+                rayon::ThreadPoolBuilder::new()
+                    .num_threads(rayon::current_num_threads()) // NOTE: Defaults to the number of CPU cores
+                    .build()
+                    .unwrap()
+            ),
+            tablebase: Arc::new(SyzygyTablebase::from_directory("tables/syzygy").ok()),
         }
     }
 }

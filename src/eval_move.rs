@@ -1,7 +1,7 @@
-use crate::{bit_move::BitMove, butterfly_heuristic::ButterflyHeuristic, killer_moves::KillerMoves, move_flag::MoveFlag, position::Position, transposition_table::{TTNodeType, TranspositionTable}};
+use crate::{bit_move::BitMove, butterfly_heuristic::ButterflyHeuristic, killer_moves::KillerMoves, position::Position, transposition_table::{TTNodeType, TranspositionTable}};
 
 #[allow(unused_imports)]
-use crate::{color::Color, move_masks::MoveMasks, piece::Piece};
+use crate::{color::Color, move_masks::MoveMasks, piece::Piece, move_flag::MoveFlag};
 
 // Most valuable victim - least valuable attacker [attacker][victim]
 const MVV_LVA: [[i16; 12]; 12] = [
@@ -62,9 +62,9 @@ impl EvalMove {
 
         #[cfg(feature = "unit_eval_tt")]
         {
-            if let Some(entry) = TranspositionTable::probe(position.zobrist_key) {
-                if entry.best_move.bit_move == bit_move {
-                    match entry.flag {
+            if let Some(tt_data) = TranspositionTable::probe(position.zobrist_key) {
+                if tt_data.best_move.bit_move == bit_move {
+                    match tt_data.flag {
                         TTNodeType::Exact => score += 10000,
                         TTNodeType::LowerBound => score += 4000,
                         TTNodeType::UpperBound => score += 3000,

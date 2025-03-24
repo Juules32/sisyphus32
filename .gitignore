@@ -10,3 +10,5 @@ openings/*
 pgn_results/*
 !pgn_results/.gitkeep
 src/bin/debug.rs
+tables/syzygy/*
+!tables/syzygy/.gitkeep
