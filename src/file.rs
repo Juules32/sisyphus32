@@ -1,6 +1,8 @@
 use core::fmt;
 use std::mem::transmute;
 
+use thiserror::Error;
+
 #[derive(Clone, Copy, PartialEq)]
 #[repr(u8)]
 pub enum File {
@@ -21,7 +23,8 @@ impl From<u8> for File {
     }
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
+#[error("Couldn't parse file: {0}!")]
 pub struct FileParseError(pub &'static str);
 
 impl TryFrom<char> for File {
@@ -38,7 +41,7 @@ impl TryFrom<char> for File {
             'f' => Ok(Self::FF),
             'g' => Ok(Self::FG),
             'h' => Ok(Self::FH),
-            _ => Err(FileParseError("Illegal file char!")),
+            _ => Err(FileParseError("Illegal file char")),
         }
     }
 }

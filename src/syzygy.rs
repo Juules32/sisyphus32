@@ -1,7 +1,7 @@
 use shakmaty::{fen::Fen, CastlingMode, Chess};
 use shakmaty_syzygy::Tablebase;
 
-use crate::{bit_move::BitMove, fen::FenString, position::Position};
+use crate::{bit_move::BitMove, fen::FenString, position::Position, uci::Uci};
 
 pub struct SyzygyTablebase {
     shakmaty_tablebase: Tablebase<Chess>
@@ -24,7 +24,7 @@ impl SyzygyTablebase {
         match best_move {
             Some((chess_move, _)) => {
                 let move_string = chess_move.to_uci(CastlingMode::Standard).to_string();
-                Some(position.parse_move_string(&move_string).ok()?)
+                Some(Uci::parse_move_string(&position, &move_string).ok()?)
             },
             None => None,
         }

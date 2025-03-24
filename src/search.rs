@@ -411,14 +411,22 @@ impl Search {
     }
 
     #[inline(always)]
-    pub fn go(&mut self, position: &Position, depth: u16, stop_time: Option<u128>) {
+    pub fn go(&mut self, position: &Position, depth: Option<u16>, stop_time: Option<u128>) {
         self.reset(stop_time);
         let stop_flag = Arc::clone(&self.stop_calculating);
         print!("info string searching for best move");
-        match self.stop_time {
-            Some(time) => println!(" within {} milliseconds", time),
-            None => println!(),
+
+        if let Some(stop_time) = stop_time {
+            print!(" within {} milliseconds", stop_time);
         }
+
+        if let Some(depth) = depth {
+            print!(" with a maximum depth of {}", depth);
+        }
+
+        println!();
+
+        let depth = depth.unwrap_or(255);
 
         // NOTE: Scoping the following thread helps prevent an excess amount of threads being created
         // and future calculations being stopped because of old threads.
@@ -453,8 +461,8 @@ impl Search {
     }
 
     #[inline(always)]
-    pub fn calculate_stop_time(total_time: Option<u128>, increment: u128) -> Option<u128> {
-        total_time.map(|time| time / AVERAGE_AMOUNT_OF_MOVES + increment)
+    pub fn calculate_stop_time(total_time: Option<u128>, increment_time: Option<u128>) -> Option<u128> {
+        total_time.map(|total_time| total_time / AVERAGE_AMOUNT_OF_MOVES + increment_time.unwrap_or(0))
     }
 
     fn get_pv(&self, position: &Position, depth: u16, _best_move: BitMove) -> String {
