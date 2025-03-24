@@ -10,6 +10,7 @@ rayon = "1.10.0"
 ctor = "0.4.0"
 shakmaty-syzygy = "0.25.3"
 shakmaty = "0.27.3"
+thiserror = "2.0.12"
 
 [profile.release-with-debug]
 inherits = "release"

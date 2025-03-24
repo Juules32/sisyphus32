@@ -5,7 +5,7 @@ use crate::{bit_move::BitMove, fen::FenString, move_generation::{MoveGeneration,
 use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
 
 pub struct PerftResult {
-    depth: u8,
+    depth: u16,
     nodes: u64,
     time: u128,
 }
@@ -29,7 +29,7 @@ Nodes: {}
 struct PerftPosition {
     name: &'static str,
     fen: FenString,
-    depth: u8,
+    depth: u16,
     target_nodes: u64
 }
 
@@ -37,7 +37,7 @@ pub struct Perft { }
 
 impl Perft {
     #[inline(always)]
-    pub fn perft_test(position: &Position, depth: u8, print_result: bool) -> PerftResult {
+    pub fn perft_test(position: &Position, depth: u16, print_result: bool) -> PerftResult {
         #[cfg(all(not(feature = "unit_parallel_perft"), feature = "unit_revert_undo"))]
         return Self::perft_test_single_thread_undo_move(position, depth, print_result);
 
@@ -49,7 +49,7 @@ impl Perft {
     }
 
     #[inline(always)]
-    pub fn perft_test_single_thread_undo_move(position: &Position, depth: u8, print_result: bool) -> PerftResult {
+    pub fn perft_test_single_thread_undo_move(position: &Position, depth: u16, print_result: bool) -> PerftResult {
         let mut current_nodes = 0_u64;
         let mut cumulative_nodes = 0_u64;
         let timer = Timer::new();
@@ -92,7 +92,7 @@ impl Perft {
     }
 
     #[inline(always)]
-    pub fn perft_test_single_thread_clone(position: &Position, depth: u8, print_result: bool) -> PerftResult {
+    pub fn perft_test_single_thread_clone(position: &Position, depth: u16, print_result: bool) -> PerftResult {
         let mut current_nodes = 0_u64;
         let mut cumulative_nodes = 0_u64;
         let timer = Timer::new();
@@ -127,7 +127,7 @@ impl Perft {
     }
 
     #[inline(always)]
-    pub fn perft_test_parallelize(position: &Position, depth: u8, print_result: bool) -> PerftResult {
+    pub fn perft_test_parallelize(position: &Position, depth: u16, print_result: bool) -> PerftResult {
         let timer = Timer::new();
 
         if print_result {
@@ -170,7 +170,7 @@ impl Perft {
     }
 
     #[inline(always)]
-    fn perft_driver_single_thread_undo_move(position: &Position, depth: u8) -> u64 {
+    fn perft_driver_single_thread_undo_move(position: &Position, depth: u16) -> u64 {
         if depth == 0 {
             1
         } else {
@@ -194,7 +194,7 @@ impl Perft {
     }
 
     #[inline(always)]
-    fn perft_driver_single_thread_clone(position: &Position, depth: u8) -> u64 {
+    fn perft_driver_single_thread_clone(position: &Position, depth: u16) -> u64 {
         if depth == 0 {
             1
         } else {
@@ -213,7 +213,7 @@ impl Perft {
     }
 
     #[inline(always)]
-    fn perft_driver_parallelize(position_arc: std::sync::Arc<Position>, depth: u8) -> u64 {
+    fn perft_driver_parallelize(position_arc: std::sync::Arc<Position>, depth: u16) -> u64 {
         if depth == 0 {
             1
         } else if depth <= 2 {

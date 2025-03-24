@@ -1,6 +1,8 @@
 use core::fmt;
 use std::mem::transmute;
 
+use thiserror::Error;
+
 // NOTE: The rank enum can be unintuitive to work with since it starts with the eighth rank.
 // Changing the ordering could impact all places where Rank is used!
 #[derive(Clone, Copy, PartialEq)]
@@ -23,7 +25,8 @@ impl From<u8> for Rank {
     }
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
+#[error("Couldn't parse rank: {0}!")]
 pub struct RankParseError(pub &'static str);
 
 impl TryFrom<char> for Rank {
@@ -40,7 +43,7 @@ impl TryFrom<char> for Rank {
             '6' => Ok(Self::R6),
             '7' => Ok(Self::R7),
             '8' => Ok(Self::R8),
-            _ => Err(RankParseError("Illegal rank char!")),
+            _ => Err(RankParseError("Illegal rank char")),
         }
     }
 }

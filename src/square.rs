@@ -1,3 +1,5 @@
+use thiserror::Error;
+
 use crate::{rank::{Rank, RankParseError}, bitboard::Bitboard, file::{File, FileParseError}};
 use core::fmt;
 use std::{ops::{Index, IndexMut}, mem::transmute};
@@ -102,7 +104,8 @@ impl From<u8> for Square {
     }
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
+#[error("Couldn't parse square: {0}")]
 pub struct SquareParseError(pub &'static str);
 
 impl TryFrom<&str> for Square {

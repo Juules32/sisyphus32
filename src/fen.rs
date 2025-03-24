@@ -1,9 +1,12 @@
 use core::fmt;
 
+use thiserror::Error;
+
 use crate::{castling_rights::CastlingRights, color::Color, eval_position::EvalPosition, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
 
-#[derive(Debug)]
-pub struct FenParseError(pub &'static str);
+#[derive(Error, Debug)]
+#[error("Couldn't parse fen string: {0}!")]
+pub struct FenParseError(&'static str);
 
 pub struct FenString { string: String }
 
@@ -56,7 +59,7 @@ impl FenString {
             match pieces_char {
                 '1'..='8' => sq_index += pieces_char
                 .to_digit(10)
-                .ok_or(FenParseError("Could not convert char to digit!"))? as u8,
+                .ok_or(FenParseError("Couldn't convert char to digit!"))? as u8,
                 '/' => (),
                 'P' | 'N' | 'B' | 'R' | 'Q' | 'K' | 'p' | 'n' | 'b' | 'r' | 'q' | 'k' => {
                     let piece = Piece::from(pieces_char);
