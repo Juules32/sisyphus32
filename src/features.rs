@@ -22,6 +22,7 @@ pub const VERSIONS: &[&str] = &[
     "move_flag_eval",
     "lazy_smp",
     "lockless_hashing",
+    "syzygy_tablebase",
 ];
 
 pub const BASE_FEATURES: &[&str] = &[

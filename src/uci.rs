@@ -1,6 +1,6 @@
-use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
+use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc, Arc}, thread};
 
-use crate::{bit_move::BitMove, color::Color, eval_position::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}, transposition_table::TranspositionTable};
+use crate::{color::Color, eval_position::EvalPosition, fen::{FenParseError, FenString}, perft::Perft, position::{MoveStringParseError, Position}, search::Search, syzygy::SyzygyTablebase, transposition_table::TranspositionTable};
 
 pub struct UciParseError(pub &'static str);
 
@@ -49,6 +49,10 @@ impl Uci {
     fn print_uci_info() {
         println!("id name Sisyphus32");
         println!("id author Juules32");
+        println!();
+        println!("option name Threads type spin default 1 min 1 max 1024");
+        println!("option name Clear Hash type button");
+        println!("option name SyzygyPath type string default tables/syzygy");
         println!("uciok");
     }
     
@@ -93,16 +97,25 @@ impl Uci {
                             TranspositionTable::reset();
                             println!("Reset transposition table successfully!");
                             Ok(())
-                        }
-                        else if line.starts_with("setoption name Threads value") {
+                        } else if line.starts_with("setoption name Threads value ") {
                             match words.last().unwrap().parse() {
                                 Ok(num_threads) => {
-                                    self.search.num_threads = num_threads;
+                                    self.search.threadpool = Arc::new(
+                                        rayon::ThreadPoolBuilder::new()
+                                            .num_threads(num_threads)
+                                            .build()
+                                            .unwrap()
+                                    );
                                     println!("Set number of threads to {num_threads} successfully!");
                                     Ok(())
                                 },
                                 Err(_) => Err(UciParseError("Couldn't parse threads value!")),
                             }
+                        } else if line.starts_with("setoption name SyzygyPath value ") {
+                            let path = words.last().unwrap();
+                            self.search.tablebase = Arc::new(Some(SyzygyTablebase::from_directory(path).unwrap()));
+                            println!("Set syzygy path to {path} successfully!");
+                            Ok(())
                         } else {
                             Err(UciParseError("Couldn't find option name!"))
                         }
@@ -111,43 +124,6 @@ impl Uci {
                 }
             }
             None => Ok(()),
-        }
-    }
-
-    fn parse_move_string(&mut self, move_string: &str) -> Result<BitMove, UciParseError> {
-        if move_string.len() == 4 || move_string.len() == 5 {
-            let source = Square::try_from(&move_string[0..2]).map_err(|SquareParseError(msg)| UciParseError(msg))?;
-            let target = Square::try_from(&move_string[2..4]).map_err(|SquareParseError(msg)| UciParseError(msg))?;
-            let promotion_piece_option = if move_string.len() == 5 {
-                Some(&move_string[4..5])
-            } else {
-                None
-            };
-
-            for m in MoveGeneration::generate_moves::<BitMove, Legal>(&self.position) {
-                let s = m.source();
-                let t = m.target();
-                let f = m.flag_option();
-                
-                if source == s && target == t {
-                    match promotion_piece_option {
-                        Some(promotion_piece_string) => {
-                            match promotion_piece_string {
-                                "q" => if f == Some(MoveFlag::PromoQ) { return Ok(m); },
-                                "r" => if f == Some(MoveFlag::PromoR) { return Ok(m); },
-                                "b" => if f == Some(MoveFlag::PromoB) { return Ok(m); },
-                                "n" => if f == Some(MoveFlag::PromoN) { return Ok(m); },
-                                _ => return Err(UciParseError("Found illegal promotion piece string!"))
-                            }
-                        },
-                        None => return Ok(m),
-                    }
-                }
-            }
-
-            Err(UciParseError("Couldn't find a pseudo-legal move!"))
-        } else {
-            Err(UciParseError("Couldn't parse move with illegal amount of characters!"))
         }
     }
     
@@ -184,7 +160,7 @@ impl Uci {
 
         if let Some(moves_index) = moves_index_option {
             for move_string in line[moves_index + 5..].split_whitespace() {
-                let bit_move = self.parse_move_string(move_string)?;
+                let bit_move = self.position.parse_move_string(move_string).map_err(|MoveStringParseError(msg)| UciParseError(msg))?;
                 self.position.make_move(bit_move);
             }
         }

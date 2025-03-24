@@ -42,4 +42,5 @@ pub mod butterfly_heuristic;
 pub mod rng;
 pub mod move_generation;
 pub mod features;
+pub mod syzygy;
 mod ctor;
