@@ -24,8 +24,8 @@ impl From<u8> for File {
 }
 
 #[derive(Error, Debug)]
-#[error("Couldn't parse file: {0}!")]
-pub struct FileParseError(pub &'static str);
+#[error("Couldn't parse file: {0}")]
+pub struct FileParseError(char);
 
 impl TryFrom<char> for File {
     type Error = FileParseError;
@@ -41,7 +41,7 @@ impl TryFrom<char> for File {
             'f' => Ok(Self::FF),
             'g' => Ok(Self::FG),
             'h' => Ok(Self::FH),
-            _ => Err(FileParseError("Illegal file char")),
+            _ => Err(FileParseError(ch)),
         }
     }
 }

@@ -105,23 +105,37 @@ impl From<u8> for Square {
 }
 
 #[derive(Error, Debug)]
-#[error("Couldn't parse square: {0}")]
-pub struct SquareParseError(pub &'static str);
+pub enum SquareParseError {
+    #[error("Missing file character")]
+    NoFileError,
+
+    #[error("Missing rank character")]
+    NoRankError,
+
+    #[error("Illegal string length for square: {0}")]
+    StringLengthError(String),
+
+    #[error("{0}")]
+    RankParseError(#[from] RankParseError),
+
+    #[error("{0}")]
+    FileParseError(#[from] FileParseError),
+}
 
 impl TryFrom<&str> for Square {
     type Error = SquareParseError;
 
     fn try_from(sq_str: &str) -> Result<Self, Self::Error> {
         if sq_str.len() != 2 {
-            return Err(SquareParseError("Invalid string length!"));
+            return Err(SquareParseError::StringLengthError(sq_str.to_string()));
         }
 
         let mut chars_iter = sq_str.chars();
-        let file_char = chars_iter.next().ok_or(SquareParseError("Missing file character"))?;
-        let rank_char = chars_iter.next().ok_or(SquareParseError("Missing rank character"))?;
+        let file_char = chars_iter.next().ok_or(SquareParseError::NoFileError)?;
+        let rank_char = chars_iter.next().ok_or(SquareParseError::NoRankError)?;
 
-        let rank = Rank::try_from(rank_char).map_err(|RankParseError(msg)| SquareParseError(msg))?;
-        let file = File::try_from(file_char).map_err(|FileParseError(msg)| SquareParseError(msg))?;
+        let rank = Rank::try_from(rank_char)?;
+        let file = File::try_from(file_char)?;
 
         Ok(Self::from(rank as u8 * 8 + file as u8))
     }
