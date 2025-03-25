@@ -24,16 +24,31 @@ const AVERAGE_BRANCHING_FACTOR: u128 = 2;
 
 #[derive(Clone)]
 pub struct Search {
-    timer: Timer,
-    stop_time: Option<u128>,
-    pub stop_calculating: Arc<AtomicBool>,
     nodes: u64,
-    pub zobrist_key_history: Vec<ZobristKey>,
-    pub threadpool: Arc<ThreadPool>,
-    pub tablebase: Arc<Option<SyzygyTablebase>>,
+    zobrist_key_history: Vec<ZobristKey>,
+    timer: Arc<Timer>,
+    stop_time: Arc<Option<u128>>,
+    stop_calculating: Arc<AtomicBool>,
+    threadpool: Arc<ThreadPool>,
+    tablebase: Arc<Option<SyzygyTablebase>>,
 }
 
 impl Search {
+    #[inline(always)]
+    pub fn begin_stop_calculating(&self) {
+        self.stop_calculating.store(true, Ordering::Relaxed);
+    }
+
+    #[inline(always)]
+    fn should_stop_calculating(&self) -> bool {
+        self.stop_calculating.load(Ordering::Relaxed)
+    }
+
+    #[inline(always)]
+    pub fn get_stop_calculating(&self) -> Arc<AtomicBool> {
+        self.stop_calculating.clone()
+    }
+    
     #[inline(always)]
     fn random_best_move(&self, position: &Position, _depth: u16) -> ScoringMove {
         let moves = MoveGeneration::generate_moves::<BitMove, Legal>(position);
@@ -48,7 +63,7 @@ impl Search {
 
         self.nodes += 1;
 
-        if self.stop_calculating.load(Ordering::Relaxed) {
+        if self.should_stop_calculating() {
             return ScoringMove::blank(BLANK);
         }
     
@@ -72,7 +87,7 @@ impl Search {
 
     #[inline(always)]
     fn quiescence(&mut self, position: &Position, alpha: i16, beta: i16) -> ScoringMove {
-        if self.stop_calculating.load(Ordering::Relaxed) {
+        if self.should_stop_calculating() {
             return ScoringMove::blank(BLANK);
         }
         
@@ -134,7 +149,7 @@ impl Search {
             return self.quiescence(position, alpha, beta);
         }
 
-        if self.stop_calculating.load(Ordering::Relaxed) {
+        if self.should_stop_calculating() {
             return ScoringMove::blank(BLANK);
         }
 
@@ -287,9 +302,9 @@ impl Search {
     }
 
     fn reset(&mut self, stop_time: Option<u128>) {
-        self.stop_time = stop_time;
+        self.stop_time = Arc::new(stop_time);
         self.nodes = 0;
-        self.timer.reset();
+        self.timer = Arc::new(Timer::new());
         self.stop_calculating.store(false, Ordering::Relaxed);
     }
 
@@ -305,15 +320,15 @@ impl Search {
         let mut best_scoring_move = ScoringMove::blank(BLANK);
 
         for current_depth in 1..=depth {
-            if let Some(time) = self.stop_time {
-                if current_depth != 1 && self.timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR > time {
+            if let Some(time) = self.stop_time.as_ref() {
+                if current_depth != 1 && self.timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR > *time {
                     println!("info string ended iterative search early based on time prediction");
                     break;
                 }
             }
             self.nodes = 0;
             let new_best_move = self.best_move(position, current_depth);
-            if self.stop_calculating.load(Ordering::Relaxed) {
+            if self.should_stop_calculating() {
                 #[cfg(feature = "unit_tt")]
                 TranspositionTable::reset();
 
@@ -343,33 +358,29 @@ impl Search {
 
     #[inline(always)]
     fn go_lazy_smp(&mut self, position: &Position, depth: u16) {
-        let stop_calculating = self.stop_calculating.clone();
         let best_scoring_move = Arc::new(Mutex::new(ScoringMove::blank(BLANK)));
 
         self.threadpool
             .scope(|s| {
-            let stop_time = self.stop_time;
             for current_depth in 1..=depth {
-                let stop_calculating = self.stop_calculating.clone();
                 let mut self_ref = self.clone();
                 let best_scoring_move = best_scoring_move.clone();
-                let timer = self.timer.clone();
 
                 s.spawn(move |_| {
-                    if let Some(time) = stop_time {
-                        if current_depth != 1 && timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR > time {
-                            stop_calculating.store(true, Ordering::Relaxed);
+                    if let Some(time) = self_ref.stop_time.as_ref() {
+                        if current_depth != 1 && self_ref.timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR > *time {
+                            self_ref.begin_stop_calculating();
                             return;
                         }
                     }
 
-                    if depth != 1 && stop_calculating.load(Ordering::Relaxed) {
+                    if depth != 1 && self_ref.should_stop_calculating() {
                         return;
                     }
 
                     let new_best_move = self_ref.best_move(position, current_depth);
 
-                    if stop_calculating.load(Ordering::Relaxed) {
+                    if self_ref.should_stop_calculating() {
                         return;
                     }
 
@@ -387,14 +398,14 @@ impl Search {
 
                     if found_mate {
                         println!("info string ended iterative search because mating line was found");
-                        self_ref.stop_calculating.store(true, Ordering::Relaxed);
+                        self_ref.begin_stop_calculating();
                         return;
                     }
                 });
             }
         });
 
-        if stop_calculating.load(Ordering::Relaxed) {
+        if self.should_stop_calculating() {
             println!("info string ended iterative search and reset transposition table");
             TranspositionTable::reset();
         }
@@ -413,7 +424,7 @@ impl Search {
     #[inline(always)]
     pub fn go(&mut self, position: &Position, depth: Option<u16>, stop_time: Option<u128>) {
         self.reset(stop_time);
-        let stop_flag = Arc::clone(&self.stop_calculating);
+        let stop_flag = self.stop_calculating.clone();
         print!("info string searching for best move");
 
         if let Some(stop_time) = stop_time {
@@ -431,7 +442,7 @@ impl Search {
         // NOTE: Scoping the following thread helps prevent an excess amount of threads being created
         // and future calculations being stopped because of old threads.
         thread::scope(|s| {
-            if let Some(time) = self.stop_time {
+            if let Some(time) = stop_time {
                 s.spawn(move || {
                     for _ in 0..time / 10 {
                         thread::sleep(Duration::from_millis(10));
@@ -456,7 +467,7 @@ impl Search {
                 self.go_iterative_deepening(position, depth);
             }
 
-            self.stop_calculating.store(true, Ordering::Relaxed);
+            self.begin_stop_calculating();
         });
     }
 
@@ -492,13 +503,26 @@ impl Search {
         }
         pv_moves.join(" ")
     }
+
+    pub fn set_threadpool(&mut self, num_threads: usize) {
+        self.threadpool = Arc::new(
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(num_threads)
+                .build()
+                .unwrap()
+        );
+    }
+
+    pub fn set_tablebase(&mut self, path: &str) {
+        self.tablebase = Arc::new(Some(SyzygyTablebase::from_directory(path).unwrap()));
+    }
 }
 
 impl Default for Search {
     fn default() -> Search {
         Search {
-            timer: Timer::new(),
-            stop_time: None,
+            timer: Arc::new(Timer::new()),
+            stop_time: Arc::new(None),
             stop_calculating: Arc::new(AtomicBool::new(false)),
             nodes: 0,
             zobrist_key_history: Vec::new(),
