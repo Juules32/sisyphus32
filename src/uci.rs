@@ -1,11 +1,11 @@
-use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc, Arc}, thread};
+use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
 use thiserror::Error;
 
-use crate::{bit_move::BitMove, color::Color, eval_position::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}, syzygy::SyzygyTablebase, transposition_table::TranspositionTable};
+use crate::{bit_move::BitMove, color::Color, eval_position::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}, transposition_table::TranspositionTable};
 
 #[derive(Error, Debug)]
-pub enum UciParseError {
+enum UciParseError {
     #[error("Couldn't parse uci keyword")]
     KeywordParseError,
 
@@ -60,7 +60,7 @@ impl Uci {
 
         let (uci_command_tx, uci_command_rx) = mpsc::channel();
 
-        let stop_calculating = self.search.stop_calculating.clone();
+        let stop_calculating = self.search.get_stop_calculating();
         
         thread::spawn(move || {
             let mut lines = io::stdin().lock().lines();
@@ -141,26 +141,21 @@ impl Uci {
     fn parse_setoption(&mut self, line: &str, words: &[&str]) -> Result<(), UciParseError> {
         if line == "setoption name Clear Hash" {
             TranspositionTable::reset();
-            println!("Reset transposition table successfully!");
+            println!("info string transposition table reset successfully");
             Ok(())
-        } else if line.starts_with("setoption name Threads value ") {
+        } else if line.starts_with("setoption name Threads value") {
             match words.last().unwrap().parse() {
                 Ok(num_threads) => {
-                    self.search.threadpool = Arc::new(
-                        rayon::ThreadPoolBuilder::new()
-                            .num_threads(num_threads)
-                            .build()
-                            .unwrap()
-                    );
-                    println!("Set number of threads to {num_threads} successfully!");
+                    self.search.set_threadpool(num_threads);
+                    println!("info string set threads to {num_threads} successfully");
                     Ok(())
                 },
                 Err(_) => Err(UciParseError::ParamValueParseError("Threads")),
             }
-        } else if line.starts_with("setoption name SyzygyPath value ") {
+        } else if line.starts_with("setoption name SyzygyPath value") {
             let path = words.last().unwrap();
-            self.search.tablebase = Arc::new(Some(SyzygyTablebase::from_directory(path).unwrap()));
-            println!("Set syzygy path to {path} successfully!");
+            self.search.set_tablebase(path);
+            println!("info string set syzygy path to {path} successfully");
             Ok(())
         } else {
             Err(UciParseError::OptionParseError)
