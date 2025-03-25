@@ -26,8 +26,8 @@ impl From<u8> for Rank {
 }
 
 #[derive(Error, Debug)]
-#[error("Couldn't parse rank: {0}!")]
-pub struct RankParseError(pub &'static str);
+#[error("Couldn't parse rank: {0}")]
+pub struct RankParseError(char);
 
 impl TryFrom<char> for Rank {
     type Error = RankParseError;
@@ -43,7 +43,7 @@ impl TryFrom<char> for Rank {
             '6' => Ok(Self::R6),
             '7' => Ok(Self::R7),
             '8' => Ok(Self::R8),
-            _ => Err(RankParseError("Illegal rank char")),
+            _ => Err(RankParseError(ch)),
         }
     }
 }

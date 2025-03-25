@@ -6,16 +6,16 @@ use crate::{bit_move::BitMove, color::Color, eval_position::EvalPosition, fen::{
 
 #[derive(Error, Debug)]
 pub enum UciParseError {
-    #[error("Couldn't parse uci keyword!")]
+    #[error("Couldn't parse uci keyword")]
     KeywordParseError,
 
-    #[error("Couldn't parse parameter: {0}!")]
+    #[error("Couldn't parse parameter: {0}")]
     ParamParseError(&'static str),
 
-    #[error("Couldn't parse parameter value: {0}!")]
+    #[error("Couldn't parse parameter value: {0}")]
     ParamValueParseError(&'static str),
 
-    #[error("Couldn't parse uci option!")]
+    #[error("Couldn't parse uci option")]
     OptionParseError,
 
     #[error("{0}")]
@@ -27,13 +27,13 @@ pub enum UciParseError {
 
 #[derive(Error, Debug)]
 pub enum MoveStringParseError {
-    #[error("Illegal move string length!")]
+    #[error("Illegal move string length")]
     LengthParseError,
 
-    #[error("Illegal promotion piece!")]
+    #[error("Illegal promotion piece")]
     PromotionPieceParseError(String),
     
-    #[error("Couldn't find pseudo-legal move: {0}!")]
+    #[error("Couldn't find pseudo-legal move: {0}")]
     IllegalMove(String),
 
     #[error("{0}")]
@@ -77,7 +77,7 @@ impl Uci {
 
         for line in uci_command_rx {
             if let Err(error) = self.parse_line(line) {
-                eprintln!("{}", error.to_string());
+                eprintln!("{}!", error.to_string());
             };
         }
     }
@@ -207,7 +207,7 @@ impl Uci {
         Ok(())
     }
 
-    fn parse_param<T: std::str::FromStr>(words: &[&str], key: &str, error: UciParseError) -> Result<Option<T>, UciParseError> {
+    fn parse_parameter_value<T: std::str::FromStr>(words: &[&str], key: &str, error: UciParseError) -> Result<Option<T>, UciParseError> {
         match words.iter().position(|&word| word == key) {
             Some(word_index) => match words.get(word_index + 1) {
                 Some(&value) => value.parse::<T>().map(Some).map_err(|_| error),
@@ -218,14 +218,14 @@ impl Uci {
     }
     
     fn parse_go(&mut self, words: &[&str]) -> Result<(), UciParseError> {
-        let depth: Option<u16> = Self::parse_param(words, "depth", UciParseError::ParamValueParseError("depth"))?;
-        let perft_depth: Option<u16> = Self::parse_param(words, "perft", UciParseError::ParamValueParseError("perft depth"))?;
-        let move_time: Option<u128> = Self::parse_param(words, "movetime", UciParseError::ParamValueParseError("movetime"))?;
-        let total_time: Option<u128> = Self::parse_param(&words, match self.position.side {
+        let depth: Option<u16> = Self::parse_parameter_value(words, "depth", UciParseError::ParamValueParseError("depth"))?;
+        let perft_depth: Option<u16> = Self::parse_parameter_value(words, "perft", UciParseError::ParamValueParseError("perft depth"))?;
+        let move_time: Option<u128> = Self::parse_parameter_value(words, "movetime", UciParseError::ParamValueParseError("movetime"))?;
+        let total_time: Option<u128> = Self::parse_parameter_value(&words, match self.position.side {
             Color::White => "wtime",
             Color::Black => "btime",
         }, UciParseError::ParamValueParseError("wtime/btime"))?;
-        let increment_time: Option<u128> = Self::parse_param(&words, match self.position.side {
+        let increment_time: Option<u128> = Self::parse_parameter_value(&words, match self.position.side {
             Color::White => "winc",
             Color::Black => "binc",
         }, UciParseError::ParamValueParseError("winc/binc"))?;
