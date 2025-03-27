@@ -8,12 +8,14 @@ use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeur
 
 const BLANK: i16 = 0;
 const CHECKMATE: i16 = 10000;
+pub const TABLEBASE_MOVE: i16 = 20000;
+pub const DRAW: i16 = 0;
 const DRAW_BY_STALEMATE: i16 = 0;
 const DRAW_BY_REPETITION: i16 = 0;
 const START_ALPHA: i16 = -32001;
 const START_BETA: i16 = 32001;
 const AVERAGE_AMOUNT_OF_MOVES: u128 = 25;
-const MAX_PLY: i16 = 242;
+pub const MAX_DEPTH: u16 = 64;
 const NULL_MOVE_DEPTH_REDUCTION: u16 = 3;
 
 #[cfg(not(feature = "unit_late_move_reductions"))]
@@ -128,10 +130,10 @@ impl Search {
         self.nodes += 1;
 
         #[cfg(feature = "unit_syzygy_tablebase")]
-        if position.ao.count_bits() <= 5 {
-            if let Some(tablebase) = self.tablebase.as_ref() {
-                if let Some(best_move) = tablebase.best_move(position) {
-                    return ScoringMove::new(best_move, CHECKMATE);
+        if let Some(tablebase) = self.tablebase.as_ref() {
+            if position.ao.count_bits() <= tablebase.get_max_pieces() {
+                if let Some(scoring_move) = tablebase.best_move(position) {
+                    return scoring_move;
                 }
             }
         }
@@ -337,7 +339,7 @@ impl Search {
             }
 
             best_scoring_move = new_best_move;
-            let found_mate = best_scoring_move.score.abs() > CHECKMATE - MAX_PLY;
+            let found_mate = best_scoring_move.score.abs() >= CHECKMATE - MAX_DEPTH as i16;
 
             println!(
                 "info depth {} score {} nodes {} time {} pv {}",
@@ -349,7 +351,11 @@ impl Search {
             );
 
             if found_mate {
-                println!("info string ended iterative search because mating line was found");
+                if best_scoring_move.score.abs() == TABLEBASE_MOVE {
+                    println!("info string ended iterative search because line ending in tablebase move was found");
+                } else {
+                    println!("info string ended iterative search because mating line was found");
+                }
                 break;
             }
         }
@@ -384,9 +390,19 @@ impl Search {
                         return;
                     }
 
-                    *best_scoring_move.lock().unwrap() = new_best_move;
-                    let found_mate = new_best_move.score.abs() > CHECKMATE - MAX_PLY;
+                    // NOTE: This prevents a bug where concurrent threads overwrite an already
+                    // existing mating line and also help return the search early if a mate has
+                    // already been found.
+                    if let Ok(mut best_move) = best_scoring_move.lock() {
+                        if best_move.score < CHECKMATE - MAX_DEPTH as i16 {
+                            *best_move = new_best_move;
+                        } else {
+                            return;
+                        }
+                    }
 
+                    let found_mate = new_best_move.score.abs() >= CHECKMATE - MAX_DEPTH as i16;
+        
                     println!(
                         "info depth {} score {} nodes {} time {} pv {}",
                         current_depth,
@@ -397,7 +413,11 @@ impl Search {
                     );
 
                     if found_mate {
-                        println!("info string ended iterative search because mating line was found");
+                        if new_best_move.score.abs() == TABLEBASE_MOVE {
+                            println!("info string ended iterative search because line ending in tablebase move was found");
+                        } else {
+                            println!("info string ended iterative search because mating line was found");
+                        }
                         self_ref.begin_stop_calculating();
                         return;
                     }
