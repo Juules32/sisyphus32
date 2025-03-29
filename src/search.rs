@@ -361,7 +361,7 @@ impl Search {
 
             if found_mate {
                 if best_scoring_move.score.abs() == TABLEBASE_MOVE {
-                    println!("info string ended iterative search because line ending in tablebase move was found");
+                    println!("info string ended iterative search because tablebase line was found");
                 } else {
                     println!("info string ended iterative search because mating line was found");
                 }
@@ -405,7 +405,7 @@ impl Search {
                     // existing mating line and also help return the search early if a mate has
                     // already been found.
                     if let Ok(mut best_move) = best_scoring_move.lock() {
-                        if best_move.score < CHECKMATE - MAX_DEPTH as i16 {
+                        if !best_move.is_checkmate() {
                             *best_move = new_best_move;
                         } else {
                             return;
@@ -425,7 +425,7 @@ impl Search {
 
                     if found_mate {
                         if new_best_move.score.abs() == TABLEBASE_MOVE {
-                            println!("info string ended iterative search because line ending in tablebase move was found");
+                            println!("info string ended iterative search because tablebase line was found");
                         } else {
                             println!("info string ended iterative search because mating line was found");
                         }
