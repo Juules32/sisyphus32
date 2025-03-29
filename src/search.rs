@@ -27,7 +27,7 @@ const AVERAGE_BRANCHING_FACTOR: u128 = 2;
 #[derive(Clone)]
 pub struct Search {
     nodes: u64,
-    zobrist_key_history: Vec<ZobristKey>,
+    pub zobrist_key_history: Vec<ZobristKey>,
     timer: Arc<Timer>,
     stop_time: Arc<Option<u128>>,
     stop_calculating: Arc<AtomicBool>,
@@ -139,7 +139,6 @@ impl Search {
         }
 
         if self.zobrist_key_history.contains(&position.zobrist_key) {
-            self.zobrist_key_history.pop();
             return ScoringMove::blank(DRAW_BY_REPETITION);
         }
         
