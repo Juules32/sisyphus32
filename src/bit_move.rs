@@ -1,4 +1,4 @@
-use crate::{eval_move::EvalMove, move_flag::MoveFlag, piece::Piece, position::Position, square::Square};
+use crate::{eval_move::EvalMove, move_flag::MoveFlag, piece::Piece, position::Position, search::{CHECKMATE, MAX_DEPTH}, square::Square};
 use core::fmt;
 use std::{cmp::Ordering, fmt::Display, hash::Hash, mem};
 
@@ -282,6 +282,11 @@ impl ScoringMove {
             bit_move,
             score
         }
+    }
+
+    #[inline(always)]
+    pub fn is_checkmate(&self) -> bool {
+        self.score.abs() >= CHECKMATE - MAX_DEPTH as i16
     }
 }
 

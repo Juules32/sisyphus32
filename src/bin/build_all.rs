@@ -29,6 +29,6 @@ fn main() {
         let to = format!("{target_dir}/{PACKAGE_NAME}_{feature_name}.exe");
 
         std::fs::rename(&from, &to).expect("Failed to rename binary");
-        println!("Built and renamed: {}", to);
+        println!("Built and renamed: {}\n", to);
     }
 }
