@@ -7,7 +7,7 @@ use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, 
 use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
 const BLANK: i16 = 0;
-const CHECKMATE: i16 = 10000;
+pub const CHECKMATE: i16 = 10000;
 pub const TABLEBASE_MOVE: i16 = 20000;
 pub const DRAW: i16 = 0;
 const DRAW_BY_STALEMATE: i16 = 0;
@@ -52,7 +52,7 @@ impl Search {
     }
     
     #[inline(always)]
-    fn random_best_move(&self, position: &Position, _depth: u16) -> ScoringMove {
+    fn random_best_move(&self, position: &Position) -> ScoringMove {
         let moves = MoveGeneration::generate_moves::<BitMove, Legal>(position);
         ScoringMove::from(moves[rand::rng().random_range(0..moves.len())])
     }
@@ -294,7 +294,7 @@ impl Search {
     #[inline(always)]
     fn best_move(&mut self, position: &Position, depth: u16) -> ScoringMove {
         #[cfg(all(not(feature = "unit_minimax"), not(feature = "unit_negamax")))]
-        return self.random_best_move(position, depth);
+        return self.random_best_move(position);
 
         #[cfg(feature = "unit_minimax")]
         return self.minimax_best_move(position, depth);
@@ -318,16 +318,25 @@ impl Search {
     }
 
     #[inline(always)]
+    fn should_end_search_early(&self) -> bool {
+        if let Some(time) = self.stop_time.as_ref() {
+            return self.timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR > *time;
+        }
+        false
+    }
+
+    fn modify_best_scoring_move_if_empty(&self, position: &Position, best_scoring_move: &mut ScoringMove) {
+        if best_scoring_move.bit_move == BitMove::EMPTY {
+            println!("info string search yielded no move, choosing random move instead");
+            *best_scoring_move = self.random_best_move(position);
+        }
+    }
+
+    #[inline(always)]
     fn go_iterative_deepening(&mut self, position: &Position, depth: u16) {
         let mut best_scoring_move = ScoringMove::blank(BLANK);
 
         for current_depth in 1..=depth {
-            if let Some(time) = self.stop_time.as_ref() {
-                if current_depth != 1 && self.timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR > *time {
-                    println!("info string ended iterative search early based on time prediction");
-                    break;
-                }
-            }
             self.nodes = 0;
             let new_best_move = self.best_move(position, current_depth);
             if self.should_stop_calculating() {
@@ -339,7 +348,7 @@ impl Search {
             }
 
             best_scoring_move = new_best_move;
-            let found_mate = best_scoring_move.score.abs() >= CHECKMATE - MAX_DEPTH as i16;
+            let found_mate = new_best_move.is_checkmate();
 
             println!(
                 "info depth {} score {} nodes {} time {} pv {}",
@@ -358,34 +367,36 @@ impl Search {
                 }
                 break;
             }
+
+            if self.should_end_search_early() {
+                println!("info string ended iterative search early based on time prediction");
+                break;
+            }
         }
+
+        self.modify_best_scoring_move_if_empty(position, &mut best_scoring_move);
         println!("bestmove {}", best_scoring_move.bit_move.to_uci_string());
     }
 
     #[inline(always)]
     fn go_lazy_smp(&mut self, position: &Position, depth: u16) {
         let best_scoring_move = Arc::new(Mutex::new(ScoringMove::blank(BLANK)));
+        let ended_early = Arc::new(AtomicBool::new(false));
 
         self.threadpool
             .scope(|s| {
             for current_depth in 1..=depth {
                 let mut self_ref = self.clone();
                 let best_scoring_move = best_scoring_move.clone();
+                let ended_early = ended_early.clone();
 
                 s.spawn(move |_| {
-                    if let Some(time) = self_ref.stop_time.as_ref() {
-                        if current_depth != 1 && self_ref.timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR > *time {
-                            self_ref.begin_stop_calculating();
-                            return;
-                        }
-                    }
-
-                    if depth != 1 && self_ref.should_stop_calculating() {
+                    if self_ref.should_stop_calculating() {
                         return;
                     }
 
                     let new_best_move = self_ref.best_move(position, current_depth);
-
+                    
                     if self_ref.should_stop_calculating() {
                         return;
                     }
@@ -401,7 +412,7 @@ impl Search {
                         }
                     }
 
-                    let found_mate = new_best_move.score.abs() >= CHECKMATE - MAX_DEPTH as i16;
+                    let found_mate = new_best_move.is_checkmate();
         
                     println!(
                         "info depth {} score {} nodes {} time {} pv {}",
@@ -421,15 +432,27 @@ impl Search {
                         self_ref.begin_stop_calculating();
                         return;
                     }
+
+                    if self_ref.should_end_search_early() {
+                        self_ref.begin_stop_calculating();
+                        ended_early.store(true, Ordering::Relaxed);
+                        return;
+                    }
                 });
             }
         });
 
         if self.should_stop_calculating() {
-            println!("info string ended iterative search and reset transposition table");
+            print!("info string ended iterative search and reset transposition table");
+            if ended_early.load(Ordering::Relaxed) {
+                println!(" based on time prediction");
+            } else {
+                println!();
+            }
             TranspositionTable::reset();
         }
 
+        self.modify_best_scoring_move_if_empty(position, &mut best_scoring_move.lock().unwrap());
         println!("bestmove {}", best_scoring_move.lock().unwrap().bit_move.to_uci_string());
     }
 
