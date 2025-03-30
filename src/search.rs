@@ -348,6 +348,7 @@ impl Search {
 
             best_scoring_move = new_best_move;
             let found_mate = new_best_move.is_checkmate();
+            let found_tablebase_move = new_best_move.is_tablebase_move();
 
             println!(
                 "info depth {} score {} nodes {} time {} pv {}",
@@ -358,12 +359,8 @@ impl Search {
                 self.get_pv(position, current_depth, best_scoring_move.bit_move),
             );
 
-            if found_mate {
-                if best_scoring_move.score.abs() == TABLEBASE_MOVE {
-                    println!("info string ended iterative search because tablebase line was found");
-                } else {
-                    println!("info string ended iterative search because mating line was found");
-                }
+            if found_tablebase_move {
+                println!("info string ended iterative search because tablebase move was found");
                 break;
             }
 
@@ -412,6 +409,7 @@ impl Search {
                     }
 
                     let found_mate = new_best_move.is_checkmate();
+                    let found_tablebase_move = new_best_move.is_tablebase_move();
         
                     println!(
                         "info depth {} score {} nodes {} time {} pv {}",
@@ -422,12 +420,8 @@ impl Search {
                         self_ref.get_pv(position, current_depth, new_best_move.bit_move),
                     );
 
-                    if found_mate {
-                        if new_best_move.score.abs() == TABLEBASE_MOVE {
-                            println!("info string ended iterative search because tablebase line was found");
-                        } else {
-                            println!("info string ended iterative search because mating line was found");
-                        }
+                    if found_tablebase_move {
+                        println!("info string ended iterative search because tablebase move was found");
                         self_ref.begin_stop_calculating();
                         return;
                     }
