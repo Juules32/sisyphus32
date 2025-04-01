@@ -33,7 +33,7 @@ struct PerftPosition {
     target_nodes: u64
 }
 
-pub struct Perft { }
+pub struct Perft;
 
 impl Perft {
     #[inline(always)]

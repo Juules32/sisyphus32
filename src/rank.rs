@@ -3,6 +3,8 @@ use std::mem::transmute;
 
 use thiserror::Error;
 
+use crate::consts::RANK_COUNT;
+
 // NOTE: The rank enum can be unintuitive to work with since it starts with the eighth rank.
 // Changing the ordering could impact all places where Rank is used!
 #[derive(Clone, Copy, PartialEq)]
@@ -50,6 +52,6 @@ impl TryFrom<char> for Rank {
 
 impl fmt::Display for Rank {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.pad(&(8 - *self as u8).to_string())
+        f.pad(&(RANK_COUNT as u8 - *self as u8).to_string())
     }
 }

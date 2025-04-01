@@ -43,4 +43,6 @@ pub mod rng;
 pub mod move_generation;
 pub mod features;
 pub mod syzygy;
+pub mod consts;
+pub mod score;
 mod ctor;

@@ -1,17 +1,17 @@
 use std::mem;
 
-use crate::{bitboard::Bitboard, color::Color, file::File, piece::Piece, position::Position, square::Square};
+use crate::{bitboard::Bitboard, color::Color, consts::{FILE_COUNT, PIECE_TYPE_COUNT, SQUARE_COUNT}, file::File, piece::Piece, position::Position, score::Score, square::Square};
 
 #[allow(unused_imports)]
 use crate::move_masks::MoveMasks;
 
-const BASE_PIECE_SCORES: [i16; 12] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000];
+const BASE_PIECE_SCORES: [i16; PIECE_TYPE_COUNT] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000];
 
-const OPENING_PIECE_SCORES: [i16; 12] = [82, 337, 365, 477, 1025, 12000, 82, 337, 365, 477, 1025, 12000];
+const OPENING_PIECE_SCORES: [i16; PIECE_TYPE_COUNT] = [82, 337, 365, 477, 1025, 12000, 82, 337, 365, 477, 1025, 12000];
 
-const ENDGAME_PIECE_SCORES: [i16; 12] = [94, 281, 297, 512,  936, 12000, 94, 281, 297, 512, 936, 12000];
+const ENDGAME_PIECE_SCORES: [i16; PIECE_TYPE_COUNT] = [94, 281, 297, 512,  936, 12000, 94, 281, 297, 512, 936, 12000];
 
-const BASE_PAWN_POSITION_SCORES: [i16; 64] = [
+const BASE_PAWN_POSITION_SCORES: [i16; SQUARE_COUNT] = [
      90,  90,  90,  90,  90,  90,  90,  90, 
      30,  30,  30,  40,  40,  30,  30,  30,
      20,  20,  25,  30,  30,  25,  20,  20,
@@ -22,7 +22,7 @@ const BASE_PAWN_POSITION_SCORES: [i16; 64] = [
       0,   0,   0,   0,   0,   0,   0,   0,
 ];
 
-const BASE_KNIGHT_POSITION_SCORES: [i16; 64] = [
+const BASE_KNIGHT_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     -15,  -5,   0,   0,   0,   0,  -5, -15, 
      -5,   0,   0,  10,  10,   0,   0,  -5,
      -5,   5,  20,  20,  20,  20,   5,  -5,
@@ -33,7 +33,7 @@ const BASE_KNIGHT_POSITION_SCORES: [i16; 64] = [
     -10, -10,   0,   0,   0,   0, -10, -10,
 ];
 
-const BASE_BISHOP_POSITION_SCORES: [i16; 64] = [
+const BASE_BISHOP_POSITION_SCORES: [i16; SQUARE_COUNT] = [
      -5,   0,   0,   0,   0,   0,   0,  -5, 
       0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   5,   5,   0,   0,   0,
@@ -44,7 +44,7 @@ const BASE_BISHOP_POSITION_SCORES: [i16; 64] = [
       0,   0, -10,   0,   0, -10,   0,   0,
 ];
 
-const BASE_ROOK_POSITION_SCORES: [i16; 64] = [
+const BASE_ROOK_POSITION_SCORES: [i16; SQUARE_COUNT] = [
      50,  50,  50,  50,  50,  50,  50,  50, 
      50,  50,  50,  50,  50,  50,  50,  50,
       0,   0,  10,  20,  20,  10,   0,   0,
@@ -55,7 +55,7 @@ const BASE_ROOK_POSITION_SCORES: [i16; 64] = [
       0,   0,  10,  20,  20,  10,   0,   0,
 ];
 
-const BASE_QUEEN_POSITION_SCORES: [i16; 64] = [
+const BASE_QUEEN_POSITION_SCORES: [i16; SQUARE_COUNT] = [
       0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,
@@ -66,7 +66,7 @@ const BASE_QUEEN_POSITION_SCORES: [i16; 64] = [
       0,   0,   0,   0,   0,   0,   0,   0,
 ];
 
-const BASE_KING_POSITION_SCORES: [i16; 64] = [
+const BASE_KING_POSITION_SCORES: [i16; SQUARE_COUNT] = [
      -5,   0,   0,   0,   0,   0,   0,  -5, 
       0,   0,   5,   5,   5,   5,   0,   0,
       0,   5,   5,  10,  10,   5,   5,   0,
@@ -77,12 +77,12 @@ const BASE_KING_POSITION_SCORES: [i16; 64] = [
       0,   5,   5,  -5, -15,  -5,  10,   0,
 ];
 
-const BASE_PIECE_POSITION_SCORES: [&[i16; 64]; 12] = [
+const BASE_PIECE_POSITION_SCORES: [&[i16; SQUARE_COUNT]; PIECE_TYPE_COUNT] = [
     &BASE_PAWN_POSITION_SCORES, &BASE_KNIGHT_POSITION_SCORES, &BASE_BISHOP_POSITION_SCORES, &BASE_ROOK_POSITION_SCORES, &BASE_QUEEN_POSITION_SCORES, &BASE_KING_POSITION_SCORES,
     &BASE_PAWN_POSITION_SCORES, &BASE_KNIGHT_POSITION_SCORES, &BASE_BISHOP_POSITION_SCORES, &BASE_ROOK_POSITION_SCORES, &BASE_QUEEN_POSITION_SCORES, &BASE_KING_POSITION_SCORES,
 ];
 
-const OPENING_PAWN_POSITION_SCORES: [i16; 64] = [
+const OPENING_PAWN_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     0,   0,   0,   0,   0,   0,  0,   0,
     98, 134,  61,  95,  68, 126, 34, -11,
     -6,   7,  26,  31,  65,  56, 25, -20,
@@ -93,7 +93,7 @@ const OPENING_PAWN_POSITION_SCORES: [i16; 64] = [
     0,   0,   0,   0,   0,   0,  0,   0,
 ];
     
-const OPENING_KNIGHT_POSITION_SCORES: [i16; 64] = [
+const OPENING_KNIGHT_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     -167, -89, -34, -49,  61, -97, -15, -107,
     -73, -41,  72,  36,  23,  62,   7,  -17,
     -47,  60,  37,  65,  84, 129,  73,   44,
@@ -104,7 +104,7 @@ const OPENING_KNIGHT_POSITION_SCORES: [i16; 64] = [
     -105, -21, -58, -33, -17, -28, -19,  -23,
 ];
 
-const OPENING_BISHOP_POSITION_SCORES: [i16; 64] = [
+const OPENING_BISHOP_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     -29,   4, -82, -37, -25, -42,   7,  -8,
     -26,  16, -18, -13,  30,  59,  18, -47,
     -16,  37,  43,  40,  35,  50,  37,  -2,
@@ -115,7 +115,7 @@ const OPENING_BISHOP_POSITION_SCORES: [i16; 64] = [
     -33,  -3, -14, -21, -13, -12, -39, -21,
 ];
 
-const OPENING_ROOK_POSITION_SCORES: [i16; 64] = [
+const OPENING_ROOK_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     32,  42,  32,  51, 63,  9,  31,  43,
     27,  32,  58,  62, 80, 67,  26,  44,
     -5,  19,  26,  36, 17, 45,  61,  16,
@@ -126,7 +126,7 @@ const OPENING_ROOK_POSITION_SCORES: [i16; 64] = [
     -19, -13,   1,  17, 16,  7, -37, -26,
 ];
 
-const OPENING_QUEEN_POSITION_SCORES: [i16; 64] = [
+const OPENING_QUEEN_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     -28,   0,  29,  12,  59,  44,  43,  45,
     -24, -39,  -5,   1, -16,  57,  28,  54,
     -13, -17,   7,   8,  29,  56,  47,  57,
@@ -137,7 +137,7 @@ const OPENING_QUEEN_POSITION_SCORES: [i16; 64] = [
     -1, -18,  -9,  10, -15, -25, -31, -50,
 ];
 
-const OPENING_KING_POSITION_SCORES: [i16; 64] = [
+const OPENING_KING_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     -65,  23,  16, -15, -56, -34,   2,  13,
     29,  -1, -20,  -7,  -8,  -4, -38, -29,
     -9,  24,   2, -16, -20,   6,  22, -22,
@@ -148,12 +148,12 @@ const OPENING_KING_POSITION_SCORES: [i16; 64] = [
     -15,  36,  12, -54,   8, -28,  24,  14,
 ];
 
-const OPENING_PIECE_POSITION_SCORES: [&[i16; 64]; 12] = [
+const OPENING_PIECE_POSITION_SCORES: [&[i16; SQUARE_COUNT]; PIECE_TYPE_COUNT] = [
     &OPENING_PAWN_POSITION_SCORES, &OPENING_KNIGHT_POSITION_SCORES, &OPENING_BISHOP_POSITION_SCORES, &OPENING_ROOK_POSITION_SCORES, &OPENING_QUEEN_POSITION_SCORES, &OPENING_KING_POSITION_SCORES,
     &OPENING_PAWN_POSITION_SCORES, &OPENING_KNIGHT_POSITION_SCORES, &OPENING_BISHOP_POSITION_SCORES, &OPENING_ROOK_POSITION_SCORES, &OPENING_QUEEN_POSITION_SCORES, &OPENING_KING_POSITION_SCORES,
 ];
 
-const ENDGAME_PAWN_POSITION_SCORES: [i16; 64] = [
+const ENDGAME_PAWN_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     0,   0,   0,   0,   0,   0,   0,   0,
     178, 173, 158, 134, 147, 132, 165, 187,
     94, 100,  85,  67,  56,  53,  82,  84,
@@ -164,7 +164,7 @@ const ENDGAME_PAWN_POSITION_SCORES: [i16; 64] = [
     0,   0,   0,   0,   0,   0,   0,   0,
 ];
 
-const ENDGAME_KNIGHT_POSITION_SCORES: [i16; 64] = [
+const ENDGAME_KNIGHT_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     -58, -38, -13, -28, -31, -27, -63, -99,
     -25,  -8, -25,  -2,  -9, -25, -24, -52,
     -24, -20,  10,   9,  -1,  -9, -19, -41,
@@ -175,7 +175,7 @@ const ENDGAME_KNIGHT_POSITION_SCORES: [i16; 64] = [
     -29, -51, -23, -15, -22, -18, -50, -64,
 ];
 
-const ENDGAME_BISHOP_POSITION_SCORES: [i16; 64] = [
+const ENDGAME_BISHOP_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     -14, -21, -11,  -8, -7,  -9, -17, -24,
     -8,  -4,   7, -12, -3, -13,  -4, -14,
     2,  -8,   0,  -1, -2,   6,   0,   4,
@@ -186,7 +186,7 @@ const ENDGAME_BISHOP_POSITION_SCORES: [i16; 64] = [
     -23,  -9, -23,  -5, -9, -16,  -5, -17,
 ];
 
-const ENDGAME_ROOK_POSITION_SCORES: [i16; 64] = [
+const ENDGAME_ROOK_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     13, 10, 18, 15, 12,  12,   8,   5,
     11, 13, 13, 11, -3,   3,   8,   3,
     7,  7,  7,  5,  4,  -3,  -5,  -3,
@@ -197,7 +197,7 @@ const ENDGAME_ROOK_POSITION_SCORES: [i16; 64] = [
     -9,  2,  3, -1, -5, -13,   4, -20,
 ];
 
-const ENDGAME_QUEEN_POSITION_SCORES: [i16; 64] = [
+const ENDGAME_QUEEN_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     -9,  22,  22,  27,  27,  19,  10,  20,
     -17,  20,  32,  41,  58,  25,  30,   0,
     -20,   6,   9,  49,  47,  35,  19,   9,
@@ -208,7 +208,7 @@ const ENDGAME_QUEEN_POSITION_SCORES: [i16; 64] = [
     -33, -28, -22, -43,  -5, -32, -20, -41,
 ];
 
-const ENDGAME_KING_POSITION_SCORES: [i16; 64] = [
+const ENDGAME_KING_POSITION_SCORES: [i16; SQUARE_COUNT] = [
     -74, -35, -18, -18, -11,  15,   4, -17,
     -12,  17,  14,  17,  17,  38,  23,  11,
     10,  17,  23,  15,  20,  45,  44,  13,
@@ -219,7 +219,7 @@ const ENDGAME_KING_POSITION_SCORES: [i16; 64] = [
     -53, -34, -21, -11, -28, -14, -24, -43
 ];
 
-const ENDGAME_PIECE_POSITION_SCORES: [&[i16; 64]; 12] = [
+const ENDGAME_PIECE_POSITION_SCORES: [&[i16; SQUARE_COUNT]; PIECE_TYPE_COUNT] = [
     &ENDGAME_PAWN_POSITION_SCORES, &ENDGAME_KNIGHT_POSITION_SCORES, &ENDGAME_BISHOP_POSITION_SCORES, &ENDGAME_ROOK_POSITION_SCORES, &ENDGAME_QUEEN_POSITION_SCORES, &ENDGAME_KING_POSITION_SCORES,
     &ENDGAME_PAWN_POSITION_SCORES, &ENDGAME_KNIGHT_POSITION_SCORES, &ENDGAME_BISHOP_POSITION_SCORES, &ENDGAME_ROOK_POSITION_SCORES, &ENDGAME_QUEEN_POSITION_SCORES, &ENDGAME_KING_POSITION_SCORES,
 ];
@@ -227,7 +227,7 @@ const ENDGAME_PIECE_POSITION_SCORES: [&[i16; 64]; 12] = [
 const OPENING_PHASE_CUTOFF: i16 = 6192;
 const ENDGAME_PHASE_CUTOFF: i16 = 518;
 
-const FLIPPED_SQUARE_INDEX: [usize; 64] = [
+const FLIPPED_SQUARE_INDEX: [usize; SQUARE_COUNT] = [
     56, 57, 58, 59, 60, 61, 62, 63,
     48, 49, 50, 51, 52, 53, 54, 55,
     40, 41, 42, 43, 44, 45, 46, 47,
@@ -240,7 +240,7 @@ const FLIPPED_SQUARE_INDEX: [usize; 64] = [
 
 const DOUBLED_PAWN_SCORE: i16 = -30;
 const ISOLATED_PAWN_SCORE: i16 = -15;
-const PASSED_PAWN_SCORES: [i16; 8] = [0, 10, 30, 50, 75, 100, 150, 200];
+const PASSED_PAWN_SCORES: [i16; FILE_COUNT] = [0, 10, 30, 50, 75, 100, 150, 200];
 const SEMI_OPEN_FILE_SCORE: i16 = 10;
 const OPEN_FILE_SCORE: i16 = 15;
 const KING_ON_SEMI_OPEN_FILE_SCORE: i16 = -30;
@@ -250,11 +250,11 @@ const BISHOP_PAIR_SCORE: i16 = 20;
 const CHECK_SCORE: i16 = 30;
 const ATTACK_UNITS_SCORE: i16 = 10;
 
-static mut FILE_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-static mut RANK_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-static mut ISOLATED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-static mut WHITE_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-static mut BLACK_PASSED_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
+static mut FILE_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut RANK_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut ISOLATED_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut WHITE_PASSED_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut BLACK_PASSED_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
 
 #[derive(Clone, Copy, Debug)]
 enum GamePhase {
@@ -263,9 +263,13 @@ enum GamePhase {
     Endgame,
 }
 
-pub struct EvalPosition { }
+pub struct EvalPosition;
 
 impl EvalPosition {
+
+    /// # Safety
+    ///
+    /// This function is safe, as it is called before any other function with ctor.
     pub unsafe fn init_positional_masks() {
         Self::init_file_masks();
         Self::init_rank_masks();
@@ -407,8 +411,8 @@ impl EvalPosition {
     }
 
     #[inline(always)]
-    pub fn eval(position: &Position) -> i16 {
-        let mut score = 0;
+    pub fn eval(position: &Position) -> Score {
+        let mut score = Score::ZERO;
         let mut opening_score = 0;
         let mut endgame_score = 0;
         let mut ao_copy = position.ao;
@@ -530,9 +534,9 @@ impl EvalPosition {
             score -= CHECK_SCORE;
         }
 
-        score * match position.side {
-            Color::White => 1,
-            Color::Black => -1
+        match position.side {
+            Color::White => score,
+            Color::Black => -score,
         }
     }
 }

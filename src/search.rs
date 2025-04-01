@@ -4,25 +4,16 @@ use rand::Rng;
 use rayon::ThreadPool;
 use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, consts::{MAX_MOVES, SQUARE_COUNT}, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, score::Score, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
-const BLANK: i16 = 0;
-pub const CHECKMATE: i16 = 10000;
-pub const TABLEBASE_MOVE: i16 = 20000;
-pub const DRAW: i16 = 0;
-const DRAW_BY_STALEMATE: i16 = 0;
-const DRAW_BY_REPETITION: i16 = 0;
-const START_ALPHA: i16 = -32001;
-const START_BETA: i16 = 32001;
-const AVERAGE_AMOUNT_OF_MOVES: u128 = 25;
-pub const MAX_DEPTH: u16 = 64;
-const NULL_MOVE_DEPTH_REDUCTION: u16 = 3;
+const AVERAGE_AMOUNT_OF_MOVES: usize = 25;
+const NULL_MOVE_DEPTH_REDUCTION: usize = 3;
 
 #[cfg(not(feature = "unit_late_move_reductions"))]
-const AVERAGE_BRANCHING_FACTOR: u128 = 5;
+const AVERAGE_BRANCHING_FACTOR: usize = 5;
 
 #[cfg(feature = "unit_late_move_reductions")]
-const AVERAGE_BRANCHING_FACTOR: u128 = 2;
+const AVERAGE_BRANCHING_FACTOR: usize = 2;
 
 #[derive(Clone)]
 pub struct Search {
@@ -58,7 +49,7 @@ impl Search {
     }
     
     #[inline(always)]
-    fn minimax_best_move(&mut self, position: &Position, depth: u16) -> ScoringMove {
+    fn minimax_best_move(&mut self, position: &Position, depth: usize) -> ScoringMove {
         if depth == 0 {
             return ScoringMove::blank(EvalPosition::eval(position));
         }
@@ -66,7 +57,7 @@ impl Search {
         self.nodes += 1;
 
         if self.should_stop_calculating() {
-            return ScoringMove::blank(BLANK);
+            return ScoringMove::blank(Score::BLANK_SCORE);
         }
     
         MoveGeneration::generate_moves::<ScoringMove, Legal>(position)
@@ -80,17 +71,17 @@ impl Search {
             .max()
             .unwrap_or_else(|| {
                 if position.in_check(position.side) {
-                    ScoringMove::blank(-CHECKMATE)
+                    ScoringMove::blank(-Score::CHECKMATE_SCORE)
                 } else {
-                    ScoringMove::blank(DRAW_BY_STALEMATE)
+                    ScoringMove::blank(Score::STALEMATE_SCORE)
                 }
             })
     }
 
     #[inline(always)]
-    fn quiescence(&mut self, position: &Position, alpha: i16, beta: i16) -> ScoringMove {
+    fn quiescence(&mut self, position: &Position, alpha: Score, beta: Score) -> ScoringMove {
         if self.should_stop_calculating() {
-            return ScoringMove::blank(BLANK);
+            return ScoringMove::blank(Score::BLANK_SCORE);
         }
         
         let evaluation = EvalPosition::eval(position);
@@ -126,7 +117,7 @@ impl Search {
     }
 
     #[inline(always)]
-    fn negamax_best_move(&mut self, position: &Position, alpha: i16, beta: i16, mut depth: u16) -> ScoringMove {
+    fn negamax_best_move(&mut self, position: &Position, alpha: Score, beta: Score, mut depth: usize) -> ScoringMove {
         self.nodes += 1;
 
         #[cfg(feature = "unit_syzygy_tablebase")]
@@ -139,7 +130,7 @@ impl Search {
         }
 
         if self.zobrist_key_history.contains(&position.zobrist_key) {
-            return ScoringMove::blank(DRAW_BY_REPETITION);
+            return ScoringMove::blank(Score::REPETITION_SCORE);
         }
         
         if depth == 0 {
@@ -151,13 +142,13 @@ impl Search {
         }
 
         if self.should_stop_calculating() {
-            return ScoringMove::blank(BLANK);
+            return ScoringMove::blank(Score::BLANK_SCORE);
         }
 
         #[cfg(feature = "unit_tt")]
         if let Some(tt_entry) = TranspositionTable::probe(position.zobrist_key) {
             // If the stored depth is at least as deep, use it
-            if tt_entry.depth >= depth {
+            if tt_entry.depth >= depth as u16 {
                 match tt_entry.flag {
                     TTNodeType::Exact => return tt_entry.best_move,
                     TTNodeType::LowerBound => {
@@ -198,7 +189,7 @@ impl Search {
         moves.sort_by_score();
 
         #[cfg(feature = "unit_butterfly_heuristic")]
-        let mut quiets_searched: [BitMove; 64] = [BitMove::EMPTY; 64];
+        let mut quiets_searched: [BitMove; SQUARE_COUNT] = [BitMove::EMPTY; SQUARE_COUNT];
         #[cfg(feature = "unit_butterfly_heuristic")]
         let mut quiets_count = 0;
 
@@ -218,7 +209,7 @@ impl Search {
                     // NOTE: If depth was less than one, the recursive call would underflow depth!
                     // NOTE: Usually, we have to check if the new position is part of the PV, but since
                     // our TT returns exact scores early, this isn't needed.
-                    depth = max(1, original_depth - (0.75 * (move_index as f32).ln() * (original_depth as f32).ln()) as u16);
+                    depth = max(1, original_depth - (0.75 * (move_index as f32).ln() * (original_depth as f32).ln()) as usize);
                 }
 
                 scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, depth - 1).score;
@@ -249,7 +240,7 @@ impl Search {
                 }
 
                 #[cfg(feature = "unit_butterfly_heuristic")]
-                if scoring_move.bit_move != best_move.bit_move && !is_capture_or_promotion && quiets_count < 64 {
+                if scoring_move.bit_move != best_move.bit_move && !is_capture_or_promotion && quiets_count < SQUARE_COUNT {
                     quiets_searched[quiets_count] = scoring_move.bit_move;
                     quiets_count += 1;
                 }
@@ -261,9 +252,9 @@ impl Search {
 
         if !moves_has_legal_move {
             if in_check {
-                best_move = ScoringMove::blank(-CHECKMATE + position.ply as i16);
+                best_move = ScoringMove::blank(-Score::CHECKMATE_SCORE + position.ply as i16);
             } else {
-                best_move = ScoringMove::blank(DRAW_BY_STALEMATE);
+                best_move = ScoringMove::blank(Score::STALEMATE_SCORE);
             }
         }
 
@@ -281,7 +272,7 @@ impl Search {
                 position.zobrist_key,
                 TTData {
                     best_move,
-                    depth: original_depth,
+                    depth: original_depth as u16,
                     flag,
                 },
             );
@@ -291,7 +282,7 @@ impl Search {
     }
 
     #[inline(always)]
-    fn best_move(&mut self, position: &Position, depth: u16) -> ScoringMove {
+    fn best_move(&mut self, position: &Position, depth: usize) -> ScoringMove {
         #[cfg(all(not(feature = "unit_minimax"), not(feature = "unit_negamax")))]
         return self.random_best_move(position);
 
@@ -299,7 +290,7 @@ impl Search {
         return self.minimax_best_move(position, depth);
 
         #[cfg(feature = "unit_negamax")]
-        return self.negamax_best_move(position, START_ALPHA, START_BETA, depth);
+        return self.negamax_best_move(position, Score::START_ALPHA_SCORE, Score::START_BETA_SCORE, depth);
     }
 
     fn reset(&mut self, stop_time: Option<u128>) {
@@ -310,7 +301,7 @@ impl Search {
     }
 
     #[inline(always)]
-    fn go_no_iterative_deepening(&mut self, position: &Position, depth: u16) {
+    fn go_no_iterative_deepening(&mut self, position: &Position, depth: usize) {
         let best_scoring_move = self.best_move(position, depth);
         println!("info depth {} score cp {} nodes {} time {} pv {}", depth, best_scoring_move.score, self.nodes, self.timer.get_time_passed_millis(), best_scoring_move.bit_move.to_uci_string());
         println!("bestmove {}", best_scoring_move.bit_move.to_uci_string());
@@ -319,7 +310,7 @@ impl Search {
     #[inline(always)]
     fn should_end_search_early(&self) -> bool {
         if let Some(time) = self.stop_time.as_ref() {
-            return self.timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR > *time;
+            return self.timer.get_time_passed_millis() * AVERAGE_BRANCHING_FACTOR as u128 > *time;
         }
         false
     }
@@ -332,8 +323,8 @@ impl Search {
     }
 
     #[inline(always)]
-    fn go_iterative_deepening(&mut self, position: &Position, depth: u16) {
-        let mut best_scoring_move = ScoringMove::blank(BLANK);
+    fn go_iterative_deepening(&mut self, position: &Position, depth: usize) {
+        let mut best_scoring_move = ScoringMove::blank(Score::BLANK_SCORE);
 
         for current_depth in 1..=depth {
             self.nodes = 0;
@@ -347,8 +338,8 @@ impl Search {
             }
 
             best_scoring_move = new_best_move;
-            let found_mate = new_best_move.is_checkmate();
-            let found_tablebase_move = new_best_move.is_tablebase_move();
+            let found_mate = new_best_move.score.is_checkmate();
+            let found_tablebase_move = new_best_move.score.is_tablebase_move();
 
             println!(
                 "info depth {} score {} nodes {} time {} pv {}",
@@ -375,8 +366,8 @@ impl Search {
     }
 
     #[inline(always)]
-    fn go_lazy_smp(&mut self, position: &Position, depth: u16) {
-        let best_scoring_move = Arc::new(Mutex::new(ScoringMove::blank(BLANK)));
+    fn go_lazy_smp(&mut self, position: &Position, depth: usize) {
+        let best_scoring_move = Arc::new(Mutex::new(ScoringMove::blank(Score::BLANK_SCORE)));
         let ended_early = Arc::new(AtomicBool::new(false));
 
         self.threadpool
@@ -401,15 +392,15 @@ impl Search {
                     // existing mating line and also help return the search early if a mate has
                     // already been found.
                     if let Ok(mut best_move) = best_scoring_move.lock() {
-                        if !best_move.is_checkmate() {
+                        if !best_move.score.is_checkmate() {
                             *best_move = new_best_move;
                         } else {
                             return;
                         }
                     }
 
-                    let found_mate = new_best_move.is_checkmate();
-                    let found_tablebase_move = new_best_move.is_tablebase_move();
+                    let found_mate = new_best_move.score.is_checkmate();
+                    let found_tablebase_move = new_best_move.score.is_tablebase_move();
         
                     println!(
                         "info depth {} score {} nodes {} time {} pv {}",
@@ -429,7 +420,6 @@ impl Search {
                     if self_ref.should_end_search_early() {
                         self_ref.begin_stop_calculating();
                         ended_early.store(true, Ordering::Relaxed);
-                        return;
                     }
                 });
             }
@@ -449,16 +439,16 @@ impl Search {
         println!("bestmove {}", best_scoring_move.lock().unwrap().bit_move.to_uci_string());
     }
 
-    fn score_or_mate_string(score: i16, found_mate: bool) -> String {
+    fn score_or_mate_string(score: Score, found_mate: bool) -> String {
         if found_mate {
-            format!("mate {}", ((CHECKMATE - score.abs()) as f32 / 2.0).ceil() as i16 * score.signum())
+            format!("mate {}", ((f32::from(Score::CHECKMATE_SCORE - score.abs())) / 2.0).ceil() as i16 * i16::from(score.signum()))
         } else {
             format!("cp {score}")
         }
     }
 
     #[inline(always)]
-    pub fn go(&mut self, position: &Position, depth: Option<u16>, stop_time: Option<u128>) {
+    pub fn go(&mut self, position: &Position, depth: Option<usize>, stop_time: Option<u128>) {
         self.reset(stop_time);
         let stop_flag = self.stop_calculating.clone();
         print!("info string searching for best move");
@@ -473,7 +463,7 @@ impl Search {
 
         println!();
 
-        let depth = depth.unwrap_or(255);
+        let depth = depth.unwrap_or(MAX_MOVES);
 
         // NOTE: Scoping the following thread helps prevent an excess amount of threads being created
         // and future calculations being stopped because of old threads.
@@ -509,10 +499,10 @@ impl Search {
 
     #[inline(always)]
     pub fn calculate_stop_time(total_time: Option<u128>, increment_time: Option<u128>) -> Option<u128> {
-        total_time.map(|total_time| total_time / AVERAGE_AMOUNT_OF_MOVES + increment_time.unwrap_or(0))
+        total_time.map(|total_time| total_time / AVERAGE_AMOUNT_OF_MOVES as u128 + increment_time.unwrap_or(0))
     }
 
-    fn get_pv(&self, position: &Position, depth: u16, _best_move: BitMove) -> String {
+    fn get_pv(&self, position: &Position, depth: usize, _best_move: BitMove) -> String {
         #[cfg(feature = "unit_tt")]
         return self.get_pv_from_tt(position, depth);
 
@@ -524,7 +514,7 @@ impl Search {
     // happens to have the same table index. The probability scales inversely with the
     // size of the transposition table.
     #[cfg(feature = "unit_tt")]
-    fn get_pv_from_tt(&self, position: &Position, depth: u16) -> String {
+    fn get_pv_from_tt(&self, position: &Position, depth: usize) -> String {
         let mut pv_moves = Vec::new();
         let mut position_copy = position.clone();
         for _ in 0..depth {
