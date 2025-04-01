@@ -4,7 +4,7 @@ use rand::Rng;
 use rayon::ThreadPool;
 use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, consts::{MAX_MOVES, SQUARE_COUNT}, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, score::Score, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, consts::{MAX_DEPTH, SQUARE_COUNT}, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, score::Score, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
 const AVERAGE_AMOUNT_OF_MOVES: usize = 25;
 const NULL_MOVE_DEPTH_REDUCTION: usize = 3;
@@ -61,7 +61,7 @@ impl Search {
         self.nodes += 1;
 
         if self.should_stop_calculating() {
-            return ScoringMove::blank(Score::BLANK_SCORE);
+            return ScoringMove::blank(Score::BLANK);
         }
     
         MoveGeneration::generate_moves::<ScoringMove, Legal>(position)
@@ -75,17 +75,26 @@ impl Search {
             .max()
             .unwrap_or_else(|| {
                 if position.in_check(position.side) {
-                    ScoringMove::blank(-Score::CHECKMATE_SCORE)
+                    ScoringMove::blank(-Score::CHECKMATE)
                 } else {
-                    ScoringMove::blank(Score::STALEMATE_SCORE)
+                    ScoringMove::blank(Score::STALEMATE)
                 }
             })
     }
 
     #[inline(always)]
     fn quiescence(&mut self, position: &Position, alpha: Score, beta: Score) -> ScoringMove {
+        #[cfg(feature = "unit_syzygy_tablebase")]
+        if let Some(tablebase) = self.tablebase.as_ref() {
+            if position.ao.count_bits() <= tablebase.get_max_pieces() {
+                if let Some(scoring_move) = tablebase.best_move(position) {
+                    return scoring_move;
+                }
+            }
+        }
+        
         if self.should_stop_calculating() {
-            return ScoringMove::blank(Score::BLANK_SCORE);
+            return ScoringMove::blank(Score::BLANK);
         }
         
         let evaluation = EvalPosition::eval(position);
@@ -134,7 +143,7 @@ impl Search {
         }
 
         if self.zobrist_key_history.contains(&position.zobrist_key) {
-            return ScoringMove::blank(Score::REPETITION_SCORE);
+            return ScoringMove::blank(Score::REPETITION);
         }
         
         if depth == 0 {
@@ -146,7 +155,7 @@ impl Search {
         }
 
         if self.should_stop_calculating() {
-            return ScoringMove::blank(Score::BLANK_SCORE);
+            return ScoringMove::blank(Score::BLANK);
         }
 
         #[cfg(feature = "unit_tt")]
@@ -256,9 +265,9 @@ impl Search {
 
         if !moves_has_legal_move {
             if in_check {
-                best_move = ScoringMove::blank(-Score::CHECKMATE_SCORE + position.ply as i16);
+                best_move = ScoringMove::blank(-Score::CHECKMATE + position.ply as i16);
             } else {
-                best_move = ScoringMove::blank(Score::STALEMATE_SCORE);
+                best_move = ScoringMove::blank(Score::STALEMATE);
             }
         }
 
@@ -294,7 +303,7 @@ impl Search {
         return self.minimax_best_move(position, depth);
 
         #[cfg(feature = "unit_negamax")]
-        return self.negamax_best_move(position, Score::START_ALPHA_SCORE, Score::START_BETA_SCORE, depth);
+        return self.negamax_best_move(position, Score::START_ALPHA, Score::START_BETA, depth);
     }
 
     fn reset(&mut self, stop_time: Option<u128>) {
@@ -328,7 +337,7 @@ impl Search {
 
     #[inline(always)]
     fn go_iterative_deepening(&mut self, position: &Position, depth: usize) {
-        let mut best_scoring_move = ScoringMove::blank(Score::BLANK_SCORE);
+        let mut best_scoring_move = ScoringMove::blank(Score::BLANK);
 
         for current_depth in 1..=depth {
             self.nodes = 0;
@@ -343,7 +352,6 @@ impl Search {
 
             best_scoring_move = new_best_move;
             let found_mate = new_best_move.score.is_checkmate();
-            let found_tablebase_move = new_best_move.score.is_tablebase_move();
 
             println!(
                 "info depth {} score {} nodes {} time {} pv {}",
@@ -353,11 +361,6 @@ impl Search {
                 self.timer.get_time_passed_millis(),
                 self.get_pv(position, current_depth, best_scoring_move.bit_move),
             );
-
-            if found_tablebase_move {
-                println!("info string ended iterative search because tablebase move was found");
-                break;
-            }
 
             if self.should_end_search_early() {
                 println!("info string ended iterative search early based on time prediction");
@@ -371,7 +374,7 @@ impl Search {
 
     #[inline(always)]
     fn go_lazy_smp(&mut self, position: &Position, depth: usize) {
-        let best_scoring_move = Arc::new(Mutex::new(ScoringMove::blank(Score::BLANK_SCORE)));
+        let best_scoring_move = Arc::new(Mutex::new(ScoringMove::blank(Score::BLANK)));
         let ended_early = Arc::new(AtomicBool::new(false));
 
         self.threadpool
@@ -404,7 +407,6 @@ impl Search {
                     }
 
                     let found_mate = new_best_move.score.is_checkmate();
-                    let found_tablebase_move = new_best_move.score.is_tablebase_move();
         
                     println!(
                         "info depth {} score {} nodes {} time {} pv {}",
@@ -414,12 +416,6 @@ impl Search {
                         self_ref.timer.get_time_passed_millis(),
                         self_ref.get_pv(position, current_depth, new_best_move.bit_move),
                     );
-
-                    if found_tablebase_move {
-                        println!("info string ended iterative search because tablebase move was found");
-                        self_ref.begin_stop_calculating();
-                        return;
-                    }
 
                     if self_ref.should_end_search_early() {
                         self_ref.begin_stop_calculating();
@@ -445,7 +441,7 @@ impl Search {
 
     fn score_or_mate_string(score: Score, found_mate: bool) -> String {
         if found_mate {
-            format!("mate {}", ((f32::from(Score::CHECKMATE_SCORE - score.abs())) / 2.0).ceil() as i16 * i16::from(score.signum()))
+            format!("mate {}", ((f32::from(Score::CHECKMATE - score.abs())) / 2.0).ceil() as i16 * i16::from(score.signum()))
         } else {
             format!("cp {score}")
         }
@@ -467,7 +463,7 @@ impl Search {
 
         println!();
 
-        let depth = depth.unwrap_or(MAX_MOVES);
+        let depth = depth.unwrap_or(MAX_DEPTH);
 
         // NOTE: Scoping the following thread helps prevent an excess amount of threads being created
         // and future calculations being stopped because of old threads.
@@ -544,7 +540,12 @@ impl Search {
     }
 
     pub fn set_tablebase(&mut self, path: &str) {
-        self.tablebase = Arc::new(Some(SyzygyTablebase::from_directory(path).unwrap()));
+        let result = SyzygyTablebase::from_directory(path).ok();
+        match result {
+            Some(_) => println!("info string loaded tablebase successfully"),
+            None => println!("info string error loading tablebase"),
+        }
+        self.tablebase = Arc::new(result);
     }
 }
 

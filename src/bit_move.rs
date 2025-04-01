@@ -295,7 +295,7 @@ impl Default for ScoringMove {
 impl From<BitMove> for ScoringMove {
     #[inline(always)]
     fn from(bm: BitMove) -> Self {
-        ScoringMove { bit_move: bm, score: Score::BLANK_SCORE }
+        ScoringMove { bit_move: bm, score: Score::BLANK }
     }
 }
 
