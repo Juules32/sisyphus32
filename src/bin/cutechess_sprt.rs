@@ -17,6 +17,7 @@ const ELO0: &str = "0";
 const ELO1: &str = "10";
 const ALPHA: &str = "0.05";
 const BETA: &str = "0.05";
+const SYZYGY_PATH: &str = "../../tables/syzygy";
 
 fn main() {
     env::set_var("RUSTFLAGS", "-Awarnings");
@@ -35,8 +36,8 @@ fn main() {
 
     let status = Command::new("cutechess-cli")
         .args([
-            "-engine", &format!("name=sisyphus32_{new_version}"), &format!("cmd=./sisyphus32_{new_version}.exe"),
-            "-engine", &format!("name=sisyphus32_{old_version}"), &format!("cmd=./sisyphus32_{old_version}.exe"),
+            "-engine", &format!("name=sisyphus32_{new_version}"), &format!("cmd=./sisyphus32_{new_version}.exe"), &format!("option.SyzygyPath={SYZYGY_PATH}"),
+            "-engine", &format!("name=sisyphus32_{old_version}"), &format!("cmd=./sisyphus32_{old_version}.exe"), &format!("option.SyzygyPath={SYZYGY_PATH}"),
             "-each", "tc=0.1+0.01", &format!("dir=./target/{PROFILE_NAME}/"), "proto=uci",
             "-openings", &format!("file=openings/{OPENINGS_NAME}.pgn"), "order=sequential", &format!("plies={OPENING_PLIES}"),
             "-games", GAMES, "-rounds", ROUNDS, "-repeat", REPEAT, "-maxmoves", MAX_MOVES, "-concurrency", CONCURRENCY, "-ratinginterval", RATING_INTERVAL,

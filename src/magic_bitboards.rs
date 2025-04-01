@@ -1,4 +1,4 @@
-use crate::{bitboard::Bitboard, move_masks::{self, MoveMasks}, rng::RandomNumberGenerator, square::Square};
+use crate::{bitboard::Bitboard, consts::SQUARE_COUNT, move_masks::{self, MoveMasks}, rng::RandomNumberGenerator, square::Square};
 
 const MAX_SLIDER_MOVE_PERMUTATIONS: usize = 4096;
 const NUM_CANDIDATES: usize = 10_000_000;
@@ -43,7 +43,7 @@ impl MagicBitboardGenerator {
             for i in 0..max_occupancy_index {
                 if failed { break };
 
-                let magic_index = ((occupancies[i].0.wrapping_mul(magic_bitboard_candidate.0)) >> (64 - num_relevant_bits)) as usize;
+                let magic_index = ((occupancies[i].0.wrapping_mul(magic_bitboard_candidate.0)) >> (SQUARE_COUNT as u8 - num_relevant_bits)) as usize;
 
                 if used_moves[magic_index].is_empty() {
                     used_moves[magic_index] = moves[i];

@@ -1,9 +1,38 @@
 use core::fmt;
 
-use crate::{castling_rights::CastlingRights, color::Color, eval_position::EvalPosition, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
+use thiserror::Error;
 
-#[derive(Debug)]
-pub struct FenParseError(pub &'static str);
+use crate::{castling_rights::CastlingRights, color::Color, consts::FILE_COUNT, eval_position::EvalPosition, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
+
+#[derive(Error, Debug)]
+pub enum FenParseError {
+    #[error("Couldn't find fen pieces")]
+    NoPieces,
+    
+    #[error("Couldn't find fen side")]
+    NoSide,
+    
+    #[error("Couldn't find fen castling rights")]
+    NoCastlingRights,
+    
+    #[error("Couldn't find fen en-passant square")]
+    NoEnPassant,
+    
+    #[error("Couldn't parse fen pieces: {0}")]
+    Pieces(String),
+    
+    #[error("Couldn't parse fen side: {0}")]
+    Side(String),
+    
+    #[error("Couldn't parse fen castling rights: {0}")]
+    CastlingRights(char),
+    
+    #[error("Couldn't parse fen en-passant square: {0}")]
+    EnPassant(#[from] SquareParseError),
+    
+    #[error("Couldn't parse illegal piece: {0}")]
+    IllegalPiece(char),
+}
 
 pub struct FenString { string: String }
 
@@ -32,10 +61,10 @@ impl FenString {
         let mut position = Position::default();
         
         let mut fen_iter = self.string.split_whitespace();
-        let pieces_str = fen_iter.next().ok_or(FenParseError("No pieces found!"))?;
-        let side_str = fen_iter.next().ok_or(FenParseError("No side found!"))?;
-        let castling_rights_str = fen_iter.next().ok_or(FenParseError("No castling rights found!"))?;
-        let en_passant_sq_str = fen_iter.next().ok_or(FenParseError("No en-passant found!"))?;
+        let pieces_str = fen_iter.next().ok_or(FenParseError::NoPieces)?;
+        let side_str = fen_iter.next().ok_or(FenParseError::NoSide)?;
+        let castling_rights_str = fen_iter.next().ok_or(FenParseError::NoCastlingRights)?;
+        let en_passant_sq_str = fen_iter.next().ok_or(FenParseError::NoEnPassant)?;
         
         Self::set_pieces(&mut position, pieces_str)?;
         Self::set_side(&mut position, side_str)?;
@@ -55,14 +84,14 @@ impl FenString {
         for pieces_char in pieces_str.chars() {
             match pieces_char {
                 '1'..='8' => sq_index += pieces_char
-                .to_digit(10)
-                .ok_or(FenParseError("Could not convert char to digit!"))? as u8,
+                    .to_digit(10)
+                    .unwrap() as u8,
                 '/' => (),
                 'P' | 'N' | 'B' | 'R' | 'Q' | 'K' | 'p' | 'n' | 'b' | 'r' | 'q' | 'k' => {
                     let piece = Piece::from(pieces_char);
                     position.set_piece(piece, Square::from(sq_index));
                 }
-                _ => return Err(FenParseError("Invalid pieces!")),
+                _ => return Err(FenParseError::IllegalPiece(pieces_char)),
             };
             if !pieces_char.is_ascii_digit() && pieces_char != '/' { sq_index += 1; }
         }
@@ -74,9 +103,8 @@ impl FenString {
         match side_str {
             "w" => position.side = Color::White,
             "b" => position.side = Color::Black,
-            _ => return Err(FenParseError("Invalid side!")),
+            _ => return Err(FenParseError::Side(side_str.to_string())),
         }
-        
         Ok(())
     }
     
@@ -88,7 +116,7 @@ impl FenString {
                 'k' => position.castling_rights.0 |= CastlingRights::BK.0,
                 'q' => position.castling_rights.0 |= CastlingRights::BQ.0,
                 '-' => (),
-                _ => return Err(FenParseError("Invalid castling rights!")),
+                _ => return Err(FenParseError::CastlingRights(char)),
             }
         }
         
@@ -99,8 +127,7 @@ impl FenString {
         match en_passant_sq_str {
             "-" => Ok(()),
             _ => {
-                position.en_passant_option = Some(Square::try_from(en_passant_sq_str)
-                    .map_err(|SquareParseError(msg)| FenParseError(msg))?);
+                position.en_passant_option = Some(Square::try_from(en_passant_sq_str)?);
                 Ok(())
             }
         }
@@ -147,7 +174,7 @@ impl From<&Position> for FenString {
                 }
             }
 
-            if curr_width == 8 {
+            if curr_width == FILE_COUNT {
                 if curr_empty != 0 {
                     fen_str.push_str(&curr_empty.to_string());
                 }

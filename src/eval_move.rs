@@ -1,10 +1,10 @@
-use crate::{bit_move::BitMove, butterfly_heuristic::ButterflyHeuristic, killer_moves::KillerMoves, position::Position, transposition_table::{TTNodeType, TranspositionTable}};
+use crate::{bit_move::BitMove, butterfly_heuristic::ButterflyHeuristic, consts::PIECE_TYPE_COUNT, killer_moves::KillerMoves, position::Position, score::Score, transposition_table::{TTNodeType, TranspositionTable}};
 
 #[allow(unused_imports)]
 use crate::{color::Color, move_masks::MoveMasks, piece::Piece, move_flag::MoveFlag};
 
 // Most valuable victim - least valuable attacker [attacker][victim]
-const MVV_LVA: [[i16; 12]; 12] = [
+const MVV_LVA: [[i16; PIECE_TYPE_COUNT]; PIECE_TYPE_COUNT] = [
     [105, 205, 305, 405, 505, 605, 105, 205, 305, 405, 505, 605],
     [104, 204, 304, 404, 504, 604, 104, 204, 304, 404, 504, 604],
     [103, 203, 303, 403, 503, 603, 103, 203, 303, 403, 503, 603],
@@ -19,12 +19,12 @@ const MVV_LVA: [[i16; 12]; 12] = [
     [100, 200, 300, 400, 500, 600, 100, 200, 300, 400, 500, 600],
 ];
 
-pub struct EvalMove { }
+pub struct EvalMove;
 
 impl EvalMove {
     #[inline(always)]
-    pub fn eval(position: &Position, bit_move: BitMove) -> i16 {
-        let mut score = 0;
+    pub fn eval(position: &Position, bit_move: BitMove) -> Score {
+        let mut score = Score::ZERO;
         let source = bit_move.source();
         let target = bit_move.target();
         let piece = position.get_piece(source);
@@ -45,8 +45,8 @@ impl EvalMove {
         // NOTE: Although the following idea seems logical, it yields 10-20% worse performance!
         // score += EvalPosition::get_base_piece_position_score(piece, target, position.side) - EvalPosition::get_base_piece_position_score(piece, source, position.side); 
 
-        if capture_option.is_some() {
-            score += MVV_LVA[piece][capture_option.unwrap()];
+        if let Some(capture) = capture_option {
+            score += MVV_LVA[piece][capture];
 
             #[cfg(feature = "unit_capture_with_check_eval")]
             {

@@ -10,6 +10,7 @@ rayon = "1.10.0"
 ctor = "0.4.0"
 shakmaty-syzygy = "0.25.3"
 shakmaty = "0.27.3"
+thiserror = "2.0.12"
 
 [profile.release-with-debug]
 inherits = "release"
@@ -44,9 +45,9 @@ positional_eval =           ["tapered_eval", "unit_positional_eval"]
 capture_with_check_eval =   ["tapered_eval", "unit_capture_with_check_eval"]
 pseudo_pins =               ["tapered_eval", "unit_pseudo_pins"]
 move_flag_eval =            ["tapered_eval", "unit_move_flag_eval"]
-lazy_smp =                  ["move_flag_eval", "unit_lazy_smp"]
+syzygy_tablebase =          ["move_flag_eval", "unit_syzygy_tablebase"]
+lazy_smp =                  ["syzygy_tablebase", "unit_lazy_smp"]
 lockless_hashing =          ["lazy_smp", "unit_lockless_hashing"]
-syzygy_tablebase =          ["lockless_hashing", "unit_syzygy_tablebase"]
 default = ["syzygy_tablebase"] # Should only be one feature from the list of playable versions
 
 #  /*------------------------------------------------------------*\ 
