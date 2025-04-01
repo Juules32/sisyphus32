@@ -12,10 +12,6 @@ impl Timer {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.start_time = Instant::now();
-    }
-
     pub fn get_time_passed_millis(&self) -> u128 {
         Instant::now().duration_since(self.start_time).as_millis()
     }

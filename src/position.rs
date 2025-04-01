@@ -1,12 +1,13 @@
 use core::fmt;
-use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, eval_position::EvalPosition, fen::FenString, file::File, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, move_masks::MoveMasks, piece::Piece, square::{Square, SquareParseError}, zobrist::ZobristKey};
+
+use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, consts::{PIECE_TYPE_COUNT, SQUARE_COUNT}, eval_position::EvalPosition, fen::FenString, file::File, move_flag::MoveFlag, move_masks::MoveMasks, piece::Piece, square::Square, zobrist::ZobristKey};
 
 #[derive(Clone)]
 pub struct Position {
     #[cfg(feature = "unit_bb_array")]
-    pub pps: [Option<Piece>; 64],
+    pub pps: [Option<Piece>; SQUARE_COUNT],
 
-    pub bbs: [Bitboard; 12],
+    pub bbs: [Bitboard; PIECE_TYPE_COUNT],
     pub wo: Bitboard,
     pub bo: Bitboard,
     pub ao: Bitboard,
@@ -19,8 +20,6 @@ pub struct Position {
     #[cfg(feature = "unit_tapered_eval")]
     pub game_phase_score: i16,
 }
-
-pub struct MoveStringParseError(pub &'static str);
 
 impl Position {
     #[inline(always)]
@@ -424,53 +423,15 @@ impl Position {
     pub fn get_piece_option(&self, square: Square) -> Option<Piece> {
         self.pps[square]
     }
-
-    #[inline(always)]
-    pub fn parse_move_string(&self, move_string: &str) -> Result<BitMove, MoveStringParseError> {
-        if move_string.len() == 4 || move_string.len() == 5 {
-            let source = Square::try_from(&move_string[0..2]).map_err(|SquareParseError(msg)| MoveStringParseError(msg))?;
-            let target = Square::try_from(&move_string[2..4]).map_err(|SquareParseError(msg)| MoveStringParseError(msg))?;
-            let promotion_piece_option = if move_string.len() == 5 {
-                Some(&move_string[4..5])
-            } else {
-                None
-            };
-
-            for m in MoveGeneration::generate_moves::<BitMove, Legal>(self) {
-                let s = m.source();
-                let t = m.target();
-                let f = m.flag_option();
-                
-                if source == s && target == t {
-                    match promotion_piece_option {
-                        Some(promotion_piece_string) => {
-                            match promotion_piece_string {
-                                "q" => if f == Some(MoveFlag::PromoQ) { return Ok(m); },
-                                "r" => if f == Some(MoveFlag::PromoR) { return Ok(m); },
-                                "b" => if f == Some(MoveFlag::PromoB) { return Ok(m); },
-                                "n" => if f == Some(MoveFlag::PromoN) { return Ok(m); },
-                                _ => return Err(MoveStringParseError("Found illegal promotion piece string!"))
-                            }
-                        },
-                        None => return Ok(m),
-                    }
-                }
-            }
-
-            Err(MoveStringParseError("Couldn't find a pseudo-legal move!"))
-        } else {
-            Err(MoveStringParseError("Couldn't parse move with illegal amount of characters!"))
-        }
-    }
 }
 
 impl Default for Position {
     fn default() -> Position {
         Position {
             #[cfg(feature = "unit_bb_array")]
-            pps: [None; 64],
+            pps: [None; SQUARE_COUNT],
 
-            bbs: [Bitboard::EMPTY; 12],
+            bbs: [Bitboard::EMPTY; PIECE_TYPE_COUNT],
             wo: Bitboard::EMPTY,
             bo: Bitboard::EMPTY,
             ao: Bitboard::EMPTY,

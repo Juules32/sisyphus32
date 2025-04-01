@@ -1,8 +1,44 @@
-use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc, Arc}, thread};
+use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use crate::{color::Color, eval_position::EvalPosition, fen::{FenParseError, FenString}, perft::Perft, position::{MoveStringParseError, Position}, search::Search, syzygy::SyzygyTablebase, transposition_table::TranspositionTable};
+use thiserror::Error;
 
-pub struct UciParseError(pub &'static str);
+use crate::{bit_move::BitMove, color::Color, eval_position::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}, transposition_table::TranspositionTable};
+
+#[derive(Error, Debug)]
+enum UciParseError {
+    #[error("Couldn't parse uci keyword")]
+    Keyword,
+
+    #[error("Couldn't parse parameter: {0}")]
+    Param(&'static str),
+
+    #[error("Couldn't parse parameter value: {0}")]
+    ParamValue(&'static str),
+
+    #[error("Couldn't parse uci option")]
+    Option,
+
+    #[error("{0}")]
+    MoveStringParseError(#[from] MoveStringParseError),
+
+    #[error("{0}")]
+    FenParseError(#[from] FenParseError),
+}
+
+#[derive(Error, Debug)]
+pub enum MoveStringParseError {
+    #[error("Illegal move string length")]
+    LengthParseError,
+
+    #[error("Illegal promotion piece")]
+    PromotionPieceParseError(String),
+    
+    #[error("Couldn't find pseudo-legal move: {0}")]
+    IllegalMove(String),
+
+    #[error("{0}")]
+    SquareParseError(#[from] SquareParseError),
+}
 
 pub struct Uci {
     pub position: Position,
@@ -24,7 +60,7 @@ impl Uci {
 
         let (uci_command_tx, uci_command_rx) = mpsc::channel();
 
-        let stop_calculating = self.search.stop_calculating.clone();
+        let stop_calculating = self.search.get_stop_calculating();
         
         thread::spawn(move || {
             let mut lines = io::stdin().lock().lines();
@@ -40,8 +76,8 @@ impl Uci {
         });
 
         for line in uci_command_rx {
-            if let Err(UciParseError(msg)) = self.parse_line(line) {
-                eprintln!("{msg}");
+            if let Err(error) = self.parse_line(line) {
+                eprintln!("{}!", error);
             };
         }
     }
@@ -57,8 +93,8 @@ impl Uci {
     }
     
     fn parse_line(&mut self, line: String) -> Result<(), UciParseError> {
-        let mut words = line.split_whitespace();
-        match words.next() {
+        let words: Vec<_> = line.split_whitespace().collect();
+        match words.first().map(|s| s.to_owned()) {
             Some(keyword) => {
                 match keyword {
                     "uci" => {
@@ -71,7 +107,7 @@ impl Uci {
                         Ok(())
                     },
                     "position" => self.parse_position(&line),
-                    "go" => self.parse_go(&line),
+                    "go" => self.parse_go(&words),
                     "eval" => {
                         println!("{}", EvalPosition::eval(&self.position));
                         Ok(())
@@ -93,37 +129,36 @@ impl Uci {
                         Ok(())
                     },
                     "setoption" => {
-                        if line == "setoption name Clear Hash" {
-                            TranspositionTable::reset();
-                            println!("Reset transposition table successfully!");
-                            Ok(())
-                        } else if line.starts_with("setoption name Threads value ") {
-                            match words.last().unwrap().parse() {
-                                Ok(num_threads) => {
-                                    self.search.threadpool = Arc::new(
-                                        rayon::ThreadPoolBuilder::new()
-                                            .num_threads(num_threads)
-                                            .build()
-                                            .unwrap()
-                                    );
-                                    println!("Set number of threads to {num_threads} successfully!");
-                                    Ok(())
-                                },
-                                Err(_) => Err(UciParseError("Couldn't parse threads value!")),
-                            }
-                        } else if line.starts_with("setoption name SyzygyPath value ") {
-                            let path = words.last().unwrap();
-                            self.search.tablebase = Arc::new(Some(SyzygyTablebase::from_directory(path).unwrap()));
-                            println!("Set syzygy path to {path} successfully!");
-                            Ok(())
-                        } else {
-                            Err(UciParseError("Couldn't find option name!"))
-                        }
+                        self.parse_setoption(&line, &words)
                     }
-                    _ => Err(UciParseError("Couldn't parse keyword!")),
+                    _ => Err(UciParseError::Keyword),
                 }
             }
             None => Ok(()),
+        }
+    }
+
+    fn parse_setoption(&mut self, line: &str, words: &[&str]) -> Result<(), UciParseError> {
+        if line == "setoption name Clear Hash" {
+            TranspositionTable::reset();
+            println!("info string transposition table reset successfully");
+            Ok(())
+        } else if line.starts_with("setoption name Threads value") {
+            match words.last().unwrap().parse() {
+                Ok(num_threads) => {
+                    self.search.set_threadpool(num_threads);
+                    println!("info string set threads to {num_threads} successfully");
+                    Ok(())
+                },
+                Err(_) => Err(UciParseError::ParamValue("Threads")),
+            }
+        } else if line.starts_with("setoption name SyzygyPath value") {
+            let path = words.last().unwrap();
+            self.search.set_tablebase(path);
+            println!("info string set syzygy path to {path} successfully");
+            Ok(())
+        } else {
+            Err(UciParseError::Option)
         }
     }
     
@@ -143,7 +178,7 @@ impl Uci {
                     None => line[fen_index + 3..].trim(),
                 })
             };
-            self.position = fen_string.parse().map_err(|FenParseError(msg)| UciParseError(msg))?;
+            self.position = fen_string.parse()?;
         } else if startpos_index_option.is_some() {
             self.position = Position::starting_position();
         } else if kiwipete_index_option.is_some() {
@@ -155,106 +190,96 @@ impl Uci {
         } else if tricky_index_option.is_some() {
             self.position = FenString::tricky().parse().unwrap();
         } else {
-            return Err(UciParseError("Neither fen nor startpos found!"));
+            return Err(UciParseError::Param("Neither fen nor startpos found"));
         }
 
         if let Some(moves_index) = moves_index_option {
             for move_string in line[moves_index + 5..].split_whitespace() {
-                let bit_move = self.position.parse_move_string(move_string).map_err(|MoveStringParseError(msg)| UciParseError(msg))?;
+                let bit_move = Self::parse_move_string(&self.position, move_string)?;
                 self.position.make_move(bit_move);
+                if bit_move.is_pp_capture_or_castle(&self.position) {
+                    self.search.zobrist_key_history = Vec::new();
+                } else {
+                    self.search.zobrist_key_history.push(self.position.zobrist_key);
+                }
             }
         }
         Ok(())
     }
+
+    fn parse_parameter_value<T: std::str::FromStr>(words: &[&str], key: &str, error: UciParseError) -> Result<Option<T>, UciParseError> {
+        match words.iter().position(|&word| word == key) {
+            Some(word_index) => match words.get(word_index + 1) {
+                Some(&value) => value.parse::<T>().map(Some).map_err(|_| error),
+                None => Err(error),
+            },
+            None => Ok(None),
+        }
+    }
     
-    fn parse_go(&mut self, line: &str) -> Result<(), UciParseError> {
-        let words: Vec<_> = line.split_whitespace().collect();
-        if let Some(perft_index) = words.iter().position(|&word| word == "perft") {
-            match words.get(perft_index + 1) {
-                Some(depth_string) => {
-                    match depth_string.parse::<u8>() {
-                        Ok(depth) => {
-                            Perft::perft_test(&self.position, depth, true);
-                            Ok(())
-                        },
-                        Err(_) => Err(UciParseError("Couldn't parse depth string!")),
-                    }
-                },
-                None => Err(UciParseError("Didn't find perft depth!")),
-            }
-        } else if let Some(depth_index) = words.iter().position(|&word| word == "depth") {
-            match words.get(depth_index + 1) {
-                Some(depth_string) => {
-                    match depth_string.parse::<u16>() {
-                        Ok(depth) => {
-                            self.search.go(&self.position, depth, None);
-                            Ok(())
-                        },
-                        Err(_) => Err(UciParseError("Couldn't parse depth string!"))
-                    }
-                },
-                None => Err(UciParseError("Didn't find depth string!")),
-            }
+    fn parse_go(&mut self, words: &[&str]) -> Result<(), UciParseError> {
+        let depth: Option<usize> = Self::parse_parameter_value(words, "depth", UciParseError::ParamValue("depth"))?;
+        let perft_depth: Option<u16> = Self::parse_parameter_value(words, "perft", UciParseError::ParamValue("perft depth"))?;
+        let move_time: Option<u128> = Self::parse_parameter_value(words, "movetime", UciParseError::ParamValue("movetime"))?;
+        let total_time: Option<u128> = Self::parse_parameter_value(words, match self.position.side {
+            Color::White => "wtime",
+            Color::Black => "btime",
+        }, UciParseError::ParamValue("wtime/btime"))?;
+        let increment_time: Option<u128> = Self::parse_parameter_value(words, match self.position.side {
+            Color::White => "winc",
+            Color::Black => "binc",
+        }, UciParseError::ParamValue("winc/binc"))?;
+
+        if let Some(perft_depth) = perft_depth {
+            Perft::perft_test(&self.position, perft_depth, true);
+            return Ok(());
+        }
+
+        let stop_time = if move_time.is_some() {
+            move_time
         } else {
-            if let Some(move_time_index) = words.iter().position(|&word| {
-                word == "movetime"
-            }) {
-                match words.get(move_time_index + 1) {
-                    Some(time_string) => {
-                        match time_string.parse::<u128>() {
-                            Ok(move_time) => {
-                                self.search.go(&self.position, 255, Some(move_time));
-                                return Ok(());
-                            },
-                            Err(_) => return Err(UciParseError("Couldn't parse time string!")),
-                        }
-                    },
-                    None => return Err(UciParseError("Didn't find time string!")),
+            Search::calculate_stop_time(total_time, increment_time)
+        };
+
+        self.search.go(&self.position, depth, stop_time);
+        Ok(())
+    }
+    
+    #[inline(always)]
+    pub fn parse_move_string(position: &Position, move_string: &str) -> Result<BitMove, MoveStringParseError> {
+        if move_string.len() == 4 || move_string.len() == 5 {
+            let source = Square::try_from(&move_string[0..2])?;
+            let target = Square::try_from(&move_string[2..4])?;
+            let promotion_piece_option = if move_string.len() == 5 {
+                Some(&move_string[4..5])
+            } else {
+                None
+            };
+
+            for m in MoveGeneration::generate_moves::<BitMove, Legal>(position) {
+                let s = m.source();
+                let t = m.target();
+                let f = m.flag_option();
+                
+                if source == s && target == t {
+                    match promotion_piece_option {
+                        Some(promotion_piece_string) => {
+                            match promotion_piece_string {
+                                "q" => if f == Some(MoveFlag::PromoQ) { return Ok(m); },
+                                "r" => if f == Some(MoveFlag::PromoR) { return Ok(m); },
+                                "b" => if f == Some(MoveFlag::PromoB) { return Ok(m); },
+                                "n" => if f == Some(MoveFlag::PromoN) { return Ok(m); },
+                                _ => return Err(MoveStringParseError::PromotionPieceParseError(promotion_piece_string.to_string()))
+                            }
+                        },
+                        None => return Ok(m),
+                    }
                 }
             }
 
-            let mut total_time = None;
-            if let Some(time_index) = words.iter().position(|&word| {
-                word == match self.position.side {
-                    Color::White => "wtime",
-                    Color::Black => "btime",
-                }
-            }) {
-                match words.get(time_index + 1) {
-                    Some(time_string) => {
-                        match time_string.parse::<u128>() {
-                            Ok(time) => {
-                                total_time = Some(time)
-                            },
-                            Err(_) => return Err(UciParseError("Couldn't parse time string!")),
-                        }
-                    },
-                    None => return Err(UciParseError("Didn't find time string!")),
-                }
-            }
-
-            let mut increment = 0;
-            if let Some(inc_index) = words.iter().position(|&word| {
-                word == match self.position.side {
-                    Color::White => "winc",
-                    Color::Black => "binc",
-                }
-            }) {
-                match words.get(inc_index + 1) {
-                    Some(inc_string) => {
-                        match inc_string.parse::<u128>() {
-                            Ok(inc) => {
-                                increment = inc
-                            },
-                            Err(_) => return Err(UciParseError("Couldn't parse increment string!")),
-                        }
-                    },
-                    None => return Err(UciParseError("Didn't find increment string!")),
-                }
-            }
-
-            self.search.go(&self.position, 255, Search::calculate_stop_time(total_time, increment));
-            Ok(())
+            Err(MoveStringParseError::IllegalMove(move_string.to_string()))
+        } else {
+            Err(MoveStringParseError::LengthParseError)
         }
     }
 }

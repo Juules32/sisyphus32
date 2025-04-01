@@ -1,4 +1,4 @@
-use crate::{bit_twiddles, square::Square};
+use crate::{bit_twiddles, consts::{FILE_COUNT, RANK_COUNT}, square::Square};
 use core::fmt;
 use std::{mem::{self, transmute}, ops::*};
 
@@ -171,10 +171,10 @@ impl From<u64> for Bitboard {
 impl fmt::Display for Bitboard {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = String::from("\n");
-        for i in 0..8 {
-            s += &format!("  {}  ", 8 - i);
-            for j in 0..8 {
-                let square = (self.0 >> (i * 8 + j)) & 1;
+        for i in 0..FILE_COUNT {
+            s += &format!("  {}  ", FILE_COUNT - i);
+            for j in 0..RANK_COUNT {
+                let square = (self.0 >> (i * RANK_COUNT + j)) & 1;
                 s += if square != 0 { "O " } else { ". " };
             }
             s += "\n";

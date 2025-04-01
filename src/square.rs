@@ -1,4 +1,6 @@
-use crate::{rank::{Rank, RankParseError}, bitboard::Bitboard, file::{File, FileParseError}};
+use thiserror::Error;
+
+use crate::{bitboard::Bitboard, consts::{FILE_COUNT, SQUARE_COUNT}, file::{File, FileParseError}, rank::{Rank, RankParseError}};
 use core::fmt;
 use std::{ops::{Index, IndexMut}, mem::transmute};
 
@@ -16,7 +18,7 @@ pub enum Square {
 }
 
 impl Square {
-    pub const ALL_SQUARES: [Square; 64] = [
+    pub const ALL_SQUARES: [Square; SQUARE_COUNT] = [
         Square::A8, Square::B8, Square::C8, Square::D8, Square::E8, Square::F8, Square::G8, Square::H8,
         Square::A7, Square::B7, Square::C7, Square::D7, Square::E7, Square::F7, Square::G7, Square::H7,
         Square::A6, Square::B6, Square::C6, Square::D6, Square::E6, Square::F6, Square::G6, Square::H6,
@@ -54,12 +56,12 @@ impl Square {
 
     #[inline(always)]
     pub fn above(self) -> Square {
-        Square::from(self as u8 - 8)
+        Square::from(self as u8 - FILE_COUNT as u8)
     }
 
     #[inline(always)]
     pub fn below(self) -> Square {
-        Square::from(self as u8 + 8)
+        Square::from(self as u8 + FILE_COUNT as u8)
     }
 
     #[inline(always)]
@@ -102,25 +104,40 @@ impl From<u8> for Square {
     }
 }
 
-#[derive(Debug)]
-pub struct SquareParseError(pub &'static str);
+#[derive(Error, Debug)]
+pub enum SquareParseError {
+    #[error("Missing file character")]
+    NoFile,
+
+    #[error("Missing rank character")]
+    NoRank,
+
+    #[error("Illegal string length for square: {0}")]
+    StringLength(String),
+
+    #[error("{0}")]
+    RankParseError(#[from] RankParseError),
+
+    #[error("{0}")]
+    FileParseError(#[from] FileParseError),
+}
 
 impl TryFrom<&str> for Square {
     type Error = SquareParseError;
 
     fn try_from(sq_str: &str) -> Result<Self, Self::Error> {
         if sq_str.len() != 2 {
-            return Err(SquareParseError("Invalid string length!"));
+            return Err(SquareParseError::StringLength(sq_str.to_string()));
         }
 
         let mut chars_iter = sq_str.chars();
-        let file_char = chars_iter.next().ok_or(SquareParseError("Missing file character"))?;
-        let rank_char = chars_iter.next().ok_or(SquareParseError("Missing rank character"))?;
+        let file_char = chars_iter.next().ok_or(SquareParseError::NoFile)?;
+        let rank_char = chars_iter.next().ok_or(SquareParseError::NoRank)?;
 
-        let rank = Rank::try_from(rank_char).map_err(|RankParseError(msg)| SquareParseError(msg))?;
-        let file = File::try_from(file_char).map_err(|FileParseError(msg)| SquareParseError(msg))?;
+        let rank = Rank::try_from(rank_char)?;
+        let file = File::try_from(file_char)?;
 
-        Ok(Self::from(rank as u8 * 8 + file as u8))
+        Ok(Self::from(rank as u8 * FILE_COUNT as u8 + file as u8))
     }
 }
 

@@ -1,8 +1,6 @@
-use crate::bit_move::{BitMove, Move, ScoringMove};
+use crate::{bit_move::{BitMove, Move, ScoringMove}, consts::MAX_MOVES};
 use core::fmt;
 use std::{mem, ops::{Index, IndexMut}};
-
-pub const MAX_MOVES: usize = 255;
 
 pub struct MoveList<T> {
     array: [T; MAX_MOVES],
@@ -163,7 +161,7 @@ impl fmt::Display for MoveList<ScoringMove> {
 #[cfg(test)]
 mod tests {
 
-    use crate::bit_move::ScoringMove;
+    use crate::{bit_move::ScoringMove, score::Score};
 
     use super::*;
 
@@ -171,13 +169,13 @@ mod tests {
     fn move_list_of_scoring_moves_finds_max() {
         let mut move_list = MoveList::<ScoringMove>::new();
 
-        move_list.add(ScoringMove::blank(-2));
-        move_list.add(ScoringMove::blank(-1));
-        move_list.add(ScoringMove::blank(0));
-        move_list.add(ScoringMove::blank(1));
-        move_list.add(ScoringMove::blank(2));
+        move_list.add(ScoringMove::blank(Score::from(-2)));
+        move_list.add(ScoringMove::blank(Score::from(-1)));
+        move_list.add(ScoringMove::blank(Score::from(0)));
+        move_list.add(ScoringMove::blank(Score::from(1)));
+        move_list.add(ScoringMove::blank(Score::from(2)));
 
-        assert_eq!(move_list.iter().max().unwrap().score, 2);
-        assert_eq!(move_list.iter().min().unwrap().score, -2);
+        assert_eq!(move_list.iter().max().unwrap().score, Score::from(2));
+        assert_eq!(move_list.iter().min().unwrap().score, Score::from(-2));
     }
 }

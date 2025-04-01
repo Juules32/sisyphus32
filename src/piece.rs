@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{ops::{Index, IndexMut}, mem::transmute};
 
-use crate::color::Color;
+use crate::{color::Color, consts::{PIECE_TYPE_COUNT, PLAYER_COUNT}};
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -21,7 +21,7 @@ pub enum Piece {
 }
 
 impl Piece {
-    pub const WHITE_PIECES: [Piece; 6] = [
+    pub const WHITE_PIECES: [Piece; PIECE_TYPE_COUNT / 2] = [
         Piece::WP,
         Piece::WN,
         Piece::WB,
@@ -30,7 +30,7 @@ impl Piece {
         Piece::WK,
     ];
 
-    pub const BLACK_PIECES: [Piece; 6] = [
+    pub const BLACK_PIECES: [Piece; PIECE_TYPE_COUNT / 2] = [
         Piece::BP,
         Piece::BN,
         Piece::BB,
@@ -39,7 +39,7 @@ impl Piece {
         Piece::BK,
     ];
 
-    pub const ALL_PIECES: [Piece; 12] = [
+    pub const ALL_PIECES: [Piece; PIECE_TYPE_COUNT] = [
         Piece::WP,
         Piece::WN,
         Piece::WB,
@@ -54,7 +54,7 @@ impl Piece {
         Piece::BK,
     ];
 
-    pub const ALL_PIECES_EXPECT_PAWNS_AND_KINGS: [Piece; 8] = [
+    pub const ALL_PIECES_EXPECT_PAWNS_AND_KINGS: [Piece; PIECE_TYPE_COUNT - PLAYER_COUNT * 2] = [
         Piece::WN,
         Piece::WB,
         Piece::WR,
