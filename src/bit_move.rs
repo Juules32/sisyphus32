@@ -1,4 +1,4 @@
-use crate::{eval_move::EvalMove, move_flag::MoveFlag, piece::Piece, position::Position, search::{CHECKMATE, MAX_DEPTH, TABLEBASE_MOVE}, square::Square};
+use crate::{eval_move::EvalMove, move_flag::MoveFlag, piece::Piece, position::Position, score::Score, square::Square};
 use core::fmt;
 use std::{cmp::Ordering, fmt::Display, hash::Hash, mem};
 
@@ -241,7 +241,7 @@ impl Display for BitMove {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ScoringMove {
     pub bit_move: BitMove,
-    pub score: i16,
+    pub score: Score,
 }
 
 impl Move for ScoringMove {
@@ -269,7 +269,7 @@ impl ScoringMove {
     const EMPTY: ScoringMove = unsafe { mem::zeroed() };
 
     #[inline(always)]
-    pub fn blank(score: i16) -> Self {
+    pub fn blank(score: Score) -> Self {
         Self {
             bit_move: BitMove::EMPTY,
             score
@@ -277,21 +277,11 @@ impl ScoringMove {
     }
 
     #[inline(always)]
-    pub fn new(bit_move: BitMove, score: i16) -> Self {
+    pub fn new(bit_move: BitMove, score: Score) -> Self {
         Self {
             bit_move,
             score
         }
-    }
-
-    #[inline(always)]
-    pub fn is_checkmate(&self) -> bool {
-        self.score.abs() >= CHECKMATE - MAX_DEPTH as i16
-    }
-
-    #[inline(always)]
-    pub fn is_tablebase_move(&self) -> bool {
-        self.score.abs() == TABLEBASE_MOVE as i16
     }
 }
 
@@ -305,7 +295,7 @@ impl Default for ScoringMove {
 impl From<BitMove> for ScoringMove {
     #[inline(always)]
     fn from(bm: BitMove) -> Self {
-        ScoringMove { bit_move: bm, score: 0 }
+        ScoringMove { bit_move: bm, score: Score::BLANK_SCORE }
     }
 }
 

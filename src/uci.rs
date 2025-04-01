@@ -7,16 +7,16 @@ use crate::{bit_move::BitMove, color::Color, eval_position::EvalPosition, fen::{
 #[derive(Error, Debug)]
 enum UciParseError {
     #[error("Couldn't parse uci keyword")]
-    KeywordParseError,
+    Keyword,
 
     #[error("Couldn't parse parameter: {0}")]
-    ParamParseError(&'static str),
+    Param(&'static str),
 
     #[error("Couldn't parse parameter value: {0}")]
-    ParamValueParseError(&'static str),
+    ParamValue(&'static str),
 
     #[error("Couldn't parse uci option")]
-    OptionParseError,
+    Option,
 
     #[error("{0}")]
     MoveStringParseError(#[from] MoveStringParseError),
@@ -77,7 +77,7 @@ impl Uci {
 
         for line in uci_command_rx {
             if let Err(error) = self.parse_line(line) {
-                eprintln!("{}!", error.to_string());
+                eprintln!("{}!", error);
             };
         }
     }
@@ -131,7 +131,7 @@ impl Uci {
                     "setoption" => {
                         self.parse_setoption(&line, &words)
                     }
-                    _ => Err(UciParseError::KeywordParseError),
+                    _ => Err(UciParseError::Keyword),
                 }
             }
             None => Ok(()),
@@ -150,7 +150,7 @@ impl Uci {
                     println!("info string set threads to {num_threads} successfully");
                     Ok(())
                 },
-                Err(_) => Err(UciParseError::ParamValueParseError("Threads")),
+                Err(_) => Err(UciParseError::ParamValue("Threads")),
             }
         } else if line.starts_with("setoption name SyzygyPath value") {
             let path = words.last().unwrap();
@@ -158,7 +158,7 @@ impl Uci {
             println!("info string set syzygy path to {path} successfully");
             Ok(())
         } else {
-            Err(UciParseError::OptionParseError)
+            Err(UciParseError::Option)
         }
     }
     
@@ -190,7 +190,7 @@ impl Uci {
         } else if tricky_index_option.is_some() {
             self.position = FenString::tricky().parse().unwrap();
         } else {
-            return Err(UciParseError::ParamParseError("Neither fen nor startpos found"));
+            return Err(UciParseError::Param("Neither fen nor startpos found"));
         }
 
         if let Some(moves_index) = moves_index_option {
@@ -218,17 +218,17 @@ impl Uci {
     }
     
     fn parse_go(&mut self, words: &[&str]) -> Result<(), UciParseError> {
-        let depth: Option<u16> = Self::parse_parameter_value(words, "depth", UciParseError::ParamValueParseError("depth"))?;
-        let perft_depth: Option<u16> = Self::parse_parameter_value(words, "perft", UciParseError::ParamValueParseError("perft depth"))?;
-        let move_time: Option<u128> = Self::parse_parameter_value(words, "movetime", UciParseError::ParamValueParseError("movetime"))?;
-        let total_time: Option<u128> = Self::parse_parameter_value(&words, match self.position.side {
+        let depth: Option<usize> = Self::parse_parameter_value(words, "depth", UciParseError::ParamValue("depth"))?;
+        let perft_depth: Option<u16> = Self::parse_parameter_value(words, "perft", UciParseError::ParamValue("perft depth"))?;
+        let move_time: Option<u128> = Self::parse_parameter_value(words, "movetime", UciParseError::ParamValue("movetime"))?;
+        let total_time: Option<u128> = Self::parse_parameter_value(words, match self.position.side {
             Color::White => "wtime",
             Color::Black => "btime",
-        }, UciParseError::ParamValueParseError("wtime/btime"))?;
-        let increment_time: Option<u128> = Self::parse_parameter_value(&words, match self.position.side {
+        }, UciParseError::ParamValue("wtime/btime"))?;
+        let increment_time: Option<u128> = Self::parse_parameter_value(words, match self.position.side {
             Color::White => "winc",
             Color::Black => "binc",
-        }, UciParseError::ParamValueParseError("winc/binc"))?;
+        }, UciParseError::ParamValue("winc/binc"))?;
 
         if let Some(perft_depth) = perft_depth {
             Perft::perft_test(&self.position, perft_depth, true);

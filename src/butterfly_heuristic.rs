@@ -1,11 +1,11 @@
 use std::mem;
 
-use crate::{bit_move::BitMove, color::Color, square::Square};
+use crate::{bit_move::BitMove, color::Color, consts::{PLAYER_COUNT, SQUARE_COUNT}, square::Square};
 
 const MAX_SCORE: i16 = 1000;
 
 // Butterfly heuristic table: [side][source][target]
-static mut BUTTERFLY_HEURISTIC: [[[i16; 64]; 64]; 2] = unsafe { mem::zeroed() };
+static mut BUTTERFLY_HEURISTIC: [[[i16; SQUARE_COUNT]; SQUARE_COUNT]; PLAYER_COUNT] = unsafe { mem::zeroed() };
 
 pub struct ButterflyHeuristic;
 

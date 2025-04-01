@@ -2,33 +2,33 @@ use core::fmt;
 
 use thiserror::Error;
 
-use crate::{castling_rights::CastlingRights, color::Color, eval_position::EvalPosition, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
+use crate::{castling_rights::CastlingRights, color::Color, consts::FILE_COUNT, eval_position::EvalPosition, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
 
 #[derive(Error, Debug)]
 pub enum FenParseError {
     #[error("Couldn't find fen pieces")]
-    NoPiecesError,
+    NoPieces,
     
     #[error("Couldn't find fen side")]
-    NoSideError,
+    NoSide,
     
     #[error("Couldn't find fen castling rights")]
-    NoCastlingRightsError,
+    NoCastlingRights,
     
     #[error("Couldn't find fen en-passant square")]
-    NoEnPassantError,
+    NoEnPassant,
     
     #[error("Couldn't parse fen pieces: {0}")]
-    PiecesParseError(String),
+    Pieces(String),
     
     #[error("Couldn't parse fen side: {0}")]
-    SideParseError(String),
+    Side(String),
     
     #[error("Couldn't parse fen castling rights: {0}")]
-    CastlingRightsParseError(char),
+    CastlingRights(char),
     
     #[error("Couldn't parse fen en-passant square: {0}")]
-    EnPassantParseError(#[from] SquareParseError),
+    EnPassant(#[from] SquareParseError),
     
     #[error("Couldn't parse illegal piece: {0}")]
     IllegalPiece(char),
@@ -61,10 +61,10 @@ impl FenString {
         let mut position = Position::default();
         
         let mut fen_iter = self.string.split_whitespace();
-        let pieces_str = fen_iter.next().ok_or(FenParseError::NoPiecesError)?;
-        let side_str = fen_iter.next().ok_or(FenParseError::NoSideError)?;
-        let castling_rights_str = fen_iter.next().ok_or(FenParseError::NoCastlingRightsError)?;
-        let en_passant_sq_str = fen_iter.next().ok_or(FenParseError::NoEnPassantError)?;
+        let pieces_str = fen_iter.next().ok_or(FenParseError::NoPieces)?;
+        let side_str = fen_iter.next().ok_or(FenParseError::NoSide)?;
+        let castling_rights_str = fen_iter.next().ok_or(FenParseError::NoCastlingRights)?;
+        let en_passant_sq_str = fen_iter.next().ok_or(FenParseError::NoEnPassant)?;
         
         Self::set_pieces(&mut position, pieces_str)?;
         Self::set_side(&mut position, side_str)?;
@@ -103,7 +103,7 @@ impl FenString {
         match side_str {
             "w" => position.side = Color::White,
             "b" => position.side = Color::Black,
-            _ => return Err(FenParseError::SideParseError(side_str.to_string())),
+            _ => return Err(FenParseError::Side(side_str.to_string())),
         }
         Ok(())
     }
@@ -116,7 +116,7 @@ impl FenString {
                 'k' => position.castling_rights.0 |= CastlingRights::BK.0,
                 'q' => position.castling_rights.0 |= CastlingRights::BQ.0,
                 '-' => (),
-                _ => return Err(FenParseError::CastlingRightsParseError(char)),
+                _ => return Err(FenParseError::CastlingRights(char)),
             }
         }
         
@@ -174,7 +174,7 @@ impl From<&Position> for FenString {
                 }
             }
 
-            if curr_width == 8 {
+            if curr_width == FILE_COUNT {
                 if curr_empty != 0 {
                     fen_str.push_str(&curr_empty.to_string());
                 }

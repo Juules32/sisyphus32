@@ -1,6 +1,6 @@
 use crate::{bit_move::{BitMove, Move}, bitboard::Bitboard, color::Color, move_flag::MoveFlag, move_list::MoveList, move_masks::MoveMasks, piece::Piece, position::Position, rank::Rank, square::Square};
 
-pub struct MoveGeneration { }
+pub struct MoveGeneration;
 
 impl MoveGeneration {
     #[inline]
@@ -519,7 +519,7 @@ pub trait Filter {
     fn should_add(position: &Position, bit_move: BitMove) -> bool;
 }
 
-pub struct PseudoLegal { }
+pub struct PseudoLegal;
 impl Filter for PseudoLegal {
     #[inline(always)]
     fn should_add(_position: &Position, _bit_move: BitMove) -> bool {

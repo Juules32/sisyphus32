@@ -1,22 +1,22 @@
 use std::mem;
 
-use crate::{bitboard::Bitboard, color::Color, file::File, piece::Piece, rank::Rank, square::Square};
+use crate::{bitboard::Bitboard, color::Color, consts::{FILE_COUNT, SQUARE_COUNT}, file::File, piece::Piece, rank::Rank, square::Square};
 
 const NUM_ROOK_MOVE_PERMUTATIONS: usize = 4096;
 const NUM_BISHOP_MOVE_PERMUTATIONS: usize = 512;
 
-pub static mut WHITE_PAWN_QUIET_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-pub static mut BLACK_PAWN_QUIET_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-pub static mut WHITE_PAWN_CAPTURE_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-pub static mut BLACK_PAWN_CAPTURE_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-pub static mut KNIGHT_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-pub static mut KING_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-pub static mut BISHOP_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-pub static mut ROOK_MASKS: [Bitboard; 64] = unsafe { mem::zeroed() };
-pub static mut ROOK_MOVE_CONFIGURATIONS: [[Bitboard; NUM_ROOK_MOVE_PERMUTATIONS]; 64] = unsafe { mem::zeroed() };
-pub static mut BISHOP_MOVE_CONFIGURATIONS: [[Bitboard; NUM_BISHOP_MOVE_PERMUTATIONS]; 64] = unsafe { mem::zeroed() };
+pub static mut WHITE_PAWN_QUIET_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+pub static mut BLACK_PAWN_QUIET_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+pub static mut WHITE_PAWN_CAPTURE_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+pub static mut BLACK_PAWN_CAPTURE_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+pub static mut KNIGHT_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+pub static mut KING_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+pub static mut BISHOP_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+pub static mut ROOK_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+pub static mut ROOK_MOVE_CONFIGURATIONS: [[Bitboard; NUM_ROOK_MOVE_PERMUTATIONS]; SQUARE_COUNT] = unsafe { mem::zeroed() };
+pub static mut BISHOP_MOVE_CONFIGURATIONS: [[Bitboard; NUM_BISHOP_MOVE_PERMUTATIONS]; SQUARE_COUNT] = unsafe { mem::zeroed() };
 
-pub static BISHOP_RELEVANT_BITS: [u8; 64] = [
+pub static BISHOP_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
     6, 5, 5, 5, 5, 5, 5, 6,
     5, 5, 5, 5, 5, 5, 5, 5,
     5, 5, 7, 7, 7, 7, 5, 5,
@@ -27,7 +27,7 @@ pub static BISHOP_RELEVANT_BITS: [u8; 64] = [
     6, 5, 5, 5, 5, 5, 5, 6
 ];
 
-pub static ROOK_RELEVANT_BITS: [u8; 64] = [
+pub static ROOK_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
     12, 11, 11, 11, 11, 11, 11, 12,
     11, 10, 10, 10, 10, 10, 10, 11,
     11, 10, 10, 10, 10, 10, 10, 11,
@@ -38,7 +38,7 @@ pub static ROOK_RELEVANT_BITS: [u8; 64] = [
     12, 11, 11, 11, 11, 11, 11, 12
 ];
 
-pub static BISHOP_MAGIC_BITBOARDS: [Bitboard; 64] = [
+pub static BISHOP_MAGIC_BITBOARDS: [Bitboard; SQUARE_COUNT] = [
     Bitboard(0x40040844404084),
     Bitboard(0x2004208a004208),
     Bitboard(0x10190041080202),
@@ -105,7 +105,7 @@ pub static BISHOP_MAGIC_BITBOARDS: [Bitboard; 64] = [
     Bitboard(0x4010011029020020),
 ];
 
-pub static ROOK_MAGIC_BITBOARDS: [Bitboard; 64] = [
+pub static ROOK_MAGIC_BITBOARDS: [Bitboard; SQUARE_COUNT] = [
     Bitboard(0x8a80104000800020),
     Bitboard(0x140002000100040),
     Bitboard(0x2801880a0017001),
@@ -172,9 +172,13 @@ pub static ROOK_MAGIC_BITBOARDS: [Bitboard; 64] = [
     Bitboard(0x1004081002402),
 ];
 
-pub struct MoveMasks { }
+pub struct MoveMasks;
 
 impl MoveMasks {
+
+    /// # Safety
+    ///
+    /// This function is safe, as it is called before any other function with ctor.
     pub unsafe fn init_move_masks() {
         for square in Square::ALL_SQUARES {
             WHITE_PAWN_QUIET_MASKS[square] = Self::generate_pawn_quiet_mask(Color::White, square);
@@ -197,13 +201,13 @@ impl MoveMasks {
 
             for occupancy_index in 0..max_bishop_occupancy_index {
                 let occupancy = Self::generate_occupancy_permutation(occupancy_index, num_bishop_relevant_bits, bishop_mask);
-                let magic_index = (occupancy.0.wrapping_mul(BISHOP_MAGIC_BITBOARDS[square].0) >> (64 - num_bishop_relevant_bits)) as usize;
+                let magic_index = (occupancy.0.wrapping_mul(BISHOP_MAGIC_BITBOARDS[square].0) >> (SQUARE_COUNT as u8 - num_bishop_relevant_bits)) as usize;
                 BISHOP_MOVE_CONFIGURATIONS[square][magic_index] = Self::generate_bishop_moves_on_the_fly(square, occupancy);
             }
 
             for occupancy_index in 0..max_rook_occupancy_index {
                 let occupancy = Self::generate_occupancy_permutation(occupancy_index, num_rook_relevant_bits, rook_mask);
-                let magic_index = (occupancy.0.wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> (64 - num_rook_relevant_bits)) as usize;
+                let magic_index = (occupancy.0.wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> (SQUARE_COUNT as u8 - num_rook_relevant_bits)) as usize;
                 ROOK_MOVE_CONFIGURATIONS[square][magic_index] = Self::generate_rook_moves_on_the_fly(square, occupancy);
             }
 
@@ -219,17 +223,17 @@ impl MoveMasks {
 
         match color {
             Color::White => {
-                bb_mask |= square_bb.shift_upwards(8);
+                bb_mask |= square_bb.shift_upwards(FILE_COUNT as u8);
 
                 if square_rank == Rank::R2 {
-                    bb_mask |= square_bb.shift_upwards(16);
+                    bb_mask |= square_bb.shift_upwards(FILE_COUNT as u8 * 2);
                 }
             }
             Color::Black => {
-                bb_mask |= square_bb.shift_downwards(8);
+                bb_mask |= square_bb.shift_downwards(FILE_COUNT as u8);
 
                 if square_rank == Rank::R7 {
-                    bb_mask |= square_bb.shift_downwards(16);
+                    bb_mask |= square_bb.shift_downwards(FILE_COUNT as u8 * 2);
                 }
             }
         };
@@ -299,8 +303,8 @@ impl MoveMasks {
         let square_bb = square.to_bb();
         let square_file = square.file();
 
-        bb_mask |= square_bb.shift_upwards(8);
-        bb_mask |= square_bb.shift_downwards(8);
+        bb_mask |= square_bb.shift_upwards(FILE_COUNT as u8);
+        bb_mask |= square_bb.shift_downwards(FILE_COUNT as u8);
 
         if square_file != File::FA {
             bb_mask |= square_bb.shift_upwards(1);
@@ -361,13 +365,13 @@ impl MoveMasks {
 
         // Down
         for i in 1..=(6_u8.saturating_sub(rank_u8)) {
-            let ray = square_bb.shift_downwards(i * 8);
+            let ray = square_bb.shift_downwards(i * FILE_COUNT as u8);
             bb_mask |= ray;
         }
         
         // Up
         for i in 1..=(rank_u8.saturating_sub(1)) {
-            let ray = square_bb.shift_upwards(i * 8);
+            let ray = square_bb.shift_upwards(i * FILE_COUNT as u8);
             bb_mask |= ray;
         }
 
@@ -434,14 +438,14 @@ impl MoveMasks {
 
         // Down
         for i in 1..=(7_u8.saturating_sub(rank_u8)) {
-            let ray = square_bb.shift_downwards(i * 8);
+            let ray = square_bb.shift_downwards(i * FILE_COUNT as u8);
             bb_mask |= ray;
             if (ray & occupancy).is_not_empty() { break; }
         }
         
         // Up
         for i in 1..=rank_u8 {
-            let ray = square_bb.shift_upwards(i * 8);
+            let ray = square_bb.shift_upwards(i * FILE_COUNT as u8);
             bb_mask |= ray;
             if (ray & occupancy).is_not_empty() { break; }
         }
@@ -519,7 +523,7 @@ impl MoveMasks {
         unsafe {
             let index = (
                 (occupancy.0 & BISHOP_MASKS[square].0).wrapping_mul(BISHOP_MAGIC_BITBOARDS[square].0) >> 
-                (64 - BISHOP_RELEVANT_BITS[square])
+                (SQUARE_COUNT as u8 - BISHOP_RELEVANT_BITS[square])
             ) as usize;
             BISHOP_MOVE_CONFIGURATIONS[square][index]
         }
@@ -544,7 +548,7 @@ impl MoveMasks {
         unsafe {
             let index = ( 
                 (occupancy.0 & ROOK_MASKS[square].0).wrapping_mul(ROOK_MAGIC_BITBOARDS[square].0) >> 
-                (64 - ROOK_RELEVANT_BITS[square])
+                (SQUARE_COUNT as u8 - ROOK_RELEVANT_BITS[square])
             ) as usize;
             ROOK_MOVE_CONFIGURATIONS[square][index]
         }

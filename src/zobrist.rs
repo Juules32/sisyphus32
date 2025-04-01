@@ -1,15 +1,12 @@
 use std::{fmt::Display, mem};
 
-use crate::{castling_rights::CastlingRights, color::Color, piece::Piece, position::Position, rng::RandomNumberGenerator, square::Square};
+use crate::{castling_rights::CastlingRights, color::Color, consts::{FILE_COUNT, PIECE_TYPE_COUNT, SQUARE_COUNT}, piece::Piece, position::Position, rng::RandomNumberGenerator, square::Square};
 
 // Constants for Zobrist hashing
-const FILE_COUNT: usize = 8;
-const PIECE_TYPES: usize = 12;
-const SQUARES: usize = 64;
 const CASTLING_PERMUTATIONS: usize = 16;
 
 // Zobrist keys
-static mut PIECE_KEYS: [[u64; SQUARES]; PIECE_TYPES] = unsafe { mem::zeroed() };
+static mut PIECE_KEYS: [[u64; SQUARE_COUNT]; PIECE_TYPE_COUNT] = unsafe { mem::zeroed() };
 static mut CASTLING_KEYS: [u64; CASTLING_PERMUTATIONS] = unsafe { mem::zeroed() };
 static mut EN_PASSANT_KEYS: [u64; FILE_COUNT] = unsafe { mem::zeroed() };
 static mut SIDE_KEY: u64 = 0;
@@ -18,6 +15,10 @@ static mut SIDE_KEY: u64 = 0;
 pub struct ZobristKey(pub u64);
 
 impl ZobristKey {
+
+    /// # Safety
+    ///
+    /// This function is safe, as it is called before any other function with ctor.
     #[allow(static_mut_refs)]
     pub unsafe fn init_zobrist_keys() {
         let mut rng = RandomNumberGenerator::default();

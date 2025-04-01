@@ -1,7 +1,7 @@
 use shakmaty::{fen::Fen, CastlingMode, Chess};
 use shakmaty_syzygy::Tablebase;
 
-use crate::{bit_move::ScoringMove, fen::FenString, position::Position, search::{DRAW, TABLEBASE_MOVE}, uci::Uci};
+use crate::{bit_move::ScoringMove, fen::FenString, position::Position, score::Score, uci::Uci};
 
 pub struct SyzygyTablebase {
     shakmaty_tablebase: Tablebase<Chess>,
@@ -26,8 +26,8 @@ impl SyzygyTablebase {
         match best_move {
             Some((chess_move, maybe_rounded_dtz)) => {
                 let move_string = chess_move.to_uci(CastlingMode::Standard).to_string();
-                let score = if maybe_rounded_dtz.is_zero() {DRAW} else if maybe_rounded_dtz.is_positive() { TABLEBASE_MOVE } else { -TABLEBASE_MOVE };
-                Some(ScoringMove::new(Uci::parse_move_string(&position, &move_string).ok()?, score))
+                let score = if maybe_rounded_dtz.is_zero() { Score::DRAW_SCORE } else if maybe_rounded_dtz.is_positive() { Score::TABLEBASE_MOVE_SCORE } else { -Score::TABLEBASE_MOVE_SCORE };
+                Some(ScoringMove::new(Uci::parse_move_string(position, &move_string).ok()?, score))
             },
             None => None,
         }
