@@ -8,6 +8,10 @@ use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeur
 
 const AVERAGE_AMOUNT_OF_MOVES: usize = 25;
 const NULL_MOVE_DEPTH_REDUCTION: usize = 3;
+const LAZY_SMP_THREAD_THRESHOLD: usize = 3;
+const LMR_MOVE_INDEX_THRESHOLD: usize = 3;
+const LMR_DEPTH_THRESHOLD: usize = 3;
+const LMR_FACTOR: f32 = 0.75;
 
 #[cfg(not(feature = "unit_late_move_reductions"))]
 const AVERAGE_BRANCHING_FACTOR: usize = 5;
@@ -205,11 +209,11 @@ impl Search {
                 moves_has_legal_move = true;
 
                 #[cfg(feature = "unit_late_move_reductions")]
-                if !is_capture_or_promotion && original_depth >= 3 && move_index >= 3 {
+                if !is_capture_or_promotion && original_depth >= LMR_DEPTH_THRESHOLD && move_index >= LMR_MOVE_INDEX_THRESHOLD {
                     // NOTE: If depth was less than one, the recursive call would underflow depth!
                     // NOTE: Usually, we have to check if the new position is part of the PV, but since
                     // our TT returns exact scores early, this isn't needed.
-                    depth = max(1, original_depth - (0.75 * (move_index as f32).ln() * (original_depth as f32).ln()) as usize);
+                    depth = max(1, original_depth - (LMR_FACTOR * (move_index as f32).ln() * (original_depth as f32).ln()) as usize);
                 }
 
                 scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, depth - 1).score;
@@ -487,7 +491,7 @@ impl Search {
             self.go_iterative_deepening(position, depth);
 
             #[cfg(feature = "unit_lazy_smp")]
-            if self.threadpool.current_num_threads() >= 3 {
+            if self.threadpool.current_num_threads() >= LAZY_SMP_THREAD_THRESHOLD {
                 self.go_lazy_smp(position, depth);
             } else {
                 self.go_iterative_deepening(position, depth);
@@ -554,7 +558,7 @@ impl Default for Search {
             zobrist_key_history: Vec::new(),
             threadpool: Arc::new(
                 rayon::ThreadPoolBuilder::new()
-                    .num_threads(rayon::current_num_threads()) // NOTE: Defaults to the number of CPU cores
+                    .num_threads(1)
                     .build()
                     .unwrap()
             ),

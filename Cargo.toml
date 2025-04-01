@@ -48,7 +48,7 @@ move_flag_eval =            ["tapered_eval", "unit_move_flag_eval"]
 syzygy_tablebase =          ["move_flag_eval", "unit_syzygy_tablebase"]
 lazy_smp =                  ["syzygy_tablebase", "unit_lazy_smp"]
 lockless_hashing =          ["lazy_smp", "unit_lockless_hashing"]
-default = ["syzygy_tablebase"] # Should only be one feature from the list of playable versions
+default = ["lockless_hashing"] # Should only be one feature from the list of playable versions
 
 #  /*------------------------------------------------------------*\ 
 #        Base features (should not be set as default feature)
