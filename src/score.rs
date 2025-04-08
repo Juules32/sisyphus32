@@ -6,15 +6,14 @@ use crate::consts::MAX_DEPTH;
 pub struct Score(i16);
 
 impl Score {
-    pub const CHECKMATE_SCORE: Score = Score(10000);
-    pub const TABLEBASE_MOVE_SCORE: Score = Score(20000);
-    pub const DRAW_SCORE: Score = Score(0);
+    pub const CHECKMATE: Score = Score(10000);
+    pub const DRAW: Score = Score(0);
     pub const ZERO: Score = Score(0);
-    pub const BLANK_SCORE: Score = Score(0);
-    pub const STALEMATE_SCORE: Score = Score(0);
-    pub const REPETITION_SCORE: Score = Score(0);
-    pub const START_ALPHA_SCORE: Score = Score(-32001);
-    pub const START_BETA_SCORE: Score = Score(32001);
+    pub const BLANK: Score = Score(0);
+    pub const STALEMATE: Score = Score(0);
+    pub const REPETITION: Score = Score(0);
+    pub const START_ALPHA: Score = Score(-32001);
+    pub const START_BETA: Score = Score(32001);
     
     #[inline(always)]
     pub fn abs(self) -> Score {
@@ -28,17 +27,12 @@ impl Score {
 
     #[inline(always)]
     pub fn checkmate_minus_depth(depth: usize) -> Score {
-        Score::from(Self::CHECKMATE_SCORE.0 - depth as i16)
+        Score::from(Self::CHECKMATE.0 - depth as i16)
     }
     
     #[inline(always)]
     pub fn is_checkmate(self) -> bool {
         self.abs() >= Score::checkmate_minus_depth(MAX_DEPTH)
-    }
-
-    #[inline(always)]
-    pub fn is_tablebase_move(self) -> bool {
-        self.abs() == Self::TABLEBASE_MOVE_SCORE
     }
 }
 
