@@ -226,12 +226,20 @@ impl Search {
                 }
 
                 scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, depth - 1).score;
+                if scoring_move.score.is_checkmate() {
+                    scoring_move.score -= scoring_move.score.signum();
+                }
+
                 if scoring_move.score > best_move.score {
                     let mut should_update_best_move = true;
 
                     #[cfg(feature = "unit_late_move_reductions")]
                     if depth != original_depth && scoring_move.score >= beta {
                         scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, original_depth - 1).score;
+                        if scoring_move.score.is_checkmate() {
+                            scoring_move.score -= scoring_move.score.signum();
+                        }
+                        
                         if scoring_move.score <= best_move.score {
                             should_update_best_move = false;
                         }
@@ -265,7 +273,7 @@ impl Search {
 
         if !moves_has_legal_move {
             if in_check {
-                best_move = ScoringMove::blank(-Score::CHECKMATE + position.ply as i16);
+                best_move = ScoringMove::blank(-Score::CHECKMATE);
             } else {
                 best_move = ScoringMove::blank(Score::STALEMATE);
             }
@@ -441,7 +449,8 @@ impl Search {
 
     fn score_or_mate_string(score: Score, found_mate: bool) -> String {
         if found_mate {
-            format!("mate {}", ((f32::from(Score::CHECKMATE - score.abs())) / 2.0).ceil() as i16 * i16::from(score.signum()))
+            // format!("mate {}", ((f32::from(Score::CHECKMATE - score.abs())) / 2.0).ceil() as i16 * i16::from(score.signum()))
+            format!("cp {score}")
         } else {
             format!("cp {score}")
         }

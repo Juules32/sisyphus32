@@ -26,11 +26,9 @@ impl SyzygyTablebase {
         match best_move {
             Some((chess_move, maybe_rounded_dtz)) => {
                 let move_string = chess_move.to_uci(CastlingMode::Standard).to_string();
-                let mut score = if maybe_rounded_dtz.is_zero() { Score::DRAW } else if maybe_rounded_dtz.is_positive() { -Score::CHECKMATE } else { Score::CHECKMATE };
-
-                // NOTE: The conditions under which the score should be negated are unclear
-    
                 
+                // NOTE: The conditions under which the score should be negated are unclear
+                let mut score = if maybe_rounded_dtz.is_zero() { Score::DRAW } else if maybe_rounded_dtz.is_positive() { -Score::CHECKMATE } else { Score::CHECKMATE };
                 score += maybe_rounded_dtz.ignore_rounding().0 as i16;
                 Some(ScoringMove::new(Uci::parse_move_string(position, &move_string).ok()?, score))
             },
