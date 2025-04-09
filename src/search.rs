@@ -10,6 +10,8 @@ const AVERAGE_AMOUNT_OF_MOVES: usize = 25;
 const NULL_MOVE_DEPTH_REDUCTION: usize = 3;
 const LAZY_SMP_THREAD_THRESHOLD: usize = 3;
 const LMR_MOVE_INDEX_THRESHOLD: usize = 3;
+const TABLEBASE_SEARCH_THRESHOLD: u128 = 100;
+const EXTENDED_TABLEBASE_SEARCH_THRESHOLD: u128 = 500;
 const LMR_DEPTH_THRESHOLD: usize = 3;
 const LMR_FACTOR: f32 = 0.75;
 
@@ -84,15 +86,6 @@ impl Search {
 
     #[inline(always)]
     fn quiescence(&mut self, position: &Position, alpha: Score, beta: Score) -> ScoringMove {
-        #[cfg(feature = "unit_syzygy_tablebase")]
-        if let Some(tablebase) = self.tablebase.as_ref() {
-            if position.ao.count_bits() <= tablebase.get_max_pieces() {
-                if let Some(scoring_move) = tablebase.best_move(position) {
-                    return scoring_move;
-                }
-            }
-        }
-        
         if self.should_stop_calculating() {
             return ScoringMove::blank(Score::BLANK);
         }
@@ -132,15 +125,6 @@ impl Search {
     #[inline(always)]
     fn negamax_best_move(&mut self, position: &Position, alpha: Score, beta: Score, mut depth: usize) -> ScoringMove {
         self.nodes += 1;
-
-        #[cfg(feature = "unit_syzygy_tablebase")]
-        if let Some(tablebase) = self.tablebase.as_ref() {
-            if position.ao.count_bits() <= tablebase.get_max_pieces() {
-                if let Some(scoring_move) = tablebase.best_move(position) {
-                    return scoring_move;
-                }
-            }
-        }
 
         if self.zobrist_key_history.contains(&position.zobrist_key) {
             return ScoringMove::blank(Score::REPETITION);
@@ -456,9 +440,57 @@ impl Search {
         }
     }
 
+    
     #[inline(always)]
     pub fn go(&mut self, position: &Position, depth: Option<usize>, stop_time: Option<u128>) {
         self.reset(stop_time);
+
+        #[cfg(feature = "unit_syzygy_tablebase")]
+        if let Some(tablebase) = self.tablebase.as_ref() {
+            if position.ao.count_bits() <= tablebase.get_max_pieces() + 1 {
+                println!("info string searching for tablebase move");
+                let mut best_move_option = None;
+
+                if position.ao.count_bits() <= tablebase.get_max_pieces() && stop_time.is_none_or(|time| time >= TABLEBASE_SEARCH_THRESHOLD) {
+                    if let Some(tablebase_move) = tablebase.best_move(position) {
+                        best_move_option = Some(tablebase_move);
+                    }
+                } else if position.ao.count_bits() == tablebase.get_max_pieces() + 1 && stop_time.is_none_or(|time| time >= EXTENDED_TABLEBASE_SEARCH_THRESHOLD) {
+                    let mut moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
+                    for scoring_move in moves.iter_mut() {
+                        let mut new_position = position.clone();
+                        if new_position.apply_pseudo_legal_move(scoring_move.bit_move) {
+                            if let Some(tablebase_move) = tablebase.best_move(&new_position) {
+                                if tablebase_move.score.is_negative() {
+                                    best_move_option = Some(ScoringMove::new(scoring_move.bit_move, Score::CHECKMATE));
+                                    break;
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if let Some(best_move) = best_move_option {
+                    println!(
+                        "info score {} time {}",
+                        Self::score_or_mate_string(best_move.score, true),
+                        self.timer.get_time_passed_millis(),
+                    );
+                    println!("bestmove {}", best_move.bit_move.to_uci_string());
+                    return;
+                } else {
+                    println!("info string error finding tablebase move");
+                }
+            }
+        }
+
+        self.go_search(position, depth, stop_time);
+    }
+
+    #[inline(always)]
+    pub fn go_search(&mut self, position: &Position, depth: Option<usize>, stop_time: Option<u128>) {
         let stop_flag = self.stop_calculating.clone();
         print!("info string searching for best move");
 
