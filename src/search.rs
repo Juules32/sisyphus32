@@ -345,14 +345,7 @@ impl Search {
             best_scoring_move = new_best_move;
             let found_mate = new_best_move.score.is_checkmate();
 
-            println!(
-                "info depth {} score {} nodes {} time {} pv {}",
-                current_depth,
-                Self::score_or_mate_string(best_scoring_move.score, found_mate),
-                self.nodes,
-                self.timer.get_time_passed_millis(),
-                self.get_pv(position, current_depth, best_scoring_move.bit_move),
-            );
+            self.print_info_depth(position, new_best_move, current_depth, found_mate);
 
             if self.should_end_search_early() {
                 println!("info string ended iterative search early based on time prediction");
@@ -362,6 +355,18 @@ impl Search {
 
         self.modify_best_scoring_move_if_empty(position, &mut best_scoring_move);
         println!("bestmove {}", best_scoring_move.bit_move.to_uci_string());
+    }
+
+    #[inline(always)]
+    fn print_info_depth(&self, position: &Position, scoring_move: ScoringMove, current_depth: usize, found_mate: bool) {
+        println!(
+            "info depth {:<2} score {:<10} nodes {:<10} time {:<6} pv {}",
+            current_depth,
+            Self::score_or_mate_string(scoring_move.score, found_mate),
+            self.nodes,
+            self.timer.get_time_passed_millis(),
+            self.get_pv(position, current_depth, scoring_move.bit_move),
+        );
     }
 
     #[inline(always)]
@@ -400,14 +405,7 @@ impl Search {
 
                     let found_mate = new_best_move.score.is_checkmate();
         
-                    println!(
-                        "info depth {} score {} nodes {} time {} pv {}",
-                        current_depth,
-                        Self::score_or_mate_string(new_best_move.score, found_mate),
-                        self_ref.nodes,
-                        self_ref.timer.get_time_passed_millis(),
-                        self_ref.get_pv(position, current_depth, new_best_move.bit_move),
-                    );
+                    self_ref.print_info_depth(position, new_best_move, current_depth, found_mate);
 
                     if self_ref.should_end_search_early() {
                         self_ref.begin_stop_calculating();
