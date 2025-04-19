@@ -3,7 +3,7 @@
 
 use std::{env, process::Command};
 
-use sisyphus32::features::VERSIONS;
+use sisyphus32::features::FEATURES;
 
 const PROFILE_NAME: &str = "release-all";
 const PACKAGE_NAME: &str = "sisyphus32";
@@ -11,7 +11,7 @@ const PACKAGE_NAME: &str = "sisyphus32";
 fn main() {
     env::set_var("RUSTFLAGS", "-Awarnings");
 
-    for feature_name in VERSIONS {
+    for feature_name in FEATURES {
         // Build feature binary
         let status = Command::new("cargo")
             .args(["build", &format!("--profile={PROFILE_NAME}"), "--no-default-features", "--features", feature_name, "--bin", PACKAGE_NAME])
