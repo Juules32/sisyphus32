@@ -34,6 +34,16 @@ impl Score {
     pub fn is_checkmate(self) -> bool {
         self.abs() >= Score::checkmate_minus_depth(MAX_DEPTH)
     }
+
+    #[inline(always)]
+    pub fn is_positive(self) -> bool {
+        self.0 > 0
+    }
+
+    #[inline(always)]
+    pub fn is_negative(self) -> bool {
+        self.0 < 0
+    }
 }
 
 impl From<i16> for Score {
