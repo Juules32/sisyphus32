@@ -51,8 +51,8 @@ impl EvalMove {
             #[cfg(feature = "unit_capture_with_check_eval")]
             {
                 let enemy_king_bb = match position.side {
-                    Color::White => position.bbs[Piece::BK],
-                    Color::Black => position.bbs[Piece::WK],
+                    Color::White => position.bitboards[Piece::BK],
+                    Color::Black => position.bitboards[Piece::WK],
                 };
                 if (MoveMasks::get_piece_mask(piece, target, position.all_occupancy) & enemy_king_bb).is_not_empty() {
                     score += 300
