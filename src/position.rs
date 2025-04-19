@@ -7,10 +7,10 @@ pub struct Position {
     #[cfg(feature = "unit_bb_array")]
     pub pps: [Option<Piece>; SQUARE_COUNT],
 
-    pub bbs: [Bitboard; PIECE_TYPE_COUNT],
-    pub wo: Bitboard,
-    pub bo: Bitboard,
-    pub ao: Bitboard,
+    pub bitboards: [Bitboard; PIECE_TYPE_COUNT],
+    pub white_occupancy: Bitboard,
+    pub black_occupancy: Bitboard,
+    pub all_occupancy: Bitboard,
     pub side: Color,
     pub en_passant_option: Option<Square>,
     pub castling_rights: CastlingRights,
@@ -24,23 +24,23 @@ pub struct Position {
 impl Position {
     #[inline(always)]
     pub fn merge_occupancies(&mut self) {
-        self.ao = self.wo | self.bo;
+        self.all_occupancy = self.white_occupancy | self.black_occupancy;
     }
 
     #[inline(always)]
     pub fn populate_occupancies(&mut self) {
-        self.wo = self.bbs[Piece::WP]
-                | self.bbs[Piece::WN]
-                | self.bbs[Piece::WB]
-                | self.bbs[Piece::WR]
-                | self.bbs[Piece::WQ]
-                | self.bbs[Piece::WK];
-        self.bo = self.bbs[Piece::BP]
-                | self.bbs[Piece::BN]
-                | self.bbs[Piece::BB]
-                | self.bbs[Piece::BR]
-                | self.bbs[Piece::BQ]
-                | self.bbs[Piece::BK];
+        self.white_occupancy = self.bitboards[Piece::WP]
+                | self.bitboards[Piece::WN]
+                | self.bitboards[Piece::WB]
+                | self.bitboards[Piece::WR]
+                | self.bitboards[Piece::WQ]
+                | self.bitboards[Piece::WK];
+        self.black_occupancy = self.bitboards[Piece::BP]
+                | self.bitboards[Piece::BN]
+                | self.bitboards[Piece::BB]
+                | self.bitboards[Piece::BR]
+                | self.bitboards[Piece::BQ]
+                | self.bitboards[Piece::BK];
 
         self.merge_occupancies();
     }
@@ -59,7 +59,7 @@ impl Position {
                 Some(Piece::WR), Some(Piece::WN), Some(Piece::WB), Some(Piece::WQ), Some(Piece::WK), Some(Piece::WB), Some(Piece::WN), Some(Piece::WR),
             ],
 
-            bbs: [
+            bitboards: [
                 Bitboard::WP,
                 Bitboard::WN,
                 Bitboard::WB,
@@ -73,9 +73,9 @@ impl Position {
                 Bitboard::BQ,
                 Bitboard::BK,
             ],
-            wo: Bitboard::WHITE_STARTING_PIECES,
-            bo: Bitboard::BLACK_STARTING_PIECES,
-            ao: Bitboard::ALL_STARTING_PIECES,
+            white_occupancy: Bitboard::WHITE_STARTING_PIECES,
+            black_occupancy: Bitboard::BLACK_STARTING_PIECES,
+            all_occupancy: Bitboard::ALL_STARTING_PIECES,
             side: Color::White,
             en_passant_option: None,
             castling_rights: CastlingRights::DEFAULT,
@@ -96,7 +96,7 @@ impl Position {
 
     #[inline(always)]
     pub fn set_piece(&mut self, piece: Piece, sq: Square) {
-        self.bbs[piece].set_sq(sq);
+        self.bitboards[piece].set_sq(sq);
 
         #[cfg(feature = "unit_bb_array")]
         { self.pps[sq] = Some(piece); }
@@ -106,7 +106,7 @@ impl Position {
 
     #[inline(always)]
     pub fn remove_piece(&mut self, piece: Piece, sq: Square) {
-        self.bbs[piece].pop_sq(sq);
+        self.bitboards[piece].pop_sq(sq);
 
         #[cfg(feature = "unit_bb_array")]
         { self.pps[sq] = None; }
@@ -138,8 +138,8 @@ impl Position {
         debug_assert_eq!(capture_option, self.get_piece_option(target));
         debug_assert_eq!(piece.color(), self.side);
         debug_assert!(capture_option.is_none_or(|capture| capture.color() == self.side.opposite()));
-        debug_assert!(self.bbs[piece].is_set_sq(source));
-        debug_assert!(capture_option.is_none_or(|capture| self.bbs[capture].is_set_sq(target)));
+        debug_assert!(self.bitboards[piece].is_set_sq(source));
+        debug_assert!(capture_option.is_none_or(|capture| self.bitboards[capture].is_set_sq(target)));
 
         // Modify the zobrist key before making the move
         self.zobrist_mods();
@@ -375,18 +375,18 @@ impl Position {
             Color::Black => &Piece::WHITE_PIECES,
         };
 
-        (MoveMasks::get_pawn_capture_mask(defending_side, square) & self.bbs[enemy_pawn]).is_not_empty() ||
-        (MoveMasks::get_knight_mask(square) & self.bbs[enemy_knight]).is_not_empty() ||
-        (MoveMasks::get_bishop_mask(square, self.ao) & self.bbs[enemy_bishop]).is_not_empty() ||
-        (MoveMasks::get_rook_mask(square, self.ao) & self.bbs[enemy_rook]).is_not_empty() ||
-        (MoveMasks::get_queen_mask(square, self.ao) & self.bbs[enemy_queen]).is_not_empty() ||
-        (MoveMasks::get_king_mask(square) & self.bbs[enemy_king]).is_not_empty()
+        (MoveMasks::get_pawn_capture_mask(defending_side, square) & self.bitboards[enemy_pawn]).is_not_empty() ||
+        (MoveMasks::get_knight_mask(square) & self.bitboards[enemy_knight]).is_not_empty() ||
+        (MoveMasks::get_bishop_mask(square, self.all_occupancy) & self.bitboards[enemy_bishop]).is_not_empty() ||
+        (MoveMasks::get_rook_mask(square, self.all_occupancy) & self.bitboards[enemy_rook]).is_not_empty() ||
+        (MoveMasks::get_queen_mask(square, self.all_occupancy) & self.bitboards[enemy_queen]).is_not_empty() ||
+        (MoveMasks::get_king_mask(square) & self.bitboards[enemy_king]).is_not_empty()
     }
 
     pub fn in_check(&self, defending_side: Color) -> bool {
         match defending_side {
-            Color::White => self.is_square_attacked(defending_side, Square::from(self.bbs[Piece::WK])),
-            Color::Black => self.is_square_attacked(defending_side, Square::from(self.bbs[Piece::BK])),
+            Color::White => self.is_square_attacked(defending_side, Square::from(self.bitboards[Piece::WK])),
+            Color::Black => self.is_square_attacked(defending_side, Square::from(self.bitboards[Piece::BK])),
         }
     }
 
@@ -394,7 +394,7 @@ impl Position {
     #[cfg(feature = "unit_bb")]
     pub fn get_piece(&self, square: Square) -> Piece {
         for piece in Piece::ALL_PIECES {
-            if self.bbs[piece].is_set_sq(square) {
+            if self.bitboards[piece].is_set_sq(square) {
                 return piece;
             }
         }
@@ -405,7 +405,7 @@ impl Position {
     #[cfg(feature = "unit_bb")]
     pub fn get_piece_option(&self, square: Square) -> Option<Piece> {
         for piece in Piece::ALL_PIECES {
-            if self.bbs[piece].is_set_sq(square) {
+            if self.bitboards[piece].is_set_sq(square) {
                 return Some(piece);
             }
         }
@@ -431,10 +431,10 @@ impl Default for Position {
             #[cfg(feature = "unit_bb_array")]
             pps: [None; SQUARE_COUNT],
 
-            bbs: [Bitboard::EMPTY; PIECE_TYPE_COUNT],
-            wo: Bitboard::EMPTY,
-            bo: Bitboard::EMPTY,
-            ao: Bitboard::EMPTY,
+            bitboards: [Bitboard::EMPTY; PIECE_TYPE_COUNT],
+            white_occupancy: Bitboard::EMPTY,
+            black_occupancy: Bitboard::EMPTY,
+            all_occupancy: Bitboard::EMPTY,
             side: Color::White,
             en_passant_option: None,
             castling_rights: CastlingRights::NONE,
