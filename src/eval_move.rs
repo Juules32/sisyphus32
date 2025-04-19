@@ -54,7 +54,7 @@ impl EvalMove {
                     Color::White => position.bbs[Piece::BK],
                     Color::Black => position.bbs[Piece::WK],
                 };
-                if (MoveMasks::get_piece_mask(piece, target, position.ao) & enemy_king_bb).is_not_empty() {
+                if (MoveMasks::get_piece_mask(piece, target, position.all_occupancy) & enemy_king_bb).is_not_empty() {
                     score += 300
                 }
             }

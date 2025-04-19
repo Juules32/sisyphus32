@@ -367,7 +367,7 @@ impl EvalPosition {
         let mut game_phase_score = 0;
 
         for piece in Piece::ALL_PIECES_EXPECT_PAWNS_AND_KINGS {
-            game_phase_score += position.bbs[piece].count_bits() as i16 * OPENING_PIECE_SCORES[piece];
+            game_phase_score += position.bitboards[piece].count_bits() as i16 * OPENING_PIECE_SCORES[piece];
         }
 
         game_phase_score
@@ -415,7 +415,7 @@ impl EvalPosition {
         let mut score = Score::ZERO;
         let mut opening_score = 0;
         let mut endgame_score = 0;
-        let mut ao_copy = position.ao;
+        let mut ao_copy = position.all_occupancy;
 
         #[cfg(feature = "unit_tapered_eval")]
         let game_phase = Self::get_game_phase(position.game_phase_score);
@@ -454,52 +454,52 @@ impl EvalPosition {
 
             #[cfg(feature = "unit_positional_eval")]
             if piece == Piece::WP || piece == Piece::BP {
-                if (position.bbs[piece] & Self::get_file_mask(sq)).count_bits() > 1 {
+                if (position.bitboards[piece] & Self::get_file_mask(sq)).count_bits() > 1 {
                     piece_score += DOUBLED_PAWN_SCORE;
                 }
                 
-                if (position.bbs[piece] & Self::get_isolated_mask(sq)).is_empty() {
+                if (position.bitboards[piece] & Self::get_isolated_mask(sq)).is_empty() {
                     piece_score += ISOLATED_PAWN_SCORE;
                 }
 
                 if piece == Piece::WP {
-                    if (position.bbs[Piece::BP] & Self::get_white_passed_mask(sq)).is_empty() {
+                    if (position.bitboards[Piece::BP] & Self::get_white_passed_mask(sq)).is_empty() {
                         piece_score += PASSED_PAWN_SCORES[7 - sq.rank() as usize];
                     }
                 } else {
-                    if (position.bbs[Piece::WP] & Self::get_black_passed_mask(sq)).is_empty() {
+                    if (position.bitboards[Piece::WP] & Self::get_black_passed_mask(sq)).is_empty() {
                         piece_score += PASSED_PAWN_SCORES[sq.rank() as usize];
                     }
                 }
             } else if piece == Piece::WR || piece == Piece::BR {
                 if piece == Piece::WR {
-                    if (position.bbs[Piece::WP] & Self::get_file_mask(sq)).is_empty() {
+                    if (position.bitboards[Piece::WP] & Self::get_file_mask(sq)).is_empty() {
                         piece_score += SEMI_OPEN_FILE_SCORE;
                     }
                 } else {
-                    if (position.bbs[Piece::BP] & Self::get_file_mask(sq)).is_empty() {
+                    if (position.bitboards[Piece::BP] & Self::get_file_mask(sq)).is_empty() {
                         piece_score += SEMI_OPEN_FILE_SCORE;
                     }
                 }
 
-                if ((position.bbs[Piece::WP] | position.bbs[Piece::BP]) & Self::get_file_mask(sq)).is_empty() {
+                if ((position.bitboards[Piece::WP] | position.bitboards[Piece::BP]) & Self::get_file_mask(sq)).is_empty() {
                     piece_score += OPEN_FILE_SCORE;
                 }
             } else if piece == Piece::WK || piece == Piece::BK {
                 if piece == Piece::WK {
-                    if (position.bbs[Piece::WP] & Self::get_file_mask(sq)).is_empty() {
+                    if (position.bitboards[Piece::WP] & Self::get_file_mask(sq)).is_empty() {
                         piece_score += KING_ON_SEMI_OPEN_FILE_SCORE;
                     }
 
-                    piece_score += (position.wo & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
-                    piece_score -= (position.bo & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
+                    piece_score += (position.white_occupancy & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
+                    piece_score -= (position.black_occupancy & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
                 } else {
-                    if (position.bbs[Piece::BP] & Self::get_file_mask(sq)).is_empty() {
+                    if (position.bitboards[Piece::BP] & Self::get_file_mask(sq)).is_empty() {
                         piece_score += KING_ON_SEMI_OPEN_FILE_SCORE;
                     }
 
-                    piece_score += (position.bo & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
-                    piece_score -= (position.wo & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
+                    piece_score += (position.black_occupancy & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
+                    piece_score -= (position.white_occupancy & MoveMasks::get_king_mask(sq)).count_bits() as i16 * KING_ADJACENCY_SCORE;
                 }
             }
 
@@ -511,22 +511,22 @@ impl EvalPosition {
 
         #[cfg(feature = "unit_pseudo_pins")]
         {
-            let wk_square = Square::from(position.bbs[Piece::WK]);
-            let bk_square = Square::from(position.bbs[Piece::BK]);
+            let wk_square = Square::from(position.bitboards[Piece::WK]);
+            let bk_square = Square::from(position.bitboards[Piece::BK]);
 
-            score -= (MoveMasks::get_bishop_mask_empty_occupancy(wk_square) & position.bbs[Piece::BB]).count_bits() as i16 * PSEUDO_PIN_SCORE;
-            score -= (MoveMasks::get_rook_mask_empty_occupancy(wk_square) & position.bbs[Piece::BR]).count_bits() as i16 * PSEUDO_PIN_SCORE;
-            score -= (MoveMasks::get_queen_mask_empty_occupancy(wk_square) & position.bbs[Piece::BQ]).count_bits() as i16 * PSEUDO_PIN_SCORE;
-            score += (MoveMasks::get_bishop_mask_empty_occupancy(bk_square) & position.bbs[Piece::WB]).count_bits() as i16 * PSEUDO_PIN_SCORE;
-            score += (MoveMasks::get_rook_mask_empty_occupancy(bk_square) & position.bbs[Piece::WR]).count_bits() as i16 * PSEUDO_PIN_SCORE;
-            score += (MoveMasks::get_queen_mask_empty_occupancy(bk_square) & position.bbs[Piece::WQ]).count_bits() as i16 * PSEUDO_PIN_SCORE;
+            score -= (MoveMasks::get_bishop_mask_empty_occupancy(wk_square) & position.bitboards[Piece::BB]).count_bits() as i16 * PSEUDO_PIN_SCORE;
+            score -= (MoveMasks::get_rook_mask_empty_occupancy(wk_square) & position.bitboards[Piece::BR]).count_bits() as i16 * PSEUDO_PIN_SCORE;
+            score -= (MoveMasks::get_queen_mask_empty_occupancy(wk_square) & position.bitboards[Piece::BQ]).count_bits() as i16 * PSEUDO_PIN_SCORE;
+            score += (MoveMasks::get_bishop_mask_empty_occupancy(bk_square) & position.bitboards[Piece::WB]).count_bits() as i16 * PSEUDO_PIN_SCORE;
+            score += (MoveMasks::get_rook_mask_empty_occupancy(bk_square) & position.bitboards[Piece::WR]).count_bits() as i16 * PSEUDO_PIN_SCORE;
+            score += (MoveMasks::get_queen_mask_empty_occupancy(bk_square) & position.bitboards[Piece::WQ]).count_bits() as i16 * PSEUDO_PIN_SCORE;
         }
 
-        if position.bbs[Piece::WB].count_bits() >= 2 {
+        if position.bitboards[Piece::WB].count_bits() >= 2 {
             score += BISHOP_PAIR_SCORE;
         }
 
-        if position.bbs[Piece::BB].count_bits() >= 2 {
+        if position.bitboards[Piece::BB].count_bits() >= 2 {
             score -= BISHOP_PAIR_SCORE;
         }
 

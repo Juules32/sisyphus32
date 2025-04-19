@@ -445,15 +445,15 @@ impl Search {
 
         #[cfg(feature = "unit_syzygy_tablebase")]
         if let Some(tablebase) = self.tablebase.as_ref() {
-            if position.ao.count_bits() <= tablebase.get_max_pieces() + 1 {
+            if position.all_occupancy.count_bits() <= tablebase.get_max_pieces() + 1 {
                 println!("info string searching for tablebase move");
                 let mut best_move_option = None;
 
-                if position.ao.count_bits() <= tablebase.get_max_pieces() && stop_time.is_none_or(|time| time >= TABLEBASE_SEARCH_THRESHOLD) {
+                if position.all_occupancy.count_bits() <= tablebase.get_max_pieces() && stop_time.is_none_or(|time| time >= TABLEBASE_SEARCH_THRESHOLD) {
                     if let Some(tablebase_move) = tablebase.best_move(position) {
                         best_move_option = Some(tablebase_move);
                     }
-                } else if position.ao.count_bits() == tablebase.get_max_pieces() + 1 && stop_time.is_none_or(|time| time >= EXTENDED_TABLEBASE_SEARCH_THRESHOLD) {
+                } else if position.all_occupancy.count_bits() == tablebase.get_max_pieces() + 1 && stop_time.is_none_or(|time| time >= EXTENDED_TABLEBASE_SEARCH_THRESHOLD) {
                     let mut moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
                     for scoring_move in moves.iter_mut() {
                         let mut new_position = position.clone();
