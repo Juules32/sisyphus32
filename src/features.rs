@@ -1,4 +1,4 @@
-pub const VERSIONS: &[&str] = &[
+pub const FEATURES: &[&str] = &[
     "random",
     "minimax",
     "negamax",
