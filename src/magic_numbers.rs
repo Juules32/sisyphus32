@@ -4,16 +4,16 @@ const MAX_SLIDER_MOVE_PERMUTATIONS: usize = 4096;
 const NUM_CANDIDATES: usize = 10_000_000;
 
 #[derive(Default)]
-struct MagicBitboardGenerator {
+struct MagicNumberGenerator {
     rng: RandomNumberGenerator
 }
 
-impl MagicBitboardGenerator {
-    fn generate_magic_bitboard_candidate(&mut self) -> Bitboard {
-        Bitboard(self.rng.generate_sparse_u64())
+impl MagicNumberGenerator {
+    fn generate_magic_number_candidate(&mut self) -> u64 {
+        self.rng.generate_sparse_u64()
     }
 
-    pub fn generate_magic_bitboard(&mut self, square: Square, num_relevant_bits: u8, is_bishop: bool) -> Bitboard {
+    pub fn generate_magic_number(&mut self, square: Square, num_relevant_bits: u8, is_bishop: bool) -> u64 {
         let mut occupancies = [Bitboard::EMPTY; MAX_SLIDER_MOVE_PERMUTATIONS];
         let mut moves = [Bitboard::EMPTY; MAX_SLIDER_MOVE_PERMUTATIONS];
         let mask = unsafe { if is_bishop { move_masks::BISHOP_MASKS[square] } else { move_masks::ROOK_MASKS[square] } };
@@ -30,10 +30,10 @@ impl MagicBitboardGenerator {
         }
 
         for _ in 0..NUM_CANDIDATES {
-            let magic_bitboard_candidate = self.generate_magic_bitboard_candidate();
+            let magic_number_candidate = self.generate_magic_number_candidate();
             
-            // Skip inappropriate magic bitboards
-            if Bitboard(mask.0.wrapping_mul(magic_bitboard_candidate.0) & 0xFF00000000000000).count_bits() < 6 {
+            // Skip inappropriate magic numbers
+            if Bitboard(mask.0.wrapping_mul(magic_number_candidate) & 0xFF00000000000000).count_bits() < 6 {
                 continue;
             }
 
@@ -43,7 +43,7 @@ impl MagicBitboardGenerator {
             for i in 0..max_occupancy_index {
                 if failed { break };
 
-                let magic_index = ((occupancies[i].0.wrapping_mul(magic_bitboard_candidate.0)) >> (SQUARE_COUNT as u8 - num_relevant_bits)) as usize;
+                let magic_index = ((occupancies[i].0.wrapping_mul(magic_number_candidate)) >> (SQUARE_COUNT as u8 - num_relevant_bits)) as usize;
 
                 if used_moves[magic_index].is_empty() {
                     used_moves[magic_index] = moves[i];
@@ -53,24 +53,24 @@ impl MagicBitboardGenerator {
             }
 
             if !failed {
-                return magic_bitboard_candidate;
+                return magic_number_candidate;
             }
         }
 
-        panic!("No magic bitboard could be found");
+        panic!("No magic number could be found");
     }
 
-    // Prints magic bitboards which can be copied and used for move generation
-    pub fn print_magic_bitboards(&mut self) {
+    // Prints magic numbers which can be copied and used for move generation
+    pub fn print_magic_numbers(&mut self) {
 
-        println!("\nRook magic bitboards:");
+        println!("\nRook magic numbers:");
         for square in Square::ALL_SQUARES {
-            println!("0x{:x},", self.generate_magic_bitboard(square, move_masks::ROOK_RELEVANT_BITS[square], false).0);
+            println!("0x{:x},", self.generate_magic_number(square, move_masks::ROOK_RELEVANT_BITS[square], false));
         }
         
-        println!("\nBishop magic bitboards:");
+        println!("\nBishop magic numbers:");
         for square in Square::ALL_SQUARES {
-            println!("0x{:x},", self.generate_magic_bitboard(square, move_masks::BISHOP_RELEVANT_BITS[square], true).0);
+            println!("0x{:x},", self.generate_magic_number(square, move_masks::BISHOP_RELEVANT_BITS[square], true));
         }
     }
 }

@@ -27,7 +27,7 @@ pub const FEATURES: &[&str] = &[
 
 pub const BASE_FEATURES: &[&str] = &[
     "base_basic",
-    "base_magic_bitboard",
+    "base_magic_number",
     "base_clone",
     "base_parallel",
     "base_array",

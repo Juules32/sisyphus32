@@ -1,24 +1,16 @@
-use std::{mem, ops::BitXor};
+#![allow(static_mut_refs)]
+
+use std::ops::BitXor;
 
 #[cfg(not(feature = "unit_lockless_hashing"))]
 use std::sync::{Mutex, MutexGuard};
 
 use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
 
-#[cfg(all(feature = "unit_tt", not(feature = "unit_small_tt")))]
-const TT_SIZE: usize = 100_000;
-
-#[cfg(any(feature = "unit_small_tt", not(feature = "unit_tt")))]
-const TT_SIZE: usize = 1_000;
-
-#[cfg(feature = "unit_lockless_hashing")]
-static mut TRANSPOSITION_TABLE: [TTSlot; TT_SIZE] = unsafe { mem::zeroed() };
+const TT_INIT_SIZE: usize = 100_000;
 
 #[cfg(all(not(feature = "unit_lockless_hashing"), feature = "unit_tt_two_tier"))]
-static mut TRANSPOSITION_TABLE: [Mutex<TTSlot>; TT_SIZE] = [const { Mutex::new(TTSlot { main_entry: None, secondary_entry: None }) }; TT_SIZE];
-
-#[cfg(all(not(feature = "unit_lockless_hashing"), not(feature = "unit_tt_two_tier")))]
-static mut TRANSPOSITION_TABLE: [Mutex<TTSlot>; TT_SIZE] = [const { Mutex::new(TTSlot { entry: None }) }; TT_SIZE];
+static mut TRANSPOSITION_TABLE: Vec<Mutex<TTSlot>> = vec![];
 
 pub struct TranspositionTable;
 
@@ -31,6 +23,16 @@ struct TTSlot {
 #[cfg(not(feature = "unit_tt_two_tier"))]
 struct TTSlot {
     entry: Option<TTEntry>,
+}
+
+#[cfg(feature = "unit_tt_two_tier")]
+impl TTSlot {
+    const EMPTY: TTSlot = TTSlot { main_entry: None, secondary_entry: None };
+}
+
+#[cfg(not(feature = "unit_tt_two_tier"))]
+impl TTSlot {
+    const EMPTY: TTSlot = TTSlot { entry: None };
 }
 
 #[derive(Clone, Copy)]
@@ -62,16 +64,27 @@ pub enum TTNodeType {
 }
 
 impl TranspositionTable {
+    pub unsafe fn init() {
+        Self::resize(TT_INIT_SIZE);
+    }
+
     #[inline(always)]
     pub fn reset() {
-        unsafe { TRANSPOSITION_TABLE = mem::zeroed() };
+        unsafe { TRANSPOSITION_TABLE = (0..TRANSPOSITION_TABLE.len()).map(|_| Mutex::new(TTSlot::EMPTY)).collect(); }
+    }
+    
+    #[inline(always)]
+    pub fn resize(size: usize) {
+        unsafe { TRANSPOSITION_TABLE = (0..size).map(|_| Mutex::new(TTSlot::EMPTY)).collect(); }
     }
 
     #[inline(always)]
     #[cfg(not(feature = "unit_lockless_hashing"))]
     fn get_slot(zobrist_key: ZobristKey) -> MutexGuard<'static, TTSlot> {
-        let index = (zobrist_key.0 as usize) % TT_SIZE;
-        unsafe { TRANSPOSITION_TABLE[index].lock().unwrap() }
+        unsafe {
+            let index = (zobrist_key.0 as usize) % TRANSPOSITION_TABLE.len();
+            TRANSPOSITION_TABLE[index].lock().unwrap()
+        }
     }
 
     #[cfg(feature = "unit_lockless_hashing")]
