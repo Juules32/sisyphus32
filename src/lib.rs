@@ -23,7 +23,7 @@ pub mod uci;
 pub mod fen;
 pub mod zobrist;
 pub mod file;
-pub mod magic_bitboards;
+pub mod magic_numbers;
 pub mod move_masks;
 pub mod move_list;
 pub mod piece;
