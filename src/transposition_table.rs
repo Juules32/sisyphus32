@@ -7,7 +7,7 @@ use std::sync::{Mutex, MutexGuard};
 
 use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
 
-const TT_INIT_BYTES_SIZE: usize = 16_000_000; // 16MB
+const TT_INIT_BYTES_SIZE: usize = 16; // 16MB
 
 #[cfg(not(feature = "unit_lockless_hashing"))]
 static mut TRANSPOSITION_TABLE: Vec<Mutex<TTSlot>> = vec![];
@@ -68,7 +68,7 @@ pub enum TTNodeType {
 
 impl TranspositionTable {
     pub unsafe fn init() {
-        Self::resize(TT_INIT_BYTES_SIZE / size_of::<TTSlot>());
+        Self::resize(TT_INIT_BYTES_SIZE);
     }
 }
 
@@ -84,10 +84,9 @@ impl TranspositionTable {
     }
 
     #[inline(always)]
-    pub fn resize(size: usize) {
-        Self::reset();
+    pub fn resize(size_mb: usize) {
         unsafe {
-            TRANSPOSITION_TABLE = (0..size)
+            TRANSPOSITION_TABLE = (0..size_mb * 1_000_000 / size_of::<TTSlot>())
                 .map(|_| Mutex::new(TTSlot::EMPTY))
                 .collect();
         }
@@ -124,10 +123,9 @@ impl TranspositionTable {
     }
 
     #[inline(always)]
-    pub fn resize(size: usize) {
-        Self::reset();
+    pub fn resize(size_mb: usize) {
         unsafe {
-            TRANSPOSITION_TABLE = (0..size)
+            TRANSPOSITION_TABLE = (0..size_mb * 1_000_000 / size_of::<TTSlot>())
                 .map(|_| TTSlot::EMPTY)
                 .collect();
         }
