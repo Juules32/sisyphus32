@@ -4,6 +4,14 @@ use thiserror::Error;
 
 use crate::{bit_move::BitMove, color::Color, eval_position::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}, transposition_table::TranspositionTable};
 
+const DEFAULT_TT_SIZE_MB: usize = 16;
+const MIN_TT_SIZE_MB: usize = 1;
+const MAX_TT_SIZE_MB: usize = 10_000;
+
+const DEFAULT_NUM_THREADS: usize = 1;
+const MIN_NUM_THREADS: usize = 0;
+const MAX_NUM_THREADS: usize = 1024;
+
 #[derive(Error, Debug)]
 enum UciParseError {
     #[error("Couldn't parse uci keyword")]
@@ -14,6 +22,9 @@ enum UciParseError {
 
     #[error("Couldn't parse parameter value: {0}")]
     ParamValue(&'static str),
+
+    #[error("Parameter out of range for: {0}")]
+    ParamRange(&'static str),
 
     #[error("Couldn't parse uci option")]
     Option,
@@ -56,7 +67,7 @@ impl Default for Uci {
 
 impl Uci {
     pub fn init(&mut self) {
-        Self::print_uci_info();
+        println!("info string listening on stdin for uci commands");
 
         let (uci_command_tx, uci_command_rx) = mpsc::channel();
 
@@ -86,7 +97,8 @@ impl Uci {
         println!("id name Sisyphus32");
         println!("id author Juules32");
         println!();
-        println!("option name Threads type spin default 1 min 1 max 1024");
+        println!("option name Threads type spin default {DEFAULT_NUM_THREADS} min {MIN_NUM_THREADS} max {MAX_NUM_THREADS}");
+        println!("option name Hash type spin default {DEFAULT_TT_SIZE_MB} min {MIN_TT_SIZE_MB} max {MAX_TT_SIZE_MB}");
         println!("option name Clear Hash type button");
         println!("option name SyzygyPath type string default tables/syzygy");
         println!("uciok");
@@ -144,18 +156,27 @@ impl Uci {
             println!("info string transposition table reset successfully");
             Ok(())
         } else if line.starts_with("setoption name Threads value") {
-            match words.last().unwrap().parse() {
-                Ok(num_threads) => {
-                    self.search.set_threadpool(num_threads);
-                    println!("info string set threads to {num_threads} successfully");
-                    Ok(())
-                },
-                Err(_) => Err(UciParseError::ParamValue("Threads")),
+            let num_threads = words.last().unwrap().parse().map_err(|_| UciParseError::ParamValue("Threads"))?;
+            if num_threads < MIN_NUM_THREADS || num_threads > MAX_NUM_THREADS {
+                return Err(UciParseError::ParamRange("Threads"));
             }
+            
+            self.search.set_threadpool(num_threads);
+            println!("info string set threads to {num_threads} successfully");
+            Ok(())
         } else if line.starts_with("setoption name SyzygyPath value") {
             let path = words.last().unwrap();
             self.search.set_tablebase(path);
             println!("info string set syzygy path to {path} successfully");
+            Ok(())
+        } else if line.starts_with("setoption name Hash value") {
+            let tt_size_mb = words.last().unwrap().parse().map_err(|_| UciParseError::ParamValue("Transposition Table Size (MB)"))?;
+            if tt_size_mb < MIN_TT_SIZE_MB || tt_size_mb > MAX_TT_SIZE_MB {
+                return Err(UciParseError::ParamRange("Transposition Table Size (MB)"));
+            }
+            
+            TranspositionTable::resize(tt_size_mb);
+            println!("info string set transposition table size to {tt_size_mb}MB successfully");
             Ok(())
         } else {
             Err(UciParseError::Option)
