@@ -1,4 +1,4 @@
-use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
+use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc, Arc}, thread};
 
 use thiserror::Error;
 
@@ -193,8 +193,15 @@ impl Uci {
             return Err(UciParseError::Param("Neither fen nor startpos found"));
         }
 
+        self.search.zobrist_key_history = Vec::new();
+        self.search.uci_move_history = Arc::new(Vec::new());
         if let Some(moves_index) = moves_index_option {
-            for move_string in line[moves_index + 5..].split_whitespace() {
+            let move_strings: Vec<String> = line[moves_index + 5..]
+                .split_whitespace()
+                .map(|move_string| move_string.to_string())
+                .collect();
+
+            for move_string in &move_strings {
                 let bit_move = Self::parse_move_string(&self.position, move_string)?;
                 self.position.make_move(bit_move);
                 if bit_move.is_pp_capture_or_castle(&self.position) {
@@ -203,7 +210,10 @@ impl Uci {
                     self.search.zobrist_key_history.push(self.position.zobrist_key);
                 }
             }
+
+            self.search.uci_move_history = Arc::new(move_strings);
         }
+
         Ok(())
     }
 
