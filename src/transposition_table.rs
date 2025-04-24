@@ -7,7 +7,7 @@ use std::sync::{Mutex, MutexGuard};
 
 use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
 
-const TT_INIT_SIZE: usize = 100_000;
+const TT_INIT_BYTES_SIZE: usize = 16_000_000; // 16MB
 
 #[cfg(not(feature = "unit_lockless_hashing"))]
 static mut TRANSPOSITION_TABLE: Vec<Mutex<TTSlot>> = vec![];
@@ -66,10 +66,9 @@ pub enum TTNodeType {
     UpperBound, // α fail aka. Fail-low
 }
 
-
 impl TranspositionTable {
     pub unsafe fn init() {
-        Self::resize(TT_INIT_SIZE);
+        Self::resize(TT_INIT_BYTES_SIZE / size_of::<TTSlot>());
     }
 }
 
@@ -77,12 +76,21 @@ impl TranspositionTable {
 impl TranspositionTable {
     #[inline(always)]
     pub fn reset() {
-        unsafe { TRANSPOSITION_TABLE = (0..TRANSPOSITION_TABLE.len()).map(|_| Mutex::new(TTSlot::EMPTY)).collect(); }
+        unsafe { 
+            TRANSPOSITION_TABLE = (0..TRANSPOSITION_TABLE.len())
+                .map(|_| Mutex::new(TTSlot::EMPTY))
+                .collect();
+        }
     }
 
     #[inline(always)]
     pub fn resize(size: usize) {
-        unsafe { TRANSPOSITION_TABLE = (0..size).map(|_| Mutex::new(TTSlot::EMPTY)).collect(); }
+        Self::reset();
+        unsafe {
+            TRANSPOSITION_TABLE = (0..size)
+                .map(|_| Mutex::new(TTSlot::EMPTY))
+                .collect();
+        }
     }
 
     #[inline(always)]
@@ -108,12 +116,21 @@ impl TranspositionTable {
 impl TranspositionTable {
     #[inline(always)]
     pub fn reset() {
-        unsafe { TRANSPOSITION_TABLE = (0..TRANSPOSITION_TABLE.len()).map(|_| TTSlot::EMPTY).collect(); }
+        unsafe {
+            TRANSPOSITION_TABLE = (0..TRANSPOSITION_TABLE.len())
+                .map(|_| TTSlot::EMPTY)
+                .collect();
+        }
     }
 
     #[inline(always)]
     pub fn resize(size: usize) {
-        unsafe { TRANSPOSITION_TABLE = (0..size).map(|_| TTSlot::EMPTY).collect(); }
+        Self::reset();
+        unsafe {
+            TRANSPOSITION_TABLE = (0..size)
+                .map(|_| TTSlot::EMPTY)
+                .collect();
+        }
     }
 
     #[inline(always)]
