@@ -9,8 +9,11 @@ use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
 
 const TT_INIT_SIZE: usize = 100_000;
 
-#[cfg(all(not(feature = "unit_lockless_hashing"), feature = "unit_tt_two_tier"))]
+#[cfg(not(feature = "unit_lockless_hashing"))]
 static mut TRANSPOSITION_TABLE: Vec<Mutex<TTSlot>> = vec![];
+
+#[cfg(feature = "unit_lockless_hashing")]
+static mut TRANSPOSITION_TABLE: Vec<TTSlot> = vec![];
 
 pub struct TranspositionTable;
 
@@ -63,23 +66,26 @@ pub enum TTNodeType {
     UpperBound, // α fail aka. Fail-low
 }
 
+
 impl TranspositionTable {
     pub unsafe fn init() {
         Self::resize(TT_INIT_SIZE);
     }
+}
 
+#[cfg(not(feature = "unit_lockless_hashing"))]
+impl TranspositionTable {
     #[inline(always)]
     pub fn reset() {
         unsafe { TRANSPOSITION_TABLE = (0..TRANSPOSITION_TABLE.len()).map(|_| Mutex::new(TTSlot::EMPTY)).collect(); }
     }
-    
+
     #[inline(always)]
     pub fn resize(size: usize) {
         unsafe { TRANSPOSITION_TABLE = (0..size).map(|_| Mutex::new(TTSlot::EMPTY)).collect(); }
     }
 
     #[inline(always)]
-    #[cfg(not(feature = "unit_lockless_hashing"))]
     fn get_slot(zobrist_key: ZobristKey) -> MutexGuard<'static, TTSlot> {
         unsafe {
             let index = (zobrist_key.0 as usize) % TRANSPOSITION_TABLE.len();
@@ -87,33 +93,43 @@ impl TranspositionTable {
         }
     }
 
-    #[cfg(feature = "unit_lockless_hashing")]
     #[inline(always)]
-    fn get_slot(zobrist_key: ZobristKey) -> &'static mut TTSlot {
-        let index = (zobrist_key.0 as usize) % TT_SIZE;
-        unsafe { &mut TRANSPOSITION_TABLE[index] }
-    }
-
-    #[inline(always)]
-    #[cfg(not(feature = "unit_lockless_hashing"))]
     fn verify_key(zobrist_key: ZobristKey, entry: &TTEntry) -> bool {
         entry.zobrist_key == zobrist_key
     }
 
     #[inline(always)]
-    #[cfg(feature = "unit_lockless_hashing")]
+    fn store_entry(entry: &mut Option<TTEntry>, zobrist_key: ZobristKey, data: TTData) {
+        *entry = Some(TTEntry::new(zobrist_key, data));
+    }
+}
+
+#[cfg(feature = "unit_lockless_hashing")]
+impl TranspositionTable {
+    #[inline(always)]
+    pub fn reset() {
+        unsafe { TRANSPOSITION_TABLE = (0..TRANSPOSITION_TABLE.len()).map(|_| TTSlot::EMPTY).collect(); }
+    }
+
+    #[inline(always)]
+    pub fn resize(size: usize) {
+        unsafe { TRANSPOSITION_TABLE = (0..size).map(|_| TTSlot::EMPTY).collect(); }
+    }
+
+    #[inline(always)]
+    fn get_slot(zobrist_key: ZobristKey) -> &'static mut TTSlot {
+        unsafe {
+            let index = (zobrist_key.0 as usize) % TRANSPOSITION_TABLE.len();
+            &mut TRANSPOSITION_TABLE[index]
+        }
+    }
+
+    #[inline(always)]
     fn verify_key(zobrist_key: ZobristKey, entry: &TTEntry) -> bool {
         entry.zobrist_key ^ entry.data == zobrist_key
     }
 
     #[inline(always)]
-    #[cfg(not(feature = "unit_lockless_hashing"))]
-    fn store_entry(entry: &mut Option<TTEntry>, zobrist_key: ZobristKey, data: TTData) {
-        *entry = Some(TTEntry::new(zobrist_key, data));
-    }
-
-    #[inline(always)]
-    #[cfg(feature = "unit_lockless_hashing")]
     fn store_entry(entry: &mut Option<TTEntry>, zobrist_key: ZobristKey, data: TTData) {
         *entry = Some(TTEntry::new(zobrist_key ^ data, data));
     }
