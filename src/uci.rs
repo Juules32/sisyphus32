@@ -1,8 +1,8 @@
-use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc, Arc}, thread};
+use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
 use thiserror::Error;
 
-use crate::{bit_move::BitMove, color::Color, eval_position::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}, transposition_table::TranspositionTable};
+use crate::{bit_move::BitMove, color::Color, eval_position::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, move_list::MoveList, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}, transposition_table::TranspositionTable};
 
 const DEFAULT_TT_SIZE_MB: usize = 16;
 const MIN_TT_SIZE_MB: usize = 1;
@@ -215,15 +215,16 @@ impl Uci {
         }
 
         self.search.zobrist_key_history = Vec::new();
-        self.search.uci_move_history = Arc::new(Vec::new());
         if let Some(moves_index) = moves_index_option {
             let move_strings: Vec<String> = line[moves_index + 5..]
                 .split_whitespace()
                 .map(|move_string| move_string.to_string())
                 .collect();
 
+            let legal_moves = MoveGeneration::generate_moves::<BitMove, Legal>(&self.position);
+
             for move_string in &move_strings {
-                let bit_move = Self::parse_move_string(&self.position, move_string)?;
+                let bit_move = Self::parse_move_string(&legal_moves, move_string)?;
                 self.position.make_move(bit_move);
                 if bit_move.is_pp_capture_or_castle(&self.position) {
                     self.search.zobrist_key_history = Vec::new();
@@ -231,8 +232,6 @@ impl Uci {
                     self.search.zobrist_key_history.push(self.position.zobrist_key);
                 }
             }
-
-            self.search.uci_move_history = Arc::new(move_strings);
         }
 
         Ok(())
@@ -277,7 +276,7 @@ impl Uci {
     }
     
     #[inline(always)]
-    pub fn parse_move_string(position: &Position, move_string: &str) -> Result<BitMove, MoveStringParseError> {
+    pub fn parse_move_string(move_list: &MoveList<BitMove>, move_string: &str) -> Result<BitMove, MoveStringParseError> {
         if move_string.len() == 4 || move_string.len() == 5 {
             let source = Square::try_from(&move_string[0..2])?;
             let target = Square::try_from(&move_string[2..4])?;
@@ -287,7 +286,7 @@ impl Uci {
                 None
             };
 
-            for m in MoveGeneration::generate_moves::<BitMove, Legal>(position) {
+            for &m in move_list.iter() {
                 let s = m.source();
                 let t = m.target();
                 let f = m.flag_option();
