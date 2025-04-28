@@ -30,7 +30,6 @@ pub struct Search {
     stop_calculating: Arc<AtomicBool>,
     threadpool: Arc<ThreadPool>,
     tablebase: Arc<Option<SyzygyTablebase>>,
-    pub uci_move_history: Arc<Vec<String>>,
 }
 
 impl Search {
@@ -604,7 +603,6 @@ impl Default for Search {
                     .unwrap()
             ),
             tablebase: Arc::new(SyzygyTablebase::from_directory("tables/syzygy").ok()),
-            uci_move_history: Arc::new(Vec::new()),
         }
     }
 }
