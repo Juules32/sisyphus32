@@ -221,9 +221,8 @@ impl Uci {
                 .map(|move_string| move_string.to_string())
                 .collect();
 
-            let legal_moves = MoveGeneration::generate_moves::<BitMove, Legal>(&self.position);
-
             for move_string in &move_strings {
+                let legal_moves = MoveGeneration::generate_moves::<BitMove, Legal>(&self.position);
                 let bit_move = Self::parse_move_string(&legal_moves, move_string)?;
                 self.position.make_move(bit_move);
                 if bit_move.is_pp_capture_or_castle(&self.position) {
