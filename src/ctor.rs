@@ -1,10 +1,11 @@
 use ctor::ctor;
 
-use crate::{eval_position::EvalPosition, move_masks::MoveMasks, zobrist::ZobristKey};
+use crate::{eval_position::EvalPosition, move_masks::MoveMasks, transposition_table::TranspositionTable, zobrist::ZobristKey};
 
 #[ctor]
 unsafe fn init() {
     EvalPosition::init_positional_masks();
     MoveMasks::init_move_masks();
     ZobristKey::init_zobrist_keys();
+    TranspositionTable::init();
 }

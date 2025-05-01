@@ -11,7 +11,9 @@ ctor = "0.4.0"
 shakmaty-syzygy = "0.25.3"
 shakmaty = "0.27.3"
 thiserror = "2.0.12"
-
+ureq = { version = "3.0.11", features = ["json"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
 [profile.release-with-debug]
 inherits = "release"
 debug = true
@@ -46,7 +48,8 @@ capture_with_check_eval =   ["tapered_eval", "unit_capture_with_check_eval"]
 pseudo_pins =               ["tapered_eval", "unit_pseudo_pins"]
 move_flag_eval =            ["tapered_eval", "unit_move_flag_eval"]
 syzygy_tablebase =          ["move_flag_eval", "unit_syzygy_tablebase"]
-lazy_smp =                  ["syzygy_tablebase", "unit_lazy_smp"]
+opening_book =              ["syzygy_tablebase", "unit_opening_book"]
+lazy_smp =                  ["opening_book", "unit_lazy_smp"]
 lockless_hashing =          ["lazy_smp", "unit_lockless_hashing"]
 default = ["lockless_hashing"] # Should only be one feature from the list of playable versions
 
@@ -54,7 +57,7 @@ default = ["lockless_hashing"] # Should only be one feature from the list of pla
 #        Base features (should not be set as default feature)
 #  \*------------------------------------------------------------*/
 base_basic =                ["unit_bb",       "unit_revert_undo"                                           ]
-base_magic_bitboard =       ["unit_bb",       "unit_revert_undo",  "unit_magic_bbs"                        ]
+base_magic_number =         ["unit_bb",       "unit_revert_undo",  "unit_magic_bbs"                        ]
 base_clone =                ["unit_bb",       "unit_revert_clone", "unit_magic_bbs"                        ]
 base_parallel =             ["unit_bb",       "unit_revert_clone", "unit_magic_bbs", "unit_parallel_perft" ]
 base_array =                ["unit_bb_array", "unit_revert_clone", "unit_magic_bbs"                        ]
@@ -120,3 +123,5 @@ unit_lockless_hashing = []
 unit_pseudo_pins = []
 
 unit_syzygy_tablebase = []
+
+unit_opening_book = []

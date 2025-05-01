@@ -10,7 +10,6 @@ compile_error!("feature \"unit_revert_clone\" and feature \"unit_revert_undo\" c
 #[cfg(all(feature = "unit_minimax", feature = "unit_negamax"))]
 compile_error!("feature \"unit_minimax\" and feature \"unit_negamax\" cannot be enabled at the same time!");
 
-// NOTE: The following pairs of features are too unpractical to be used together:
 #[cfg(all(feature = "unit_revert_undo", feature = "unit_bb_array"))]
 compile_error!("feature \"unit_revert_undo\" and feature \"unit_bb_array\" cannot be enabled at the same time!");
 
@@ -23,7 +22,7 @@ pub mod uci;
 pub mod fen;
 pub mod zobrist;
 pub mod file;
-pub mod magic_bitboards;
+pub mod magic_numbers;
 pub mod move_masks;
 pub mod move_list;
 pub mod piece;
@@ -45,4 +44,5 @@ pub mod features;
 pub mod syzygy;
 pub mod consts;
 pub mod score;
+pub mod opening_book;
 mod ctor;

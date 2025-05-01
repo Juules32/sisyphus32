@@ -1,7 +1,7 @@
 use shakmaty::{fen::Fen, CastlingMode, Chess};
 use shakmaty_syzygy::Tablebase;
 
-use crate::{bit_move::ScoringMove, fen::FenString, position::Position, score::Score, uci::Uci};
+use crate::{bit_move::{BitMove, ScoringMove}, fen::FenString, move_generation::{Legal, MoveGeneration}, position::Position, score::Score, uci::Uci};
 
 pub struct SyzygyTablebase {
     shakmaty_tablebase: Tablebase<Chess>,
@@ -30,7 +30,7 @@ impl SyzygyTablebase {
                 // NOTE: The conditions under which the score should be negated are unclear
                 let mut score = if maybe_rounded_dtz.is_zero() { Score::DRAW } else if maybe_rounded_dtz.is_positive() { -Score::CHECKMATE } else { Score::CHECKMATE };
                 score += maybe_rounded_dtz.ignore_rounding().0 as i16;
-                Some(ScoringMove::new(Uci::parse_move_string(position, &move_string).ok()?, score))
+                Some(ScoringMove::new(Uci::parse_move_string(&MoveGeneration::generate_moves::<BitMove, Legal>(position), &move_string).ok()?, score))
             },
             None => None,
         }
