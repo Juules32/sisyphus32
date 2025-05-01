@@ -21,8 +21,9 @@ struct LichessMoveStats {
     black: u32,
 }
 
-const NUM_GAMES_THRESHOLD: u32 = 30;
-const WINRATE_THRESHOLD: f32 = 0.45;
+const NUM_GAMES_THRESHOLD: u32 = 1_000;
+const WINRATE_THRESHOLD: f32 = 0.35;
+const OPENING_BOOK_TIMEOUT_SECS: u64 = 1;
 
 impl LichessMoveStats {
     #[inline(always)]
@@ -51,15 +52,15 @@ impl LichessMoveStats {
     }
 }
 
-pub struct LichessOpeningBook {
-    agent: Agent   
+pub struct OpeningBook {
+    agent: Agent
 }
 
-impl Default for LichessOpeningBook {
+impl Default for OpeningBook {
     fn default() -> Self {
         Self {
             agent: Agent::config_builder()
-                .timeout_global(Some(Duration::from_secs(3)))
+                .timeout_global(Some(Duration::from_secs(OPENING_BOOK_TIMEOUT_SECS)))
                 .build()
                 .into()
         }
@@ -83,12 +84,13 @@ impl LichessOpeningStats {
     }
 }
 
-impl LichessOpeningBook {
+impl OpeningBook {
     #[inline(always)]
     fn get_lichess_opening_stats(&self, position: &Position) -> Result<LichessOpeningStats, Error> {
         let fen_string = FenString::from(position);
         let fen_with_replaced_spaces = fen_string.to_string().replace(" ", "_");
-        let resp = self.agent.get(&format!("https://explorer.lichess.ovh/masters?fen={fen_with_replaced_spaces}")).call();
+        let uri = &format!("https://explorer.lichess.ovh/masters?fen={fen_with_replaced_spaces}");
+        let resp = self.agent.get(uri).call();
         let body = resp?.body_mut().read_to_string()?;
         let lichess_opening_stats: LichessOpeningStats = serde_json::from_str(&body)
             .map_err(|err| ureq::Error::Json(err))?;

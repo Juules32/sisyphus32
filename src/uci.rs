@@ -113,7 +113,10 @@ impl Uci {
                         Self::print_uci_info();
                         Ok(())
                     },
-                    "ucinewgame" => self.parse_position("position startpos"),
+                    "ucinewgame" => {
+                        self.search.in_opening = true;
+                        self.parse_position("position startpos")
+                    },
                     "isready" => {
                         println!("readyok");
                         Ok(())

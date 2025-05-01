@@ -4,7 +4,7 @@ use rand::Rng;
 use rayon::ThreadPool;
 use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, consts::{MAX_DEPTH, SQUARE_COUNT}, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, position::Position, score::Score, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
+use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, consts::{MAX_DEPTH, SQUARE_COUNT}, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, opening_book::OpeningBook, position::Position, score::Score, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
 const AVERAGE_AMOUNT_OF_MOVES: usize = 25;
 const NULL_MOVE_DEPTH_REDUCTION: usize = 3;
@@ -12,6 +12,7 @@ const LAZY_SMP_THREAD_THRESHOLD: usize = 3;
 const LMR_MOVE_INDEX_THRESHOLD: usize = 3;
 const TABLEBASE_SEARCH_THRESHOLD: u128 = 100;
 const EXTENDED_TABLEBASE_SEARCH_THRESHOLD: u128 = 500;
+const OPENING_BOOK_SEARCH_THRESHOLD: u128 = 1000;
 const LMR_DEPTH_THRESHOLD: usize = 3;
 const LMR_FACTOR: f32 = 0.75;
 
@@ -29,6 +30,8 @@ pub struct Search {
     stop_time: Arc<Option<u128>>,
     stop_calculating: Arc<AtomicBool>,
     threadpool: Arc<ThreadPool>,
+    pub in_opening: bool,
+    opening_book: Arc<OpeningBook>,
     tablebase: Arc<Option<SyzygyTablebase>>,
 }
 
@@ -443,6 +446,20 @@ impl Search {
     pub fn go(&mut self, position: &Position, depth: Option<usize>, stop_time: Option<u128>) {
         self.reset(stop_time);
 
+        #[cfg(feature = "unit_opening_book")]
+        if self.in_opening && stop_time.is_none_or(|time| time >= OPENING_BOOK_SEARCH_THRESHOLD) {
+            println!("info string searching for opening move");
+            if let Some(opening_move) = self.opening_book.get_move(position) {
+                println!("info time {}", self.timer.get_time_passed_millis());
+                println!("bestmove {}", opening_move.to_uci_string());
+                return;
+            } else {
+                println!("info string error finding opening move");
+                println!("info string disabling opening book");
+                self.in_opening = false;
+            }
+        }
+
         #[cfg(feature = "unit_syzygy_tablebase")]
         if let Some(tablebase) = self.tablebase.as_ref() {
             if position.all_occupancy.count_bits() <= tablebase.get_max_pieces() + 1 {
@@ -602,6 +619,8 @@ impl Default for Search {
                     .build()
                     .unwrap()
             ),
+            in_opening: true,
+            opening_book: Arc::new(OpeningBook::default()),
             tablebase: Arc::new(SyzygyTablebase::from_directory("tables/syzygy").ok()),
         }
     }

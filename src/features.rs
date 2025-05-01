@@ -23,6 +23,7 @@ pub const FEATURES: &[&str] = &[
     "lazy_smp",
     "lockless_hashing",
     "syzygy_tablebase",
+    "opening_book",
 ];
 
 pub const BASE_FEATURES: &[&str] = &[

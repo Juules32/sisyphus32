@@ -7,9 +7,7 @@ pub struct Timer {
 
 impl Timer {
     pub fn new() -> Self {
-        Timer {
-            start_time: Instant::now(),
-        }
+        Timer::default()
     }
 
     pub fn get_time_passed_millis(&self) -> u128 {
@@ -23,6 +21,6 @@ impl Timer {
 
 impl Default for Timer {
     fn default() -> Self {
-        Self::new()
+        Self { start_time: Instant::now() }
     }
 }
