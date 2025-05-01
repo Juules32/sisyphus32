@@ -27,3 +27,4 @@ Sisyphus32 is UCI-compliant, implementing the following UCI commands:
 - `setoption name Clear Hash`
 - `setoption name Threads value <n>`
 - `setoption name SyzygyPath value <path>`
+- `setoption name Hash value <size_mb>`

@@ -1,4 +1,4 @@
-pub const VERSIONS: &[&str] = &[
+pub const FEATURES: &[&str] = &[
     "random",
     "minimax",
     "negamax",
@@ -23,11 +23,12 @@ pub const VERSIONS: &[&str] = &[
     "lazy_smp",
     "lockless_hashing",
     "syzygy_tablebase",
+    "opening_book",
 ];
 
 pub const BASE_FEATURES: &[&str] = &[
     "base_basic",
-    "base_magic_bitboard",
+    "base_magic_number",
     "base_clone",
     "base_parallel",
     "base_array",
