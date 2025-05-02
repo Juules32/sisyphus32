@@ -5,18 +5,18 @@ use crate::{bitboard::Bitboard, color::Color, consts::{FILE_COUNT, SQUARE_COUNT}
 const NUM_ROOK_MOVE_PERMUTATIONS: usize = 4096;
 const NUM_BISHOP_MOVE_PERMUTATIONS: usize = 512;
 
-pub static mut WHITE_PAWN_QUIET_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
-pub static mut BLACK_PAWN_QUIET_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
-pub static mut WHITE_PAWN_CAPTURE_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
-pub static mut BLACK_PAWN_CAPTURE_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
-pub static mut KNIGHT_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
-pub static mut KING_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
-pub static mut BISHOP_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
-pub static mut ROOK_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
-pub static mut ROOK_MOVE_CONFIGURATIONS: [[Bitboard; NUM_ROOK_MOVE_PERMUTATIONS]; SQUARE_COUNT] = unsafe { mem::zeroed() };
-pub static mut BISHOP_MOVE_CONFIGURATIONS: [[Bitboard; NUM_BISHOP_MOVE_PERMUTATIONS]; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut WHITE_PAWN_QUIET_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut BLACK_PAWN_QUIET_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut WHITE_PAWN_CAPTURE_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut BLACK_PAWN_CAPTURE_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut KNIGHT_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut KING_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut BISHOP_BASE_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut ROOK_BASE_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut ROOK_MASKS: [[Bitboard; NUM_ROOK_MOVE_PERMUTATIONS]; SQUARE_COUNT] = unsafe { mem::zeroed() };
+static mut BISHOP_MASKS: [[Bitboard; NUM_BISHOP_MOVE_PERMUTATIONS]; SQUARE_COUNT] = unsafe { mem::zeroed() };
 
-pub static BISHOP_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
+static BISHOP_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
     6, 5, 5, 5, 5, 5, 5, 6,
     5, 5, 5, 5, 5, 5, 5, 5,
     5, 5, 7, 7, 7, 7, 5, 5,
@@ -27,7 +27,7 @@ pub static BISHOP_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
     6, 5, 5, 5, 5, 5, 5, 6
 ];
 
-pub static ROOK_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
+static ROOK_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
     12, 11, 11, 11, 11, 11, 11, 12,
     11, 10, 10, 10, 10, 10, 10, 11,
     11, 10, 10, 10, 10, 10, 10, 11,
@@ -38,7 +38,7 @@ pub static ROOK_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
     12, 11, 11, 11, 11, 11, 11, 12
 ];
 
-pub static BISHOP_MAGIC_NUMBERS: [u64; SQUARE_COUNT] = [
+static BISHOP_MAGIC_NUMBERS: [u64; SQUARE_COUNT] = [
     0x40040844404084,
     0x2004208a004208,
     0x10190041080202,
@@ -105,7 +105,7 @@ pub static BISHOP_MAGIC_NUMBERS: [u64; SQUARE_COUNT] = [
     0x4010011029020020,
 ];
 
-pub static ROOK_MAGIC_NUMBERS: [u64; SQUARE_COUNT] = [
+static ROOK_MAGIC_NUMBERS: [u64; SQUARE_COUNT] = [
     0x8a80104000800020,
     0x140002000100040,
     0x2801880a0017001,
@@ -175,6 +175,15 @@ pub static ROOK_MAGIC_NUMBERS: [u64; SQUARE_COUNT] = [
 pub struct MoveMasks;
 
 impl MoveMasks {
+    #[inline(always)]
+    pub fn get_bishop_relevant_bits(square: Square) -> u8 {
+        BISHOP_RELEVANT_BITS[square]
+    }
+
+    #[inline(always)]
+    pub fn get_rook_relevant_bits(square: Square) -> u8 {
+        ROOK_RELEVANT_BITS[square]
+    }
 
     /// # Safety
     ///
@@ -187,14 +196,14 @@ impl MoveMasks {
             BLACK_PAWN_CAPTURE_MASKS[square] = Self::generate_pawn_capture_mask(Color::Black, square);
             KNIGHT_MASKS[square] = Self::generate_knight_mask(square);
             KING_MASKS[square] = Self::generate_king_mask(square);
-            BISHOP_MASKS[square] = Self::generate_bishop_mask(square);
-            ROOK_MASKS[square] = Self::generate_rook_mask(square);
+            BISHOP_BASE_MASKS[square] = Self::generate_bishop_mask(square);
+            ROOK_BASE_MASKS[square] = Self::generate_rook_mask(square);
 
-            let bishop_mask = BISHOP_MASKS[square];
-            let rook_mask = ROOK_MASKS[square];
+            let bishop_mask = BISHOP_BASE_MASKS[square];
+            let rook_mask = ROOK_BASE_MASKS[square];
 
-            let num_bishop_relevant_bits = BISHOP_RELEVANT_BITS[square];
-            let num_rook_relevant_bits = ROOK_RELEVANT_BITS[square];
+            let num_bishop_relevant_bits = Self::get_bishop_relevant_bits(square);
+            let num_rook_relevant_bits = Self::get_rook_relevant_bits(square);
 
             let max_bishop_occupancy_index = 1 << num_bishop_relevant_bits;
             let max_rook_occupancy_index = 1 << num_rook_relevant_bits;
@@ -202,17 +211,17 @@ impl MoveMasks {
             for occupancy_index in 0..max_bishop_occupancy_index {
                 let occupancy = Self::generate_occupancy_permutation(occupancy_index, num_bishop_relevant_bits, bishop_mask);
                 let magic_index = (occupancy.0.wrapping_mul(BISHOP_MAGIC_NUMBERS[square]) >> (SQUARE_COUNT as u8 - num_bishop_relevant_bits)) as usize;
-                BISHOP_MOVE_CONFIGURATIONS[square][magic_index] = Self::generate_bishop_moves_on_the_fly(square, occupancy);
+                BISHOP_MASKS[square][magic_index] = Self::generate_bishop_moves_on_the_fly(square, occupancy);
             }
 
             for occupancy_index in 0..max_rook_occupancy_index {
                 let occupancy = Self::generate_occupancy_permutation(occupancy_index, num_rook_relevant_bits, rook_mask);
                 let magic_index = (occupancy.0.wrapping_mul(ROOK_MAGIC_NUMBERS[square]) >> (SQUARE_COUNT as u8 - num_rook_relevant_bits)) as usize;
-                ROOK_MOVE_CONFIGURATIONS[square][magic_index] = Self::generate_rook_moves_on_the_fly(square, occupancy);
+                ROOK_MASKS[square][magic_index] = Self::generate_rook_moves_on_the_fly(square, occupancy);
             }
 
-            debug_assert_eq!(BISHOP_MASKS[square].count_bits(), BISHOP_RELEVANT_BITS[square]);
-            debug_assert_eq!(ROOK_MASKS[square].count_bits(), ROOK_RELEVANT_BITS[square]);
+            debug_assert_eq!(BISHOP_BASE_MASKS[square].count_bits(), num_bishop_relevant_bits);
+            debug_assert_eq!(ROOK_BASE_MASKS[square].count_bits(), num_rook_relevant_bits);
         }
     }
 
@@ -512,6 +521,16 @@ impl MoveMasks {
     }
 
     #[inline(always)]
+    pub fn get_bishop_base_mask(square: Square) -> Bitboard {
+        unsafe { BISHOP_BASE_MASKS[square] }
+    }
+
+    #[inline(always)]
+    pub fn get_rook_base_mask(square: Square) -> Bitboard {
+        unsafe { ROOK_BASE_MASKS[square] }
+    }
+
+    #[inline(always)]
     #[cfg(not(feature = "unit_magic_bbs"))]
     pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         MoveMasks::generate_bishop_moves_on_the_fly(square, occupancy)
@@ -522,17 +541,17 @@ impl MoveMasks {
     pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         unsafe {
             let index = (
-                (occupancy.0 & BISHOP_MASKS[square].0).wrapping_mul(BISHOP_MAGIC_NUMBERS[square]) >> 
-                (SQUARE_COUNT as u8 - BISHOP_RELEVANT_BITS[square])
+                (occupancy.0 & BISHOP_BASE_MASKS[square].0).wrapping_mul(BISHOP_MAGIC_NUMBERS[square]) >> 
+                (SQUARE_COUNT as u8 - Self::get_bishop_relevant_bits(square))
             ) as usize;
-            BISHOP_MOVE_CONFIGURATIONS[square][index]
+            BISHOP_MASKS[square][index]
         }
     }
 
     #[inline(always)]
     pub fn get_bishop_mask_empty_occupancy(square: Square) -> Bitboard {
         unsafe {
-            BISHOP_MOVE_CONFIGURATIONS[square][0]
+            BISHOP_MASKS[square][0]
         }
     }
 
@@ -547,17 +566,17 @@ impl MoveMasks {
     pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         unsafe {
             let index = ( 
-                (occupancy.0 & ROOK_MASKS[square].0).wrapping_mul(ROOK_MAGIC_NUMBERS[square]) >> 
-                (SQUARE_COUNT as u8 - ROOK_RELEVANT_BITS[square])
+                (occupancy.0 & ROOK_BASE_MASKS[square].0).wrapping_mul(ROOK_MAGIC_NUMBERS[square]) >> 
+                (SQUARE_COUNT as u8 - Self::get_rook_relevant_bits(square))
             ) as usize;
-            ROOK_MOVE_CONFIGURATIONS[square][index]
+            ROOK_MASKS[square][index]
         }
     }
 
     #[inline(always)]
     pub fn get_rook_mask_empty_occupancy(square: Square) -> Bitboard {
         unsafe {
-            ROOK_MOVE_CONFIGURATIONS[square][0]
+            ROOK_MASKS[square][0]
         }
     }
 

@@ -1,10 +1,10 @@
-use crate::{bitboard::Bitboard, consts::SQUARE_COUNT, move_masks::{self, MoveMasks}, rng::RandomNumberGenerator, square::Square};
+use crate::{bitboard::Bitboard, consts::SQUARE_COUNT, move_masks::MoveMasks, rng::RandomNumberGenerator, square::Square};
 
 const MAX_SLIDER_MOVE_PERMUTATIONS: usize = 4096;
 const NUM_CANDIDATES: usize = 10_000_000;
 
 #[derive(Default)]
-struct MagicNumberGenerator {
+pub struct MagicNumberGenerator {
     rng: RandomNumberGenerator
 }
 
@@ -16,7 +16,7 @@ impl MagicNumberGenerator {
     pub fn generate_magic_number(&mut self, square: Square, num_relevant_bits: u8, is_bishop: bool) -> u64 {
         let mut occupancies = [Bitboard::EMPTY; MAX_SLIDER_MOVE_PERMUTATIONS];
         let mut moves = [Bitboard::EMPTY; MAX_SLIDER_MOVE_PERMUTATIONS];
-        let mask = unsafe { if is_bishop { move_masks::BISHOP_MASKS[square] } else { move_masks::ROOK_MASKS[square] } };
+        let mask = if is_bishop { MoveMasks::get_bishop_base_mask(square) } else { MoveMasks::get_rook_base_mask(square) };
         let max_occupancy_index = 1 << num_relevant_bits;
 
         for i in 0..max_occupancy_index {
@@ -62,15 +62,15 @@ impl MagicNumberGenerator {
 
     // Prints magic numbers which can be copied and used for move generation
     pub fn print_magic_numbers(&mut self) {
+        println!("\nBishop magic numbers:");
+        for square in Square::ALL_SQUARES {
+            println!("0x{:x},", self.generate_magic_number(square, MoveMasks::get_bishop_relevant_bits(square), true));
+        }
 
         println!("\nRook magic numbers:");
         for square in Square::ALL_SQUARES {
-            println!("0x{:x},", self.generate_magic_number(square, move_masks::ROOK_RELEVANT_BITS[square], false));
+            println!("0x{:x},", self.generate_magic_number(square, MoveMasks::get_rook_relevant_bits(square), false));
         }
         
-        println!("\nBishop magic numbers:");
-        for square in Square::ALL_SQUARES {
-            println!("0x{:x},", self.generate_magic_number(square, move_masks::BISHOP_RELEVANT_BITS[square], true));
-        }
     }
 }
