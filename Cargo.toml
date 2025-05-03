@@ -47,11 +47,11 @@ positional_eval =           ["tapered_eval", "unit_positional_eval"]
 capture_with_check_eval =   ["tapered_eval", "unit_capture_with_check_eval"]
 pseudo_pins =               ["tapered_eval", "unit_pseudo_pins"]
 move_flag_eval =            ["tapered_eval", "unit_move_flag_eval"]
-syzygy_tablebase =          ["move_flag_eval", "unit_syzygy_tablebase"]
-opening_book =              ["syzygy_tablebase", "unit_opening_book"]
-lazy_smp =                  ["opening_book", "unit_lazy_smp"]
+lazy_smp =                  ["move_flag_eval", "unit_lazy_smp"]
 lockless_hashing =          ["lazy_smp", "unit_lockless_hashing"]
-default = ["lockless_hashing"] # Should only be one feature from the list of playable versions
+opening_book =              ["lockless_hashing", "unit_opening_book"]
+syzygy_tablebase =          ["opening_book", "unit_syzygy_tablebase"]
+default = ["syzygy_tablebase"] # Should only be one feature from the list of playable versions
 
 #  /*------------------------------------------------------------*\ 
 #        Base features (should not be set as default feature)
