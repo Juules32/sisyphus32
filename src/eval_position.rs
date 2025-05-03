@@ -436,7 +436,7 @@ impl EvalPosition {
             #[cfg(not(feature = "unit_tapered_eval"))]
             {
                 piece_score += BASE_PIECE_SCORES[piece];
-                #[cfg(feature = "unit_eval_pps")]
+                #[cfg(feature = "unit_pst")]
                 { piece_score += BASE_PIECE_POSITION_SCORES[piece][positional_index]; }
             }
 
@@ -445,7 +445,7 @@ impl EvalPosition {
                 opening_score += OPENING_PIECE_SCORES[piece] * piece_color_modifier;
                 endgame_score += ENDGAME_PIECE_SCORES[piece] * piece_color_modifier;
 
-                #[cfg(feature = "unit_eval_pps")]
+                #[cfg(feature = "unit_pst")]
                 {
                     opening_score += OPENING_PIECE_POSITION_SCORES[piece][positional_index] * piece_color_modifier;
                     endgame_score += ENDGAME_PIECE_POSITION_SCORES[piece][positional_index] * piece_color_modifier;
