@@ -16,7 +16,7 @@ static mut ROOK_BASE_MASKS: [Bitboard; SQUARE_COUNT] = unsafe { mem::zeroed() };
 static mut ROOK_MASKS: [[Bitboard; NUM_ROOK_MOVE_PERMUTATIONS]; SQUARE_COUNT] = unsafe { mem::zeroed() };
 static mut BISHOP_MASKS: [[Bitboard; NUM_BISHOP_MOVE_PERMUTATIONS]; SQUARE_COUNT] = unsafe { mem::zeroed() };
 
-static BISHOP_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
+const BISHOP_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
     6, 5, 5, 5, 5, 5, 5, 6,
     5, 5, 5, 5, 5, 5, 5, 5,
     5, 5, 7, 7, 7, 7, 5, 5,
@@ -27,7 +27,7 @@ static BISHOP_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
     6, 5, 5, 5, 5, 5, 5, 6
 ];
 
-static ROOK_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
+const ROOK_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
     12, 11, 11, 11, 11, 11, 11, 12,
     11, 10, 10, 10, 10, 10, 10, 11,
     11, 10, 10, 10, 10, 10, 10, 11,
@@ -38,7 +38,7 @@ static ROOK_RELEVANT_BITS: [u8; SQUARE_COUNT] = [
     12, 11, 11, 11, 11, 11, 11, 12
 ];
 
-static BISHOP_MAGIC_NUMBERS: [u64; SQUARE_COUNT] = [
+const BISHOP_MAGIC_NUMBERS: [u64; SQUARE_COUNT] = [
     0x40040844404084,
     0x2004208a004208,
     0x10190041080202,
@@ -105,7 +105,7 @@ static BISHOP_MAGIC_NUMBERS: [u64; SQUARE_COUNT] = [
     0x4010011029020020,
 ];
 
-static ROOK_MAGIC_NUMBERS: [u64; SQUARE_COUNT] = [
+const ROOK_MAGIC_NUMBERS: [u64; SQUARE_COUNT] = [
     0x8a80104000800020,
     0x140002000100040,
     0x2801880a0017001,
