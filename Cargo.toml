@@ -29,8 +29,8 @@ inherits = "release"
 random =                    ["base_default"]
 minimax =                   ["base_default", "unit_minimax"]
 negamax =                   ["base_default", "unit_negamax"]
-eval_pps =                  ["negamax", "unit_eval_pps"]
-sort_moves =                ["eval_pps", "unit_sort_moves"]
+pst =                       ["negamax", "unit_pst"]
+sort_moves =                ["pst", "unit_sort_moves"]
 iterative_deepening =       ["sort_moves", "unit_iterative_deepening"]
 quiescence =                ["iterative_deepening", "unit_quiescence"]
 quiescence_en_passant =     ["quiescence", "unit_quiescence_en_passant"]
@@ -80,7 +80,7 @@ unit_parallel_perft = []
 unit_minimax = []
 unit_negamax = []
 
-unit_eval_pps = []
+unit_pst = []
 
 unit_iterative_deepening = []
 

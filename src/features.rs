@@ -2,7 +2,7 @@ pub const FEATURES: &[&str] = &[
     "random",
     "minimax",
     "negamax",
-    "eval_pps",
+    "pst",
     "sort_moves",
     "iterative_deepening",
     "quiescence",
