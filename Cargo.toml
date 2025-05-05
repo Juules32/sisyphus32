@@ -36,8 +36,8 @@ quiescence =                ["iterative_deepening", "unit_quiescence"]
 quiescence_en_passant =     ["quiescence", "unit_quiescence_en_passant"]
 checks_add_depth =          ["quiescence_en_passant", "unit_checks_add_depth"]
 killer_heuristic =          ["checks_add_depth", "unit_killer_heuristic"]
-butterfly_heuristic =       ["killer_heuristic", "unit_butterfly_heuristic"]
-tt =                        ["butterfly_heuristic", "unit_tt"]
+history_heuristic =         ["killer_heuristic", "unit_history_heuristic"]
+tt =                        ["history_heuristic", "unit_tt"]
 eval_tt =                   ["tt", "unit_eval_tt"]
 tt_two_tier =               ["eval_tt", "unit_tt_two_tier"]
 null_move_pruning =         ["tt_two_tier", "unit_null_move_pruning"]
@@ -100,7 +100,7 @@ unit_tt_two_tier = []
 
 unit_killer_heuristic = []
 
-unit_butterfly_heuristic = []
+unit_history_heuristic = []
 
 unit_checks_add_depth = []
 

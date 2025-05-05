@@ -4,7 +4,7 @@ use rand::Rng;
 use rayon::ThreadPool;
 use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, consts::{MAX_DEPTH, SQUARE_COUNT}, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, opening_book::OpeningBook, position::Position, score::Score, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
+use crate::{bit_move::{BitMove, ScoringMove}, history_heuristic::HistoryHeuristic, consts::{MAX_DEPTH, SQUARE_COUNT}, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, opening_book::OpeningBook, position::Position, score::Score, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
 const AVERAGE_AMOUNT_OF_MOVES: usize = 25;
 const NULL_MOVE_DEPTH_REDUCTION: usize = 3;
@@ -188,9 +188,9 @@ impl Search {
         #[cfg(feature = "unit_sort_moves")]
         moves.sort_by_score();
 
-        #[cfg(feature = "unit_butterfly_heuristic")]
+        #[cfg(feature = "unit_history_heuristic")]
         let mut quiets_searched: [BitMove; SQUARE_COUNT] = [BitMove::EMPTY; SQUARE_COUNT];
-        #[cfg(feature = "unit_butterfly_heuristic")]
+        #[cfg(feature = "unit_history_heuristic")]
         let mut quiets_count = 0;
 
         let mut moves_has_legal_move = false;
@@ -239,15 +239,15 @@ impl Search {
                                 #[cfg(feature = "unit_killer_heuristic")]
                                 KillerMoves::update(best_move.bit_move, new_position.ply);
                                 
-                                #[cfg(feature = "unit_butterfly_heuristic")]
-                                ButterflyHeuristic::update(position.side, &quiets_searched[0..quiets_count], best_move.bit_move, depth as i16);
+                                #[cfg(feature = "unit_history_heuristic")]
+                                HistoryHeuristic::update(position.side, &quiets_searched[0..quiets_count], best_move.bit_move, depth as i16);
                             }
                             break;
                         }
-                    }                    
+                    }
                 }
 
-                #[cfg(feature = "unit_butterfly_heuristic")]
+                #[cfg(feature = "unit_history_heuristic")]
                 if scoring_move.bit_move != best_move.bit_move && !is_capture_or_promotion && quiets_count < SQUARE_COUNT {
                     quiets_searched[quiets_count] = scoring_move.bit_move;
                     quiets_count += 1;
