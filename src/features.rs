@@ -9,7 +9,7 @@ pub const FEATURES: &[&str] = &[
     "quiescence_en_passant",
     "checks_add_depth",
     "killer_heuristic",
-    "butterfly_heuristic",
+    "history_heuristic",
     "tt",
     "eval_tt",
     "tt_two_tier",
