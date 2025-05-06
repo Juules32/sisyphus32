@@ -88,21 +88,20 @@ impl Search {
     }
 
     #[inline(always)]
-    fn quiescence(&mut self, position: &Position, alpha: Score, beta: Score) -> ScoringMove {
+    fn quiescence(&mut self, position: &Position, mut alpha: Score, beta: Score) -> ScoringMove {
         if self.should_stop_calculating() {
             return ScoringMove::blank(Score::BLANK);
         }
         
         let evaluation = EvalPosition::eval(position);
 
-        let mut best_move = ScoringMove::blank(alpha);
-
         if evaluation >= beta {
             return ScoringMove::blank(beta);
         } else if evaluation > alpha {
-            best_move.score = evaluation;
+            alpha = evaluation;
         }
 
+        let mut best_move = ScoringMove::blank(alpha);
         let mut moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
 
         #[cfg(feature = "unit_sort_moves")]
@@ -112,11 +111,12 @@ impl Search {
             let mut new_position = position.clone();
             if new_position.apply_pseudo_legal_move(scoring_capture.bit_move) {
                 self.nodes += 1;
-                scoring_capture.score = -self.quiescence(&new_position, -beta, -best_move.score).score;
-                if scoring_capture.score > best_move.score {
+                scoring_capture.score = -self.quiescence(&new_position, -beta, -alpha).score;
+                if scoring_capture.score > alpha {
+                    alpha = scoring_capture.score;
                     best_move = *scoring_capture;
-                    if best_move.score >= beta {
-                        return best_move;
+                    if alpha >= beta {
+                        break;
                     }
                 }
             }
@@ -126,7 +126,7 @@ impl Search {
     }
 
     #[inline(always)]
-    fn negamax_best_move(&mut self, position: &Position, alpha: Score, beta: Score, mut depth: usize) -> ScoringMove {
+    fn negamax_best_move(&mut self, position: &Position, mut alpha: Score, mut beta: Score, mut depth: usize) -> ScoringMove {
         self.nodes += 1;
 
         if self.zobrist_key_history.contains(&position.zobrist_key) {
@@ -152,13 +152,19 @@ impl Search {
                 match tt_entry.node_type {
                     TTNodeType::Exact => return tt_entry.best_move,
                     TTNodeType::LowerBound => {
-                        if tt_entry.best_move.score >= beta {
-                            return tt_entry.best_move;
+                        if tt_entry.best_move.score > alpha {
+                            alpha = tt_entry.best_move.score;
+                            if alpha >= beta {
+                                return tt_entry.best_move;
+                            }
                         }
                     },
                     TTNodeType::UpperBound => {
-                        if tt_entry.best_move.score <= alpha {
-                            return tt_entry.best_move;
+                        if tt_entry.best_move.score < beta {
+                            beta = tt_entry.best_move.score;
+                            if alpha >= beta {
+                                return tt_entry.best_move;
+                            }
                         }
                     },
                 }
@@ -212,35 +218,39 @@ impl Search {
                     depth = max(1, original_depth - (LMR_FACTOR * (move_index as f32).ln() * (original_depth as f32).ln()) as usize);
                 }
 
-                scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, depth - 1).score;
+                scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, depth - 1).score;
                 if scoring_move.score.is_checkmate() {
                     scoring_move.score -= scoring_move.score.signum();
                 }
 
-                if scoring_move.score > best_move.score {
-                    let mut should_update_best_move = true;
+                if scoring_move.score > alpha {
+                    let mut should_update_alpha = true;
 
                     #[cfg(feature = "unit_late_move_reductions")]
+                    // If a search reduced in depth by lmr is an alpha-cutoff
                     if depth != original_depth && scoring_move.score >= beta {
-                        scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, original_depth - 1).score;
+                        // Search again at full depth
+                        scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, original_depth - 1).score;
                         if scoring_move.score.is_checkmate() {
                             scoring_move.score -= scoring_move.score.signum();
                         }
                         
-                        if scoring_move.score <= best_move.score {
-                            should_update_best_move = false;
+                        // And don't update alpha if the search at full depth actually wasn't an alpha-cutoff
+                        if scoring_move.score <= alpha {
+                            should_update_alpha = false;
                         }
                     }
 
-                    if should_update_best_move {
+                    if should_update_alpha {
+                        alpha = scoring_move.score;
                         best_move = *scoring_move;
-                        if best_move.score >= beta {
+                        if alpha >= beta {
                             if !is_capture_or_promotion {
                                 #[cfg(feature = "unit_killer_heuristic")]
-                                KillerMoves::update(best_move.bit_move, new_position.ply);
+                                KillerMoves::update(scoring_move.bit_move, new_position.ply);
                                 
                                 #[cfg(feature = "unit_history_heuristic")]
-                                HistoryHeuristic::update(position.side, &quiets_searched[0..quiets_count], best_move.bit_move, depth as i16);
+                                HistoryHeuristic::update(position.side, &quiets_searched[0..quiets_count], scoring_move.bit_move, depth as i16);
                             }
                             break;
                         }
