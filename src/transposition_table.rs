@@ -55,7 +55,7 @@ impl TTEntry {
 pub struct TTData {
     pub best_move: ScoringMove,
     pub depth: u16,
-    pub flag: TTNodeType,
+    pub node_type: TTNodeType,
 }
 
 #[repr(u8)]

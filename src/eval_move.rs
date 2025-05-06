@@ -64,7 +64,7 @@ impl EvalMove {
         {
             if let Some(tt_data) = TranspositionTable::probe(position.zobrist_key) {
                 if tt_data.best_move.bit_move == bit_move {
-                    match tt_data.flag {
+                    match tt_data.node_type {
                         TTNodeType::Exact => score += 10000,
                         TTNodeType::LowerBound => score += 4000,
                         TTNodeType::UpperBound => score += 3000,
