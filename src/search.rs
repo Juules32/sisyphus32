@@ -149,7 +149,7 @@ impl Search {
         if let Some(tt_entry) = TranspositionTable::probe(position.zobrist_key) {
             // If the stored depth is at least as deep, use it
             if tt_entry.depth >= depth as u16 {
-                match tt_entry.flag {
+                match tt_entry.node_type {
                     TTNodeType::Exact => return tt_entry.best_move,
                     TTNodeType::LowerBound => {
                         if tt_entry.best_move.score >= beta {
@@ -268,7 +268,7 @@ impl Search {
 
         #[cfg(feature = "unit_tt")]
         {
-            let flag = if best_move.score >= beta {
+            let node_type = if best_move.score >= beta {
                 TTNodeType::LowerBound
             } else if best_move.score <= alpha {
                 TTNodeType::UpperBound
@@ -281,7 +281,7 @@ impl Search {
                 TTData {
                     best_move,
                     depth: original_depth as u16,
-                    flag,
+                    node_type,
                 },
             );
         }
