@@ -202,7 +202,6 @@ impl Search {
         let mut moves_has_legal_move = false;
         let mut best_move = ScoringMove::blank(alpha);
         self.zobrist_key_history.push(position.zobrist_key);
-        let original_depth = depth;
         let mut move_index = 0;
         for scoring_move in moves.iter_mut() {
             let mut new_position = position.clone();
@@ -211,14 +210,24 @@ impl Search {
                 moves_has_legal_move = true;
 
                 #[cfg(feature = "unit_late_move_reductions")]
-                if !is_capture_or_promotion && original_depth >= LMR_DEPTH_THRESHOLD && move_index >= LMR_MOVE_INDEX_THRESHOLD {
+                let mut reduced_depth = depth;
+
+                #[cfg(feature = "unit_late_move_reductions")]
+                if !is_capture_or_promotion && depth >= LMR_DEPTH_THRESHOLD && move_index >= LMR_MOVE_INDEX_THRESHOLD {
                     // NOTE: If depth was less than one, the recursive call would underflow depth!
                     // NOTE: Usually, we have to check if the new position is part of the PV, but since
                     // our TT returns exact scores early, this isn't needed.
-                    depth = max(1, original_depth - (LMR_FACTOR * (move_index as f32).ln() * (original_depth as f32).ln()) as usize);
+                    reduced_depth = max(1, depth - (LMR_FACTOR * (move_index as f32).ln() * (depth as f32).ln()) as usize);
+                    scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, reduced_depth - 1).score;
+                } else {
+                    scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, depth - 1).score;
                 }
 
-                scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, depth - 1).score;
+                #[cfg(not(feature = "unit_late_move_reductions"))]
+                {
+                    scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, depth - 1).score;
+                }
+
                 if scoring_move.score.is_checkmate() {
                     scoring_move.score -= scoring_move.score.signum();
                 }
@@ -228,9 +237,9 @@ impl Search {
 
                     #[cfg(feature = "unit_late_move_reductions")]
                     // If a search reduced in depth by lmr is an alpha-cutoff
-                    if depth != original_depth && scoring_move.score >= beta {
+                    if reduced_depth != depth && scoring_move.score >= beta {
                         // Search again at full depth
-                        scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, original_depth - 1).score;
+                        scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, depth - 1).score;
                         if scoring_move.score.is_checkmate() {
                             scoring_move.score -= scoring_move.score.signum();
                         }
@@ -290,7 +299,7 @@ impl Search {
                 position.zobrist_key,
                 TTData {
                     best_move,
-                    depth: original_depth as u16,
+                    depth: depth as u16,
                     node_type,
                 },
             );
