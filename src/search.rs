@@ -2,7 +2,7 @@ extern crate rand;
 
 use rand::Rng;
 use rayon::ThreadPool;
-use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
+use std::{cmp::min, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
 use crate::{bit_move::{BitMove, ScoringMove}, history_heuristic::HistoryHeuristic, consts::{MAX_DEPTH, SQUARE_COUNT}, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, opening_book::OpeningBook, position::Position, score::Score, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
@@ -214,11 +214,11 @@ impl Search {
 
                 #[cfg(feature = "unit_late_move_reductions")]
                 if !is_capture_or_promotion && depth >= LMR_DEPTH_THRESHOLD && move_index >= LMR_MOVE_INDEX_THRESHOLD {
-                    // NOTE: If depth was less than one, the recursive call would underflow depth!
+                    // NOTE: If depth was less than zero, the depth would underflow!
                     // NOTE: Usually, we have to check if the new position is part of the PV, but since
                     // our TT returns exact scores early, this isn't needed.
-                    reduced_depth = max(1, depth - (LMR_FACTOR * (move_index as f32).ln() * (depth as f32).ln()) as usize);
-                    scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, reduced_depth - 1).score;
+                    reduced_depth = depth - min(depth, (LMR_FACTOR * (move_index as f32).ln() * (depth as f32).ln()) as usize);
+                    scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, reduced_depth).score;
                 } else {
                     scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, depth - 1).score;
                 }
