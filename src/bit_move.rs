@@ -47,7 +47,6 @@ impl Move for BitMove {
     fn new(_position: &Position, bit_move: BitMove) -> Self {
         bit_move
     }
-
     
     #[cfg(feature = "unit_bb")]
     fn to_row_string(self) -> String {

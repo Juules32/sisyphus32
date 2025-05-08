@@ -2,7 +2,7 @@ use crate::{consts::SQUARE_COUNT, square::Square};
 use core::fmt;
 
 // Castling right update constants
-static INDEX_2_CASTLING_RIGHTS: [u8; SQUARE_COUNT] = [
+const INDEX_2_CASTLING_RIGHTS: [u8; SQUARE_COUNT] = [
     0b0111, 0b1111, 0b1111, 0b1111, 0b0011, 0b1111, 0b1111, 0b1011,
     0b1111, 0b1111, 0b1111, 0b1111, 0b1111, 0b1111, 0b1111, 0b1111,
     0b1111, 0b1111, 0b1111, 0b1111, 0b1111, 0b1111, 0b1111, 0b1111,

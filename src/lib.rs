@@ -37,7 +37,7 @@ pub mod search;
 pub mod eval_move;
 pub mod eval_position;
 pub mod killer_moves;
-pub mod butterfly_heuristic;
+pub mod history_heuristic;
 pub mod rng;
 pub mod move_generation;
 pub mod features;

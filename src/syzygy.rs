@@ -1,19 +1,18 @@
+use std::io::Error;
 use shakmaty::{fen::Fen, CastlingMode, Chess};
 use shakmaty_syzygy::Tablebase;
 
 use crate::{bit_move::{BitMove, ScoringMove}, fen::FenString, move_generation::{Legal, MoveGeneration}, position::Position, score::Score, uci::Uci};
 
 pub struct SyzygyTablebase {
-    shakmaty_tablebase: Tablebase<Chess>,
-    max_pieces: u8,
+    shakmaty_tablebase: Tablebase<Chess>
 }
 
 impl SyzygyTablebase {
-    pub fn from_directory(path: &str) -> Result<SyzygyTablebase, Box<dyn std::error::Error>> {
+    pub fn from_directory(path: &str) -> Result<SyzygyTablebase, Error> {
         let mut shakmaty_tablebase = Tablebase::new();
         shakmaty_tablebase.add_directory(path)?;
-        let max_pieces = shakmaty_tablebase.max_pieces() as u8;
-        Ok(SyzygyTablebase { shakmaty_tablebase, max_pieces })
+        Ok(SyzygyTablebase { shakmaty_tablebase })
     }
 
     pub fn best_move(&self, position: &Position) -> Option<ScoringMove> {
@@ -37,7 +36,7 @@ impl SyzygyTablebase {
     }
 
     #[inline(always)]
-    pub fn get_max_pieces(&self) -> u8 {
-        self.max_pieces
+    pub fn get_max_pieces(&self) -> usize {
+        self.shakmaty_tablebase.max_pieces()
     }
 }

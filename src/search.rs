@@ -2,9 +2,9 @@ extern crate rand;
 
 use rand::Rng;
 use rayon::ThreadPool;
-use std::{cmp::max, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
+use std::{cmp::min, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, butterfly_heuristic::ButterflyHeuristic, consts::{MAX_DEPTH, SQUARE_COUNT}, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, opening_book::OpeningBook, position::Position, score::Score, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
+use crate::{bit_move::{BitMove, ScoringMove}, history_heuristic::HistoryHeuristic, consts::{MAX_DEPTH, SQUARE_COUNT}, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, opening_book::OpeningBook, position::Position, score::Score, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
 
 const AVERAGE_AMOUNT_OF_MOVES: usize = 25;
 const NULL_MOVE_DEPTH_REDUCTION: usize = 3;
@@ -88,21 +88,20 @@ impl Search {
     }
 
     #[inline(always)]
-    fn quiescence(&mut self, position: &Position, alpha: Score, beta: Score) -> ScoringMove {
+    fn quiescence(&mut self, position: &Position, mut alpha: Score, beta: Score) -> ScoringMove {
         if self.should_stop_calculating() {
             return ScoringMove::blank(Score::BLANK);
         }
         
         let evaluation = EvalPosition::eval(position);
 
-        let mut best_move = ScoringMove::blank(alpha);
-
         if evaluation >= beta {
             return ScoringMove::blank(beta);
         } else if evaluation > alpha {
-            best_move.score = evaluation;
+            alpha = evaluation;
         }
 
+        let mut best_move = ScoringMove::blank(alpha);
         let mut moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
 
         #[cfg(feature = "unit_sort_moves")]
@@ -112,11 +111,12 @@ impl Search {
             let mut new_position = position.clone();
             if new_position.apply_pseudo_legal_move(scoring_capture.bit_move) {
                 self.nodes += 1;
-                scoring_capture.score = -self.quiescence(&new_position, -beta, -best_move.score).score;
-                if scoring_capture.score > best_move.score {
+                scoring_capture.score = -self.quiescence(&new_position, -beta, -alpha).score;
+                if scoring_capture.score > alpha {
+                    alpha = scoring_capture.score;
                     best_move = *scoring_capture;
-                    if best_move.score >= beta {
-                        return best_move;
+                    if alpha >= beta {
+                        break;
                     }
                 }
             }
@@ -126,7 +126,7 @@ impl Search {
     }
 
     #[inline(always)]
-    fn negamax_best_move(&mut self, position: &Position, alpha: Score, beta: Score, mut depth: usize) -> ScoringMove {
+    fn negamax_best_move(&mut self, position: &Position, mut alpha: Score, mut beta: Score, mut depth: usize) -> ScoringMove {
         self.nodes += 1;
 
         if self.zobrist_key_history.contains(&position.zobrist_key) {
@@ -149,16 +149,22 @@ impl Search {
         if let Some(tt_entry) = TranspositionTable::probe(position.zobrist_key) {
             // If the stored depth is at least as deep, use it
             if tt_entry.depth >= depth as u16 {
-                match tt_entry.flag {
+                match tt_entry.node_type {
                     TTNodeType::Exact => return tt_entry.best_move,
                     TTNodeType::LowerBound => {
-                        if tt_entry.best_move.score >= beta {
-                            return tt_entry.best_move;
+                        if tt_entry.best_move.score > alpha {
+                            alpha = tt_entry.best_move.score;
+                            if alpha >= beta {
+                                return tt_entry.best_move;
+                            }
                         }
                     },
                     TTNodeType::UpperBound => {
-                        if tt_entry.best_move.score <= alpha {
-                            return tt_entry.best_move;
+                        if tt_entry.best_move.score < beta {
+                            beta = tt_entry.best_move.score;
+                            if alpha >= beta {
+                                return tt_entry.best_move;
+                            }
                         }
                     },
                 }
@@ -188,15 +194,14 @@ impl Search {
         #[cfg(feature = "unit_sort_moves")]
         moves.sort_by_score();
 
-        #[cfg(feature = "unit_butterfly_heuristic")]
+        #[cfg(feature = "unit_history_heuristic")]
         let mut quiets_searched: [BitMove; SQUARE_COUNT] = [BitMove::EMPTY; SQUARE_COUNT];
-        #[cfg(feature = "unit_butterfly_heuristic")]
+        #[cfg(feature = "unit_history_heuristic")]
         let mut quiets_count = 0;
 
         let mut moves_has_legal_move = false;
         let mut best_move = ScoringMove::blank(alpha);
         self.zobrist_key_history.push(position.zobrist_key);
-        let original_depth = depth;
         let mut move_index = 0;
         for scoring_move in moves.iter_mut() {
             let mut new_position = position.clone();
@@ -205,49 +210,63 @@ impl Search {
                 moves_has_legal_move = true;
 
                 #[cfg(feature = "unit_late_move_reductions")]
-                if !is_capture_or_promotion && original_depth >= LMR_DEPTH_THRESHOLD && move_index >= LMR_MOVE_INDEX_THRESHOLD {
-                    // NOTE: If depth was less than one, the recursive call would underflow depth!
+                let mut reduced_depth = depth;
+
+                #[cfg(feature = "unit_late_move_reductions")]
+                if !is_capture_or_promotion && depth >= LMR_DEPTH_THRESHOLD && move_index >= LMR_MOVE_INDEX_THRESHOLD {
+                    // NOTE: If depth was less than zero, the depth would underflow!
                     // NOTE: Usually, we have to check if the new position is part of the PV, but since
                     // our TT returns exact scores early, this isn't needed.
-                    depth = max(1, original_depth - (LMR_FACTOR * (move_index as f32).ln() * (original_depth as f32).ln()) as usize);
+                    reduced_depth = depth - min(depth, (LMR_FACTOR * (move_index as f32).ln() * (depth as f32).ln()) as usize);
+                    scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, reduced_depth).score;
+                } else {
+                    scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, depth - 1).score;
                 }
 
-                scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, depth - 1).score;
+                #[cfg(not(feature = "unit_late_move_reductions"))]
+                {
+                    scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, depth - 1).score;
+                }
+
                 if scoring_move.score.is_checkmate() {
                     scoring_move.score -= scoring_move.score.signum();
                 }
 
-                if scoring_move.score > best_move.score {
-                    let mut should_update_best_move = true;
+                if scoring_move.score > alpha {
+                    let mut should_update_alpha = true;
 
                     #[cfg(feature = "unit_late_move_reductions")]
-                    if depth != original_depth && scoring_move.score >= beta {
-                        scoring_move.score = -self.negamax_best_move(&new_position, -beta, -best_move.score, original_depth - 1).score;
+                    // If a search reduced in depth by lmr is an alpha-cutoff
+                    if reduced_depth != depth && scoring_move.score >= beta {
+                        // Search again at full depth
+                        scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, depth - 1).score;
                         if scoring_move.score.is_checkmate() {
                             scoring_move.score -= scoring_move.score.signum();
                         }
                         
-                        if scoring_move.score <= best_move.score {
-                            should_update_best_move = false;
+                        // And don't update alpha if the search at full depth actually wasn't an alpha-cutoff
+                        if scoring_move.score <= alpha {
+                            should_update_alpha = false;
                         }
                     }
 
-                    if should_update_best_move {
+                    if should_update_alpha {
+                        alpha = scoring_move.score;
                         best_move = *scoring_move;
-                        if best_move.score >= beta {
+                        if alpha >= beta {
                             if !is_capture_or_promotion {
                                 #[cfg(feature = "unit_killer_heuristic")]
-                                KillerMoves::update(best_move.bit_move, new_position.ply);
+                                KillerMoves::update(scoring_move.bit_move, new_position.ply);
                                 
-                                #[cfg(feature = "unit_butterfly_heuristic")]
-                                ButterflyHeuristic::update(position.side, &quiets_searched[0..quiets_count], best_move.bit_move, depth as i16);
+                                #[cfg(feature = "unit_history_heuristic")]
+                                HistoryHeuristic::update(position.side, &quiets_searched[0..quiets_count], scoring_move.bit_move, depth as i16);
                             }
                             break;
                         }
-                    }                    
+                    }
                 }
 
-                #[cfg(feature = "unit_butterfly_heuristic")]
+                #[cfg(feature = "unit_history_heuristic")]
                 if scoring_move.bit_move != best_move.bit_move && !is_capture_or_promotion && quiets_count < SQUARE_COUNT {
                     quiets_searched[quiets_count] = scoring_move.bit_move;
                     quiets_count += 1;
@@ -268,7 +287,7 @@ impl Search {
 
         #[cfg(feature = "unit_tt")]
         {
-            let flag = if best_move.score >= beta {
+            let node_type = if best_move.score >= beta {
                 TTNodeType::LowerBound
             } else if best_move.score <= alpha {
                 TTNodeType::UpperBound
@@ -280,8 +299,8 @@ impl Search {
                 position.zobrist_key,
                 TTData {
                     best_move,
-                    depth: original_depth as u16,
-                    flag,
+                    depth: depth as u16,
+                    node_type,
                 },
             );
         }
@@ -462,15 +481,16 @@ impl Search {
 
         #[cfg(feature = "unit_syzygy_tablebase")]
         if let Some(tablebase) = self.tablebase.as_ref() {
-            if position.all_occupancy.count_bits() <= tablebase.get_max_pieces() + 1 {
+            let tablebase_max_pieces_u8 = tablebase.get_max_pieces() as u8;
+            if position.all_occupancy.count_bits() <= tablebase_max_pieces_u8 + 1 {
                 println!("info string searching for tablebase move");
                 let mut best_move_option = None;
 
-                if position.all_occupancy.count_bits() <= tablebase.get_max_pieces() && stop_time.is_none_or(|time| time >= TABLEBASE_SEARCH_THRESHOLD) {
+                if position.all_occupancy.count_bits() <= tablebase_max_pieces_u8 && stop_time.is_none_or(|time| time >= TABLEBASE_SEARCH_THRESHOLD) {
                     if let Some(tablebase_move) = tablebase.best_move(position) {
                         best_move_option = Some(tablebase_move);
                     }
-                } else if position.all_occupancy.count_bits() == tablebase.get_max_pieces() + 1 && stop_time.is_none_or(|time| time >= EXTENDED_TABLEBASE_SEARCH_THRESHOLD) {
+                } else if position.all_occupancy.count_bits() == tablebase_max_pieces_u8 + 1 && stop_time.is_none_or(|time| time >= EXTENDED_TABLEBASE_SEARCH_THRESHOLD) {
                     let mut moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
                     for scoring_move in moves.iter_mut() {
                         let mut new_position = position.clone();

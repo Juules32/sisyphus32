@@ -4,8 +4,8 @@ use crate::{eval_position::EvalPosition, move_masks::MoveMasks, transposition_ta
 
 #[ctor]
 unsafe fn init() {
-    EvalPosition::init_positional_masks();
     MoveMasks::init_move_masks();
+    EvalPosition::init_positional_masks();
     ZobristKey::init_zobrist_keys();
     TranspositionTable::init();
 }
