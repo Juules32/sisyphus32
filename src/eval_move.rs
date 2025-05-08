@@ -1,4 +1,4 @@
-use crate::{bit_move::BitMove, butterfly_heuristic::ButterflyHeuristic, consts::PIECE_TYPE_COUNT, killer_moves::KillerMoves, position::Position, score::Score, transposition_table::{TTNodeType, TranspositionTable}};
+use crate::{bit_move::BitMove, history_heuristic::HistoryHeuristic, consts::PIECE_TYPE_COUNT, killer_moves::KillerMoves, position::Position, score::Score, transposition_table::{TTNodeType, TranspositionTable}};
 
 #[allow(unused_imports)]
 use crate::{color::Color, move_masks::MoveMasks, piece::Piece, move_flag::MoveFlag};
@@ -64,7 +64,7 @@ impl EvalMove {
         {
             if let Some(tt_data) = TranspositionTable::probe(position.zobrist_key) {
                 if tt_data.best_move.bit_move == bit_move {
-                    match tt_data.flag {
+                    match tt_data.node_type {
                         TTNodeType::Exact => score += 10000,
                         TTNodeType::LowerBound => score += 4000,
                         TTNodeType::UpperBound => score += 3000,
@@ -82,9 +82,9 @@ impl EvalMove {
             }
         }
 
-        #[cfg(feature = "unit_butterfly_heuristic")]
+        #[cfg(feature = "unit_history_heuristic")]
         {
-            score += ButterflyHeuristic::get(position.side, source, target);
+            score += HistoryHeuristic::get(position.side, source, target);
         }
 
         score

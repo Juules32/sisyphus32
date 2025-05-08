@@ -5,7 +5,11 @@ use rand::seq::IteratorRandom;
 
 use crate::{bit_move::BitMove, color::Color, fen::FenString, move_generation::{Legal, MoveGeneration}, position::Position, uci::Uci};
 
-#[derive(Debug, Deserialize)]
+const NUM_GAMES_THRESHOLD: u32 = 1_000;
+const WINRATE_THRESHOLD: f32 = 0.35;
+const OPENING_BOOK_TIMEOUT_SECS: u64 = 1;
+
+#[derive(Deserialize)]
 struct LichessOpeningStats {
     white: u32,
     draws: u32,
@@ -13,17 +17,13 @@ struct LichessOpeningStats {
     moves: Vec<LichessMoveStats>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct LichessMoveStats {
     uci: String,
     white: u32,
     draws: u32,
     black: u32,
 }
-
-const NUM_GAMES_THRESHOLD: u32 = 1_000;
-const WINRATE_THRESHOLD: f32 = 0.35;
-const OPENING_BOOK_TIMEOUT_SECS: u64 = 1;
 
 impl LichessMoveStats {
     #[inline(always)]
@@ -52,21 +52,6 @@ impl LichessMoveStats {
     }
 }
 
-pub struct OpeningBook {
-    agent: Agent
-}
-
-impl Default for OpeningBook {
-    fn default() -> Self {
-        Self {
-            agent: Agent::config_builder()
-                .timeout_global(Some(Duration::from_secs(OPENING_BOOK_TIMEOUT_SECS)))
-                .build()
-                .into()
-        }
-    }
-}
-
 impl LichessOpeningStats {
     #[inline(always)]
     fn get_opening_move_contenders(&self, position: &Position) -> Vec<BitMove> {
@@ -84,8 +69,11 @@ impl LichessOpeningStats {
     }
 }
 
+pub struct OpeningBook {
+    agent: Agent
+}
+
 impl OpeningBook {
-    #[inline(always)]
     fn get_lichess_opening_stats(&self, position: &Position) -> Result<LichessOpeningStats, Error> {
         let fen_string = FenString::from(position);
         let fen_with_replaced_spaces = fen_string.to_string().replace(" ", "_");
@@ -97,10 +85,20 @@ impl OpeningBook {
         Ok(lichess_opening_stats)
     }
 
-    #[inline(always)]
     pub fn get_move(&self, position: &Position) -> Option<BitMove> {
         let lichess_opening_stats = self.get_lichess_opening_stats(position).ok()?;
         let opening_move_contenders = lichess_opening_stats.get_opening_move_contenders(position);
         opening_move_contenders.iter().choose(&mut rand::rng()).copied()
+    }
+}
+
+impl Default for OpeningBook {
+    fn default() -> Self {
+        Self {
+            agent: Agent::config_builder()
+                .timeout_global(Some(Duration::from_secs(OPENING_BOOK_TIMEOUT_SECS)))
+                .build()
+                .into()
+        }
     }
 }
