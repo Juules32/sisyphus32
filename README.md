@@ -2,7 +2,7 @@
 Welcome to the GitHub page for Sisyphus32, a chess engine!
 
 # Features
-In progress... ✍
+In progress... ✍ 
 
 # [Lichess Bot](https://lichess.org/@/Sisyphus32)
 ![](https://lichess-shield.vercel.app/api?username=sisyphus32&format=rapid)
