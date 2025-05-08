@@ -452,7 +452,6 @@ impl EvalPosition {
                 }
             }
 
-            #[cfg(feature = "unit_positional_eval")]
             if piece == Piece::WP || piece == Piece::BP {
                 if (position.bitboards[piece] & Self::get_file_mask(sq)).count_bits() > 1 {
                     piece_score += DOUBLED_PAWN_SCORE;

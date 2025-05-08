@@ -44,8 +44,8 @@ null_move_pruning =         ["tt_two_tier", "unit_null_move_pruning"]
 late_move_reductions =      ["null_move_pruning", "unit_late_move_reductions"]
 tapered_eval =              ["late_move_reductions", "unit_tapered_eval"]
 positional_eval =           ["tapered_eval", "unit_positional_eval"]
-capture_with_check_eval =   ["tapered_eval", "unit_capture_with_check_eval"]
 pseudo_pins =               ["tapered_eval", "unit_pseudo_pins"]
+capture_with_check_eval =   ["tapered_eval", "unit_capture_with_check_eval"]
 move_flag_eval =            ["tapered_eval", "unit_move_flag_eval"]
 lazy_smp =                  ["move_flag_eval", "unit_lazy_smp"]
 lockless_hashing =          ["lazy_smp", "unit_lockless_hashing"]
@@ -112,6 +112,8 @@ unit_tapered_eval = []
 
 unit_positional_eval = []
 
+unit_pseudo_pins = []
+
 unit_capture_with_check_eval = []
 
 unit_move_flag_eval = []
@@ -119,8 +121,6 @@ unit_move_flag_eval = []
 unit_lazy_smp = []
 
 unit_lockless_hashing = []
-
-unit_pseudo_pins = []
 
 unit_syzygy_tablebase = []
 
