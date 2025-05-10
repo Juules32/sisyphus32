@@ -7,7 +7,7 @@ use crate::{bit_move::BitMove, color::Color, fen::FenString, move_generation::{L
 
 const NUM_GAMES_THRESHOLD: u32 = 1_000;
 const WINRATE_THRESHOLD: f32 = 0.35;
-const OPENING_BOOK_TIMEOUT_SECS: u64 = 1;
+const OPENING_BOOK_TIMEOUT_MS: u64 = 500;
 
 #[derive(Deserialize)]
 struct LichessOpeningStats {
@@ -96,7 +96,7 @@ impl Default for OpeningBook {
     fn default() -> Self {
         Self {
             agent: Agent::config_builder()
-                .timeout_global(Some(Duration::from_secs(OPENING_BOOK_TIMEOUT_SECS)))
+                .timeout_global(Some(Duration::from_millis(OPENING_BOOK_TIMEOUT_MS)))
                 .build()
                 .into()
         }
