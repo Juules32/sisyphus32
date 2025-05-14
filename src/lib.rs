@@ -40,7 +40,7 @@ pub mod killer_moves;
 pub mod history_heuristic;
 pub mod rng;
 pub mod move_generation;
-pub mod features;
+pub mod versions;
 pub mod syzygy;
 pub mod consts;
 pub mod score;

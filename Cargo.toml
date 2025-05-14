@@ -54,7 +54,7 @@ syzygy_tablebase =          ["opening_book", "unit_syzygy_tablebase"]
 default = ["syzygy_tablebase"] # Should only be one feature from the list of playable versions
 
 #  /*------------------------------------------------------------*\ 
-#        Base features (should not be set as default feature)
+#        Base versions (should not be set as default feature)
 #  \*------------------------------------------------------------*/
 base_basic =                ["unit_bb",       "unit_revert_undo"                                           ]
 base_magic_number =         ["unit_bb",       "unit_revert_undo",  "unit_magic_bbs"                        ]
