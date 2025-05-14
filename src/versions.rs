@@ -1,4 +1,4 @@
-pub const FEATURES: &[&str] = &[
+pub const VERSIONS: &[&str] = &[
     "random",
     "minimax",
     "negamax",
@@ -26,7 +26,7 @@ pub const FEATURES: &[&str] = &[
     "opening_book",
 ];
 
-pub const BASE_FEATURES: &[&str] = &[
+pub const BASE_VERSIONS: &[&str] = &[
     "base_basic",
     "base_magic_number",
     "base_clone",
