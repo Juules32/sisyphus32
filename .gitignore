@@ -6,7 +6,7 @@ TO-DO*
 .VSCodeCounter
 *.gz
 openings/*
-!openings/.gitkeep
+!openings/openings.pgn
 pgn_results/*
 !pgn_results/.gitkeep
 src/bin/debug.rs
