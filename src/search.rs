@@ -1,6 +1,5 @@
 extern crate rand;
 
-use rand::Rng;
 use rayon::ThreadPool;
 use std::{cmp::min, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
@@ -52,9 +51,10 @@ impl Search {
     }
     
     #[inline(always)]
-    fn random_best_move(&self, position: &Position) -> ScoringMove {
-        let moves = MoveGeneration::generate_moves::<BitMove, Legal>(position);
-        ScoringMove::from(moves[rand::rng().random_range(0..moves.len())])
+    fn move_ordering_best_move(&self, position: &Position) -> ScoringMove {
+        let mut moves = MoveGeneration::generate_moves::<ScoringMove, Legal>(position);
+        moves.sort_by_score();
+        moves.first()
     }
     
     #[inline(always)]
@@ -311,7 +311,7 @@ impl Search {
     #[inline(always)]
     fn best_move(&mut self, position: &Position, depth: usize) -> ScoringMove {
         #[cfg(all(not(feature = "unit_minimax"), not(feature = "unit_negamax")))]
-        return self.random_best_move(position);
+        return self.move_ordering_best_move(position);
 
         #[cfg(feature = "unit_minimax")]
         return self.minimax_best_move(position, depth);
@@ -344,8 +344,8 @@ impl Search {
 
     fn modify_best_scoring_move_if_empty(&self, position: &Position, best_scoring_move: &mut ScoringMove) {
         if best_scoring_move.bit_move == BitMove::EMPTY {
-            println!("info string search yielded no move, choosing random move instead");
-            *best_scoring_move = self.random_best_move(position);
+            println!("info string choosing best move based on move ordering");
+            *best_scoring_move = self.move_ordering_best_move(position);
         }
     }
 
@@ -356,12 +356,20 @@ impl Search {
         for current_depth in 1..=depth {
             self.nodes = 0;
             let new_best_move = self.best_move(position, current_depth);
+
             if self.should_stop_calculating() {
                 #[cfg(feature = "unit_tt")]
                 TranspositionTable::reset();
 
                 println!("info string ended iterative search and reset transposition table");
                 break;
+            }
+
+            // NOTE: This check is necessary to mitigate the effects of a rare
+            // bug where an empty bitmove is returned from the search!
+            if new_best_move.bit_move == BitMove::EMPTY {
+                println!("info string found empty best move at depth {current_depth}");
+                continue;
             }
 
             best_scoring_move = new_best_move;
@@ -411,6 +419,10 @@ impl Search {
                     let new_best_move = self_ref.best_move(position, current_depth);
                     
                     if self_ref.should_stop_calculating() {
+                        return;
+                    }
+                    
+                    if new_best_move.bit_move == BitMove::EMPTY {
                         return;
                     }
 
