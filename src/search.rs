@@ -356,12 +356,20 @@ impl Search {
         for current_depth in 1..=depth {
             self.nodes = 0;
             let new_best_move = self.best_move(position, current_depth);
+
             if self.should_stop_calculating() {
                 #[cfg(feature = "unit_tt")]
                 TranspositionTable::reset();
 
                 println!("info string ended iterative search and reset transposition table");
                 break;
+            }
+
+            // NOTE: This check is necessary to mitigate the effects of a rare
+            // bug where an empty bitmove is returned from the search!
+            if new_best_move.bit_move == BitMove::EMPTY {
+                println!("info string returned empty move from best move search");
+                continue;
             }
 
             best_scoring_move = new_best_move;
@@ -411,6 +419,11 @@ impl Search {
                     let new_best_move = self_ref.best_move(position, current_depth);
                     
                     if self_ref.should_stop_calculating() {
+                        return;
+                    }
+                    
+                    if new_best_move.bit_move == BitMove::EMPTY {
+                        println!("info string returned empty move from best move search");
                         return;
                     }
 
