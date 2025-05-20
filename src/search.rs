@@ -344,7 +344,7 @@ impl Search {
 
     fn modify_best_scoring_move_if_empty(&self, position: &Position, best_scoring_move: &mut ScoringMove) {
         if best_scoring_move.bit_move == BitMove::EMPTY {
-            println!("info string search yielded no move, choosing random move instead");
+            println!("info string choosing best move based on move ordering");
             *best_scoring_move = self.move_ordering_best_move(position);
         }
     }
@@ -368,7 +368,7 @@ impl Search {
             // NOTE: This check is necessary to mitigate the effects of a rare
             // bug where an empty bitmove is returned from the search!
             if new_best_move.bit_move == BitMove::EMPTY {
-                println!("info string returned empty move from best move search");
+                println!("info string found empty best move at depth {current_depth}");
                 continue;
             }
 
@@ -423,7 +423,6 @@ impl Search {
                     }
                     
                     if new_best_move.bit_move == BitMove::EMPTY {
-                        println!("info string returned empty move from best move search");
                         return;
                     }
 
