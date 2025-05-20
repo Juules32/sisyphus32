@@ -1,6 +1,5 @@
 extern crate rand;
 
-use rand::Rng;
 use rayon::ThreadPool;
 use std::{cmp::min, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
@@ -52,9 +51,10 @@ impl Search {
     }
     
     #[inline(always)]
-    fn random_best_move(&self, position: &Position) -> ScoringMove {
-        let moves = MoveGeneration::generate_moves::<BitMove, Legal>(position);
-        ScoringMove::from(moves[rand::rng().random_range(0..moves.len())])
+    fn move_ordering_best_move(&self, position: &Position) -> ScoringMove {
+        let mut moves = MoveGeneration::generate_moves::<ScoringMove, Legal>(position);
+        moves.sort_by_score();
+        moves.first()
     }
     
     #[inline(always)]
@@ -345,7 +345,7 @@ impl Search {
     fn modify_best_scoring_move_if_empty(&self, position: &Position, best_scoring_move: &mut ScoringMove) {
         if best_scoring_move.bit_move == BitMove::EMPTY {
             println!("info string search yielded no move, choosing random move instead");
-            *best_scoring_move = self.random_best_move(position);
+            *best_scoring_move = self.move_ordering_best_move(position);
         }
     }
 

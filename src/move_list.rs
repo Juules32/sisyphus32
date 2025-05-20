@@ -47,6 +47,11 @@ impl<T: Move> MoveList<T> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+
+    #[inline(always)]
+    pub fn first(&self) -> T {
+        self.array[0]
+    }
 }
 
 impl<T: Move> Default for MoveList<T> {
