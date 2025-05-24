@@ -8,6 +8,9 @@ description = "Feature-based UCI Chess Engine"
 repository = "https://github.com/juules32/sisyphus32"
 readme = "README.md"
 keywords = ["chess", "optimization"]
+exclude = [
+    "openings/openings.pgn",
+]
 
 [dependencies]
 rayon = "1.10.0"
