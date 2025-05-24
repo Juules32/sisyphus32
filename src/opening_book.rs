@@ -1,10 +1,10 @@
 use std::time::Duration;
 use serde::Deserialize;
 
-#[cfg(feature = "unit_opening_book")]
+#[cfg(not(target_arch = "wasm32"))]
 use ureq::{Agent, Error};
 
-#[cfg(feature = "unit_opening_book")]
+#[cfg(not(target_arch = "wasm32"))]
 use rand::seq::IteratorRandom;
 
 use crate::{bit_move::BitMove, color::Color, fen::FenString, move_generation::{Legal, MoveGeneration}, position::Position, uci::Uci};
@@ -73,12 +73,12 @@ impl LichessOpeningStats {
     }
 }
 
-#[cfg(feature = "unit_opening_book")]
+#[cfg(not(target_arch = "wasm32"))]
 pub struct OpeningBook {
     agent: Agent
 }
 
-#[cfg(feature = "unit_opening_book")]
+#[cfg(not(target_arch = "wasm32"))]
 impl OpeningBook {
     fn get_lichess_opening_stats(&self, position: &Position) -> Result<LichessOpeningStats, Error> {
         let fen_string = FenString::from(position);
@@ -98,7 +98,7 @@ impl OpeningBook {
     }
 }
 
-#[cfg(feature = "unit_opening_book")]
+#[cfg(not(target_arch = "wasm32"))]
 impl Default for OpeningBook {
     fn default() -> Self {
         Self {
@@ -110,17 +110,17 @@ impl Default for OpeningBook {
     }
 }
 
-#[cfg(not(feature = "unit_opening_book"))]
+#[cfg(target_arch = "wasm32")]
 pub struct OpeningBook;
 
-#[cfg(not(feature = "unit_opening_book"))]
+#[cfg(target_arch = "wasm32")]
 impl OpeningBook {
     pub fn get_move(&self, _position: &Position) -> Option<BitMove> {
         None
     }
 }
 
-#[cfg(not(feature = "unit_opening_book"))]
+#[cfg(target_arch = "wasm32")]
 impl Default for OpeningBook {
     fn default() -> Self {
         Self
