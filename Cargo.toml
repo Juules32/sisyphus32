@@ -55,7 +55,7 @@ lazy_smp =                  ["move_flag_eval", "unit_lazy_smp"]
 lockless_hashing =          ["lazy_smp", "unit_lockless_hashing"]
 opening_book =              ["lockless_hashing", "unit_opening_book"]
 syzygy_tablebase =          ["opening_book", "unit_syzygy_tablebase"]
-default = ["syzygy_tablebase", "ureq"] # Should only be one feature from the list of playable versions
+default = ["syzygy_tablebase"] # Should only be one feature from the list of playable versions
 
 #  /*------------------------------------------------------------*\ 
 #        Base versions (should not be set as default feature)
