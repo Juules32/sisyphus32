@@ -6,6 +6,7 @@ use sisyphus32::versions::{BASE_VERSIONS, VERSIONS};
 
 fn main() {
     env::set_var("RUSTFLAGS", "-Awarnings");
+    env::set_var("RUST_BACKTRACE", "1");
 
     for version_name in VERSIONS.iter().chain(BASE_VERSIONS.iter()) {
         // Build feature binary

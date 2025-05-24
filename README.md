@@ -16,11 +16,11 @@ Released executables can be found [here](https://github.com/Juules32/sisyphus32/
 1. Run `cargo build --release` to build the executable.
 2. Run `cargo run --release` to build and run the executable.
 3. Run `cargo run --release --no-default-features --features <version>` to build and run a specific version of the engine. Version names can be found in `src/versions.rs`.
-4. Run `cargo test --release` to run all unit and integration tests.
-5. Run `cargo run --release --bin build_all` to build executables for all versions to `target/release_all/`.
-6. Run `cargo run --release --bin test_all` to run all unit and integration tests for all versions.
-7. (WINDOWS ONLY) Run `cargo run --release --bin cutechess_sprt <version1> <version2>` to run SPRT against the specified versions, which should correspond to binary names in `target/release_all/`. This requires [Cute Chess](https://github.com/cutechess/cutechess) to be installed.
-8. (WINDOWS ONLY) Run `cargo run --release --bin samply_profile <profile name>` to run a profiler on the specified profile name, which should correspond to a file in `src/bin/`. This requires [Samply](https://github.com/mstange/samply) to be installed.
+4. Run `cargo test` to run all unit and integration tests.
+5. Run `cargo run --bin build_all` to build executables for all versions to `target/release_all/`.
+6. Run `cargo run --bin test_all` to run all unit and integration tests for all versions.
+7. (WINDOWS ONLY) Run `cargo run --bin cutechess_sprt <version1> <version2>` to run SPRT against the specified versions, which should correspond to binary names in `target/release_all/`. This requires [Cute Chess](https://github.com/cutechess/cutechess) to be installed.
+8. (WINDOWS ONLY) Run `cargo run --bin samply_profile <profile name>` to run a profiler on the specified profile name, which should correspond to a file in `src/bin/`. This requires [Samply](https://github.com/mstange/samply) to be installed.
 
 # Supported UCI Commands ([documentation](https://official-stockfish.github.io/docs/stockfish-wiki/UCI-&-Commands.html))
 Sisyphus32 is UCI-compliant, implementing the following UCI commands:
