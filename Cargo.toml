@@ -13,6 +13,10 @@ thiserror = "2.0.12"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 
+# Features that are optional to comply with wasm:
+ureq = { version = "3.0.11", features = ["json"], optional = true }
+rand = { version = "0.9.1", optional = true }
+
 [profile.release-with-debug]
 inherits = "release"
 debug = true
@@ -24,7 +28,7 @@ inherits = "release"
 #  /*-------------------------*\ 
 #    WASM-compatible versions
 #  \*-------------------------*/
-wasm_compatible = ["syzygy_tablebase"]
+wasm = ["lockless_hashing"]
 
 #  /*-------------------------*\ 
 #        Playable versions
@@ -54,7 +58,7 @@ lazy_smp =                  ["move_flag_eval", "unit_lazy_smp"]
 lockless_hashing =          ["lazy_smp", "unit_lockless_hashing"]
 opening_book =              ["lockless_hashing", "unit_opening_book"]
 syzygy_tablebase =          ["opening_book", "unit_syzygy_tablebase"]
-default = ["syzygy_tablebase"] # Should only be one feature from the list of playable versions
+default =                   ["syzygy_tablebase"]
 
 #  /*------------------------------------------------------------*\ 
 #        Base versions (should not be set as default feature)
@@ -125,6 +129,6 @@ unit_lazy_smp = []
 
 unit_lockless_hashing = []
 
-unit_syzygy_tablebase = []
+unit_opening_book = ["ureq", "rand"]
 
-unit_opening_book = []
+unit_syzygy_tablebase = []
