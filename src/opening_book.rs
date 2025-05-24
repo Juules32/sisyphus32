@@ -1,5 +1,8 @@
 use std::time::Duration;
+
+#[cfg(feature = "ureq")]
 use ureq::{Agent, Error};
+
 use serde::Deserialize;
 use rand::seq::IteratorRandom;
 
@@ -69,10 +72,12 @@ impl LichessOpeningStats {
     }
 }
 
+#[cfg(feature = "ureq")]
 pub struct OpeningBook {
     agent: Agent
 }
 
+#[cfg(feature = "ureq")]
 impl OpeningBook {
     fn get_lichess_opening_stats(&self, position: &Position) -> Result<LichessOpeningStats, Error> {
         let fen_string = FenString::from(position);
@@ -92,6 +97,7 @@ impl OpeningBook {
     }
 }
 
+#[cfg(feature = "ureq")]
 impl Default for OpeningBook {
     fn default() -> Self {
         Self {
@@ -100,5 +106,22 @@ impl Default for OpeningBook {
                 .build()
                 .into()
         }
+    }
+}
+
+#[cfg(not(feature = "ureq"))]
+pub struct OpeningBook;
+
+#[cfg(not(feature = "ureq"))]
+impl OpeningBook {
+    pub fn get_move(&self, _position: &Position) -> Option<BitMove> {
+        None
+    }
+}
+
+#[cfg(not(feature = "ureq"))]
+impl Default for OpeningBook {
+    fn default() -> Self {
+        Self
     }
 }
