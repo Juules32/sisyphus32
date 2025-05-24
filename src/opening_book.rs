@@ -1,6 +1,10 @@
 use std::time::Duration;
-use ureq::{Agent, Error};
 use serde::Deserialize;
+
+#[cfg(feature = "unit_opening_book")]
+use ureq::{Agent, Error};
+
+#[cfg(feature = "unit_opening_book")]
 use rand::seq::IteratorRandom;
 
 use crate::{bit_move::BitMove, color::Color, fen::FenString, move_generation::{Legal, MoveGeneration}, position::Position, uci::Uci};
@@ -69,10 +73,12 @@ impl LichessOpeningStats {
     }
 }
 
+#[cfg(feature = "unit_opening_book")]
 pub struct OpeningBook {
     agent: Agent
 }
 
+#[cfg(feature = "unit_opening_book")]
 impl OpeningBook {
     fn get_lichess_opening_stats(&self, position: &Position) -> Result<LichessOpeningStats, Error> {
         let fen_string = FenString::from(position);
@@ -92,6 +98,7 @@ impl OpeningBook {
     }
 }
 
+#[cfg(feature = "unit_opening_book")]
 impl Default for OpeningBook {
     fn default() -> Self {
         Self {
@@ -100,5 +107,22 @@ impl Default for OpeningBook {
                 .build()
                 .into()
         }
+    }
+}
+
+#[cfg(not(feature = "unit_opening_book"))]
+pub struct OpeningBook;
+
+#[cfg(not(feature = "unit_opening_book"))]
+impl OpeningBook {
+    pub fn get_move(&self, _position: &Position) -> Option<BitMove> {
+        None
+    }
+}
+
+#[cfg(not(feature = "unit_opening_book"))]
+impl Default for OpeningBook {
+    fn default() -> Self {
+        Self
     }
 }
