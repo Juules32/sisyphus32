@@ -1,4 +1,4 @@
-use std::io::Error;
+use std::io::{Error, ErrorKind};
 use shakmaty::{fen::Fen, CastlingMode, Chess};
 use shakmaty_syzygy::Tablebase;
 
@@ -9,10 +9,8 @@ pub struct SyzygyTablebase {
 }
 
 impl SyzygyTablebase {
-    pub fn from_directory(path: &str) -> Result<SyzygyTablebase, Error> {
-        let mut shakmaty_tablebase = Tablebase::new();
-        shakmaty_tablebase.add_directory(path)?;
-        Ok(SyzygyTablebase { shakmaty_tablebase })
+    pub fn from_directory(_path: &str) -> Result<SyzygyTablebase, Error> {
+        Err(Error::new(ErrorKind::Other, "oh no!"))
     }
 
     pub fn best_move(&self, position: &Position) -> Option<ScoringMove> {
