@@ -24,7 +24,7 @@ inherits = "release"
 #  /*-------------------------*\ 
 #    WASM-compatible versions
 #  \*-------------------------*/
-wasm_default = ["syzygy_tablebase"]
+wasm_compatible = ["syzygy_tablebase"]
 
 #  /*-------------------------*\ 
 #        Playable versions
