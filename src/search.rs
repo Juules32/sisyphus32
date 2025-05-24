@@ -1,5 +1,3 @@
-extern crate rand;
-
 use rayon::ThreadPool;
 use std::{cmp::min, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
