@@ -3,6 +3,11 @@ name = "sisyphus32"
 version = "1.0.0"
 edition = "2021"
 default-run = "sisyphus32"
+license = "MIT"
+description = "Feature-based UCI Chess Engine"
+repository = "https://github.com/juules32/sisyphus32"
+readme = "README.md"
+keywords = ["chess", "optimization"]
 
 [dependencies]
 rayon = "1.10.0"
