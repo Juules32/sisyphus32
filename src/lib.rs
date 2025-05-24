@@ -45,4 +45,4 @@ pub mod syzygy;
 pub mod consts;
 pub mod score;
 pub mod opening_book;
-mod ctor;
+pub mod ctor;
