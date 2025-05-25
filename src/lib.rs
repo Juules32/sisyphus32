@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 // NOTE: The following combinations of features are not allowed to be used together:
 #[cfg(all(feature = "unit_bb", feature = "unit_bb_array"))]
 compile_error!("feature \"unit_bb\" and feature \"unit_bb_array\" cannot be enabled at the same time!");

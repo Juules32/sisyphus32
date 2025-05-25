@@ -1,6 +1,4 @@
-use thiserror::Error;
-
-use crate::{consts::{FILE_COUNT, SQUARE_COUNT}, error::{FileParseError, RankParseError, SquareParseError}, Bitboard, File, Rank};
+use crate::{consts::{FILE_COUNT, SQUARE_COUNT}, error::SquareParseError, Bitboard, File, Rank};
 use core::fmt;
 use std::{ops::{Index, IndexMut}, mem::transmute};
 

@@ -15,9 +15,6 @@ const OPENING_BOOK_TIMEOUT_MS: u64 = 500;
 
 #[derive(Deserialize)]
 struct LichessOpeningStats {
-    white: u32,
-    draws: u32,
-    black: u32,
     moves: Vec<LichessMoveStats>,
 }
 

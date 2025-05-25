@@ -1,8 +1,6 @@
 use core::fmt;
 
-use thiserror::Error;
-
-use crate::{consts::FILE_COUNT, error::{FenParseError, SquareParseError}, CastlingRights, Color, EvalPosition, Piece, Position, Square, ZobristKey};
+use crate::{consts::FILE_COUNT, error::FenParseError, CastlingRights, Color, EvalPosition, Piece, Position, Square, ZobristKey};
 
 pub struct FenString { string: String }
 

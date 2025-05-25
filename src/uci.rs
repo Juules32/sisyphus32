@@ -1,8 +1,6 @@
 use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use thiserror::Error;
-
-use crate::{error::{FenParseError, MoveStringParseError, SquareParseError, UciParseError}, BitMove, Color, EvalPosition, FenString, Legal, MoveFlag, MoveGeneration, MoveList, Perft, Position, Search, Square, TranspositionTable};
+use crate::{error::{MoveStringParseError, UciParseError}, BitMove, Color, EvalPosition, FenString, HistoryHeuristic, KillerMoves, Legal, MoveFlag, MoveGeneration, MoveList, Perft, Position, Search, Square, TranspositionTable};
 
 const DEFAULT_TT_SIZE_MB: usize = 16;
 const MIN_TT_SIZE_MB: usize = 1;
@@ -75,8 +73,8 @@ impl Uci {
                         Ok(())
                     },
                     "ucinewgame" => {
-                        self.search.in_opening = true;
-                        self.parse_position("position startpos")
+                        self.ucinewgame();
+                        Ok(())
                     },
                     "isready" => {
                         println!("readyok");
@@ -112,6 +110,14 @@ impl Uci {
             }
             None => Ok(()),
         }
+    }
+
+    fn ucinewgame(&mut self) {
+        KillerMoves::reset();
+        HistoryHeuristic::reset();
+        TranspositionTable::reset();
+        self.search.in_opening = true;
+        self.position = Position::starting_position();
     }
 
     fn parse_setoption(&mut self, line: &str, words: &[&str]) -> Result<(), UciParseError> {

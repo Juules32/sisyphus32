@@ -1,8 +1,6 @@
 use core::fmt;
 use std::mem::transmute;
 
-use thiserror::Error;
-
 use crate::{consts::RANK_COUNT, error::RankParseError};
 
 // NOTE: The rank enum can be unintuitive to work with since it starts with the eighth rank.
