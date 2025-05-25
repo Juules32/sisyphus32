@@ -13,36 +13,93 @@ compile_error!("feature \"unit_minimax\" and feature \"unit_negamax\" cannot be 
 #[cfg(all(feature = "unit_revert_undo", feature = "unit_bb_array"))]
 compile_error!("feature \"unit_revert_undo\" and feature \"unit_bb_array\" cannot be enabled at the same time!");
 
-pub mod bit_move;
-pub mod bitboard;
-pub mod position;
-pub mod castling_rights;
-pub mod color;
-pub mod uci;
-pub mod fen;
-pub mod zobrist;
-pub mod file;
-pub mod magic_numbers;
-pub mod move_masks;
-pub mod move_list;
-pub mod piece;
-pub mod rank;
-pub mod square;
-pub mod transposition_table;
-pub mod timer;
-pub mod perft;
-pub mod bit_twiddles;
-pub mod move_flag;
-pub mod search;
-pub mod eval_move;
-pub mod eval_position;
-pub mod killer_moves;
-pub mod history_heuristic;
-pub mod rng;
-pub mod move_generation;
-pub mod versions;
-pub mod syzygy;
-pub mod consts;
-pub mod score;
-pub mod opening_book;
-pub mod ctor;
+mod bit_move;
+mod bit_twiddles;
+mod bitboard;
+mod castling_rights;
+mod color;
+mod consts;
+mod error;
+mod eval_move;
+mod eval_position;
+mod fen;
+mod file;
+mod history_heuristic;
+mod killer_moves;
+mod magic_numbers;
+mod move_flag;
+mod move_generation;
+mod move_list;
+mod move_masks;
+mod opening_book;
+mod perft;
+mod piece;
+mod position;
+mod rank;
+mod rng;
+mod score;
+mod search;
+mod square;
+mod syzygy;
+mod timer;
+mod transposition_table;
+mod uci;
+mod versions;
+mod zobrist;
+
+///*--------------------------------*\\\
+//    PUBLIC LIBRARY FUNCTIONALITY    \\
+//\*--------------------------------*/\\
+pub use bit_move::{Move, BitMove, ScoringMove};
+pub use castling_rights::CastlingRights;
+pub use color::Color;
+pub use error::*;
+pub use eval_move::EvalMove;
+pub use eval_position::EvalPosition;
+pub use fen::FenString;
+pub use file::File;
+pub use move_flag::MoveFlag;
+pub use move_generation::{Legal, Filter, MoveGeneration, PseudoLegal};
+pub use move_list::MoveList;
+pub use perft::Perft;
+pub use piece::Piece;
+pub use position::Position;
+pub use rank::Rank;
+pub use score::Score;
+pub use search::Search;
+pub use square::Square;
+pub use timer::Timer;
+pub use uci::Uci;
+pub use versions::{BASE_VERSIONS, VERSIONS};
+pub use zobrist::ZobristKey;
+// NOTE: Zobrist and versions are only necessary to make public because of
+// /src/bin and /tests.
+
+///*--------------------------------*\\\
+//     SHARED CRATE FUNCTIONALITY     \\
+//\*--------------------------------*/\\
+use bitboard::Bitboard;
+use consts::*;
+use history_heuristic::HistoryHeuristic;
+use killer_moves::KillerMoves;
+use move_masks::MoveMasks;
+use opening_book::OpeningBook;
+use rng::RandomNumberGenerator;
+use syzygy::SyzygyTablebase;
+use transposition_table::{TranspositionTable, TTNodeType, TTData};
+
+///*--------------------------------*\\\
+//      AUTO-INIT FUNCTIONALITY       \\
+//\*--------------------------------*/\\
+pub unsafe fn init() {
+    MoveMasks::init_move_masks();
+    EvalPosition::init_positional_masks();
+    ZobristKey::init_zobrist_keys();
+    TranspositionTable::init();
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[::ctor::ctor]
+unsafe fn ctor() {
+    crate::init();
+}

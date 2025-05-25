@@ -2,20 +2,17 @@
 
 use std::ops::BitXor;
 
-#[cfg(not(feature = "unit_lockless_hashing"))]
-use std::sync::{Mutex, MutexGuard};
-
-use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
+use crate::{ScoringMove, ZobristKey};
 
 const TT_INIT_BYTES_SIZE: usize = 16; // 16MB
 
 #[cfg(not(feature = "unit_lockless_hashing"))]
-static mut TRANSPOSITION_TABLE: Vec<Mutex<TTSlot>> = vec![];
+static mut TRANSPOSITION_TABLE: Vec<std::sync::Mutex<TTSlot>> = vec![];
 
 #[cfg(feature = "unit_lockless_hashing")]
 static mut TRANSPOSITION_TABLE: Vec<TTSlot> = vec![];
 
-pub struct TranspositionTable;
+pub(crate) struct TranspositionTable;
 
 #[cfg(feature = "unit_tt_two_tier")]
 struct TTSlot {
@@ -39,9 +36,9 @@ impl TTSlot {
 }
 
 #[derive(Clone, Copy)]
-pub struct TTEntry {
-    pub zobrist_key: ZobristKey,
-    pub data: TTData,
+pub(crate) struct TTEntry {
+    pub(crate) zobrist_key: ZobristKey,
+    pub(crate) data: TTData,
 }
 
 impl TTEntry {
@@ -52,22 +49,22 @@ impl TTEntry {
 }
 
 #[derive(Clone, Copy)]
-pub struct TTData {
-    pub best_move: ScoringMove,
-    pub depth: u16,
-    pub node_type: TTNodeType,
+pub(crate) struct TTData {
+    pub(crate) best_move: ScoringMove,
+    pub(crate) depth: u16,
+    pub(crate) node_type: TTNodeType,
 }
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub enum TTNodeType {
+pub(crate) enum TTNodeType {
     Exact,
     LowerBound, // β cutoff aka. Fail-high
     UpperBound, // α fail aka. Fail-low
 }
 
 impl TranspositionTable {
-    pub unsafe fn init() {
+    pub(crate) unsafe fn init() {
         Self::resize(TT_INIT_BYTES_SIZE);
     }
 }
@@ -75,25 +72,25 @@ impl TranspositionTable {
 #[cfg(not(feature = "unit_lockless_hashing"))]
 impl TranspositionTable {
     #[inline(always)]
-    pub fn reset() {
+    pub(crate) fn reset() {
         unsafe { 
             TRANSPOSITION_TABLE = (0..TRANSPOSITION_TABLE.len())
-                .map(|_| Mutex::new(TTSlot::EMPTY))
+                .map(|_| std::sync::Mutex::new(TTSlot::EMPTY))
                 .collect();
         }
     }
 
     #[inline(always)]
-    pub fn resize(size_mb: usize) {
+    pub(crate) fn resize(size_mb: usize) {
         unsafe {
             TRANSPOSITION_TABLE = (0..size_mb * 1_000_000 / size_of::<TTSlot>())
-                .map(|_| Mutex::new(TTSlot::EMPTY))
+                .map(|_| std::sync::Mutex::new(TTSlot::EMPTY))
                 .collect();
         }
     }
 
     #[inline(always)]
-    fn get_slot(zobrist_key: ZobristKey) -> MutexGuard<'static, TTSlot> {
+    fn get_slot(zobrist_key: ZobristKey) -> std::sync::MutexGuard<'static, TTSlot> {
         unsafe {
             let index = (zobrist_key.0 as usize) % TRANSPOSITION_TABLE.len();
             TRANSPOSITION_TABLE[index].lock().unwrap()
@@ -114,7 +111,7 @@ impl TranspositionTable {
 #[cfg(feature = "unit_lockless_hashing")]
 impl TranspositionTable {
     #[inline(always)]
-    pub fn reset() {
+    pub(crate) fn reset() {
         unsafe {
             TRANSPOSITION_TABLE = (0..TRANSPOSITION_TABLE.len())
                 .map(|_| TTSlot::EMPTY)
@@ -123,7 +120,7 @@ impl TranspositionTable {
     }
 
     #[inline(always)]
-    pub fn resize(size_mb: usize) {
+    pub(crate) fn resize(size_mb: usize) {
         unsafe {
             TRANSPOSITION_TABLE = (0..size_mb * 1_000_000 / size_of::<TTSlot>())
                 .map(|_| TTSlot::EMPTY)
@@ -154,7 +151,7 @@ impl TranspositionTable {
 impl TranspositionTable {
     // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]
-    pub fn store(zobrist_key: ZobristKey, data: TTData) {
+    pub(crate) fn store(zobrist_key: ZobristKey, data: TTData) {
         #[allow(unused_mut)]
         let mut slot = Self::get_slot(zobrist_key);
         if let Some(existing_entry) = slot.main_entry {
@@ -169,7 +166,7 @@ impl TranspositionTable {
     }
 
     #[inline(always)]
-    pub fn probe(zobrist_key: ZobristKey) -> Option<TTData> {
+    pub(crate) fn probe(zobrist_key: ZobristKey) -> Option<TTData> {
         let slot = Self::get_slot(zobrist_key);
 
         if let Some(entry) = slot.main_entry {
@@ -192,13 +189,13 @@ impl TranspositionTable {
 impl TranspositionTable {
     // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]
-    pub fn store(zobrist_key: ZobristKey, data: TTData) {
+    pub(crate) fn store(zobrist_key: ZobristKey, data: TTData) {
         let mut slot = Self::get_slot(zobrist_key);
         Self::store_entry(&mut slot.entry, zobrist_key, data);
     }
 
     #[inline(always)]
-    pub fn probe(zobrist_key: ZobristKey) -> Option<TTData> {
+    pub(crate) fn probe(zobrist_key: ZobristKey) -> Option<TTData> {
         let slot = Self::get_slot(zobrist_key);
 
         if let Some(entry) = slot.entry {

@@ -1,38 +1,6 @@
 use core::fmt;
 
-use thiserror::Error;
-
-use crate::{castling_rights::CastlingRights, color::Color, consts::FILE_COUNT, eval_position::EvalPosition, piece::Piece, position::Position, square::{Square, SquareParseError}, zobrist::ZobristKey};
-
-#[derive(Error, Debug)]
-pub enum FenParseError {
-    #[error("Couldn't find fen pieces")]
-    NoPieces,
-    
-    #[error("Couldn't find fen side")]
-    NoSide,
-    
-    #[error("Couldn't find fen castling rights")]
-    NoCastlingRights,
-    
-    #[error("Couldn't find fen en-passant square")]
-    NoEnPassant,
-    
-    #[error("Couldn't parse fen pieces: {0}")]
-    Pieces(String),
-    
-    #[error("Couldn't parse fen side: {0}")]
-    Side(String),
-    
-    #[error("Couldn't parse fen castling rights: {0}")]
-    CastlingRights(char),
-    
-    #[error("Couldn't parse fen en-passant square: {0}")]
-    EnPassant(#[from] SquareParseError),
-    
-    #[error("Couldn't parse illegal piece: {0}")]
-    IllegalPiece(char),
-}
+use crate::{FILE_COUNT, FenParseError, CastlingRights, Color, EvalPosition, Piece, Position, Square, ZobristKey};
 
 pub struct FenString { string: String }
 

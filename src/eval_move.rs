@@ -1,7 +1,7 @@
-use crate::{bit_move::BitMove, history_heuristic::HistoryHeuristic, consts::PIECE_TYPE_COUNT, killer_moves::KillerMoves, position::Position, score::Score, transposition_table::{TTNodeType, TranspositionTable}};
+use crate::{BitMove, HistoryHeuristic, PIECE_TYPE_COUNT, KillerMoves, Position, Score, TTNodeType, TranspositionTable};
 
 #[allow(unused_imports)]
-use crate::{color::Color, move_masks::MoveMasks, piece::Piece, move_flag::MoveFlag};
+use crate::{Color, MoveMasks, Piece, MoveFlag};
 
 // Most valuable victim - least valuable attacker [attacker][victim]
 const MVV_LVA: [[i16; PIECE_TYPE_COUNT]; PIECE_TYPE_COUNT] = [

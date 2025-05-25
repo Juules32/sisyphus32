@@ -1,8 +1,4 @@
-use sisyphus32::fen::FenString;
-use sisyphus32::bit_move::BitMove;
-use sisyphus32::move_generation::{Legal, MoveGeneration, PseudoLegal};
-use sisyphus32::position::Position;
-use sisyphus32::zobrist::ZobristKey;
+use sisyphus32::*;
 
 #[test]
 fn test_fen_parsing_and_move_generation() {

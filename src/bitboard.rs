@@ -1,4 +1,4 @@
-use crate::{bit_twiddles, consts::{FILE_COUNT, RANK_COUNT}, square::Square};
+use crate::{bit_twiddles, FILE_COUNT, RANK_COUNT, Square};
 use core::fmt;
 use std::{mem::{self, transmute}, ops::*};
 
@@ -85,39 +85,39 @@ impl Bitboard {
         Self::RANK_8, Self::RANK_7, Self::RANK_6, Self::RANK_5, Self::RANK_4, Self::RANK_3, Self::RANK_2, Self::RANK_1, 
     ];
 
-    pub const NOT_A: Bitboard =                         Bitboard(0xFEFEFEFEFEFEFEFE);
-    pub const NOT_AB: Bitboard =                        Bitboard(0xFCFCFCFCFCFCFCFC);
-    pub const NOT_H: Bitboard =                         Bitboard(0x7F7F7F7F7F7F7F7F);
-    pub const NOT_GH: Bitboard =                        Bitboard(0x3F3F3F3F3F3F3F3F);
+    pub(crate) const NOT_A: Bitboard =                         Bitboard(0xFEFEFEFEFEFEFEFE);
+    pub(crate) const NOT_AB: Bitboard =                        Bitboard(0xFCFCFCFCFCFCFCFC);
+    pub(crate) const NOT_H: Bitboard =                         Bitboard(0x7F7F7F7F7F7F7F7F);
+    pub(crate) const NOT_GH: Bitboard =                        Bitboard(0x3F3F3F3F3F3F3F3F);
 
-    pub const WHITE_SQUARES: Bitboard =                 Bitboard(0xAA55AA55AA55AA55);
-    pub const BLACK_SQUARES: Bitboard =                 Bitboard(0x55AA55AA55AA55AA);
+    pub(crate) const WHITE_SQUARES: Bitboard =                 Bitboard(0xAA55AA55AA55AA55);
+    pub(crate) const BLACK_SQUARES: Bitboard =                 Bitboard(0x55AA55AA55AA55AA);
 
-    pub const WHITE_STARTING_PIECES: Bitboard =         Bitboard(0xFFFF000000000000);
-    pub const BLACK_STARTING_PIECES: Bitboard =         Bitboard(0x000000000000FFFF);
-    pub const ALL_STARTING_PIECES: Bitboard =           Bitboard(0xFFFF00000000FFFF);
+    pub(crate) const WHITE_STARTING_PIECES: Bitboard =         Bitboard(0xFFFF000000000000);
+    pub(crate) const BLACK_STARTING_PIECES: Bitboard =         Bitboard(0x000000000000FFFF);
+    pub(crate) const ALL_STARTING_PIECES: Bitboard =           Bitboard(0xFFFF00000000FFFF);
     
-    pub const EDGES: Bitboard =                         Bitboard(0xFF818181818181FF);
-    pub const EMPTY: Bitboard =                         unsafe { mem::zeroed() };
+    pub(crate) const EDGES: Bitboard =                         Bitboard(0xFF818181818181FF);
+    pub(crate) const EMPTY: Bitboard =                         unsafe { mem::zeroed() };
 
-    pub const W_KING_SIDE_MASK: Bitboard =              Bitboard(0x6000000000000000);
-    pub const W_QUEEN_SIDE_MASK: Bitboard =             Bitboard(0x0E00000000000000);
-    pub const B_KING_SIDE_MASK: Bitboard =              Bitboard(0x0000000000000060);
-    pub const B_QUEEN_SIDE_MASK: Bitboard =             Bitboard(0x000000000000000E);
+    pub(crate) const W_KING_SIDE_MASK: Bitboard =              Bitboard(0x6000000000000000);
+    pub(crate) const W_QUEEN_SIDE_MASK: Bitboard =             Bitboard(0x0E00000000000000);
+    pub(crate) const B_KING_SIDE_MASK: Bitboard =              Bitboard(0x0000000000000060);
+    pub(crate) const B_QUEEN_SIDE_MASK: Bitboard =             Bitboard(0x000000000000000E);
 
-    pub const BP: Bitboard =                            Bitboard::RANK_7;
-    pub const BN: Bitboard =                            Bitboard(0x0000000000000042);
-    pub const BB: Bitboard =                            Bitboard(0x0000000000000024);
-    pub const BR: Bitboard =                            Bitboard(0x0000000000000081);
-    pub const BQ: Bitboard =                            Bitboard(0x0000000000000008);
-    pub const BK: Bitboard =                            Bitboard(0x0000000000000010);
+    pub(crate) const BP: Bitboard =                            Bitboard::RANK_7;
+    pub(crate) const BN: Bitboard =                            Bitboard(0x0000000000000042);
+    pub(crate) const BB: Bitboard =                            Bitboard(0x0000000000000024);
+    pub(crate) const BR: Bitboard =                            Bitboard(0x0000000000000081);
+    pub(crate) const BQ: Bitboard =                            Bitboard(0x0000000000000008);
+    pub(crate) const BK: Bitboard =                            Bitboard(0x0000000000000010);
 
-    pub const WP: Bitboard =                            Bitboard::RANK_2;
-    pub const WN: Bitboard =                            Bitboard(0x4200000000000000);
-    pub const WB: Bitboard =                            Bitboard(0x2400000000000000);
-    pub const WR: Bitboard =                            Bitboard(0x8100000000000000);
-    pub const WQ: Bitboard =                            Bitboard(0x0800000000000000);
-    pub const WK: Bitboard =                            Bitboard(0x1000000000000000);
+    pub(crate) const WP: Bitboard =                            Bitboard::RANK_2;
+    pub(crate) const WN: Bitboard =                            Bitboard(0x4200000000000000);
+    pub(crate) const WB: Bitboard =                            Bitboard(0x2400000000000000);
+    pub(crate) const WR: Bitboard =                            Bitboard(0x8100000000000000);
+    pub(crate) const WQ: Bitboard =                            Bitboard(0x0800000000000000);
+    pub(crate) const WK: Bitboard =                            Bitboard(0x1000000000000000);
 }
 
 macro_rules! impl_bb_op {

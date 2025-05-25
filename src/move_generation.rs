@@ -1,4 +1,4 @@
-use crate::{bit_move::{BitMove, Move}, bitboard::Bitboard, color::Color, move_flag::MoveFlag, move_list::MoveList, move_masks::MoveMasks, piece::Piece, position::Position, rank::Rank, square::Square};
+use crate::{BitMove, Move, Bitboard, Color, MoveFlag, MoveList, MoveMasks, Piece, Position, Rank, Square};
 
 pub struct MoveGeneration;
 

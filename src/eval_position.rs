@@ -1,9 +1,9 @@
 use std::mem;
 
-use crate::{bitboard::Bitboard, color::Color, consts::{FILE_COUNT, PIECE_TYPE_COUNT, SQUARE_COUNT}, file::File, piece::Piece, position::Position, score::Score, square::Square};
+use crate::{Bitboard, Color, FILE_COUNT, PIECE_TYPE_COUNT, SQUARE_COUNT, File, Piece, Position, Score, Square};
 
 #[allow(unused_imports)]
-use crate::move_masks::MoveMasks;
+use crate::MoveMasks;
 
 const BASE_PIECE_SCORES: [i16; PIECE_TYPE_COUNT] = [100, 300, 320, 500, 900, 10000, 100, 300, 320, 500, 900, 10000];
 
@@ -270,7 +270,7 @@ impl EvalPosition {
     /// # Safety
     ///
     /// This function is safe, as it is called before any other function with ctor.
-    pub unsafe fn init_positional_masks() {
+    pub(crate) unsafe fn init_positional_masks() {
         Self::init_file_masks();
         Self::init_rank_masks();
         Self::init_isolated_masks();
@@ -338,7 +338,7 @@ impl EvalPosition {
     }
 
     #[inline(always)]
-    pub fn get_base_piece_position_score(piece: Piece, square: Square, color: Color) -> i16 {
+    pub(crate) fn get_base_piece_position_score(piece: Piece, square: Square, color: Color) -> i16 {
         BASE_PIECE_POSITION_SCORES[piece][Self::get_positional_index(square, color)]
     }
 
@@ -363,7 +363,7 @@ impl EvalPosition {
     }
 
     #[inline(always)]
-    pub fn get_game_phase_score(position: &Position) -> i16 {
+    pub(crate) fn get_game_phase_score(position: &Position) -> i16 {
         let mut game_phase_score = 0;
 
         for piece in Piece::ALL_PIECES_EXPECT_PAWNS_AND_KINGS {
@@ -374,7 +374,7 @@ impl EvalPosition {
     }
 
     #[inline(always)]
-    pub fn get_game_phase_piece_score(piece: Piece) -> i16 {
+    pub(crate) fn get_game_phase_piece_score(piece: Piece) -> i16 {
         OPENING_PIECE_SCORES[piece]
     }
 

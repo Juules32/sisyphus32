@@ -1,34 +1,34 @@
 use core::fmt;
 
-use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, consts::{PIECE_TYPE_COUNT, SQUARE_COUNT}, eval_position::EvalPosition, fen::FenString, file::File, move_flag::MoveFlag, move_masks::MoveMasks, piece::Piece, square::Square, zobrist::ZobristKey};
+use crate::{BitMove, Bitboard, CastlingRights, Color, PIECE_TYPE_COUNT, SQUARE_COUNT, EvalPosition, FenString, File, MoveFlag, MoveMasks, Piece, Square, ZobristKey};
 
 #[derive(Clone)]
 pub struct Position {
     #[cfg(feature = "unit_bb_array")]
-    pub pps: [Option<Piece>; SQUARE_COUNT],
+    pub(crate) pps: [Option<Piece>; SQUARE_COUNT],
 
-    pub bitboards: [Bitboard; PIECE_TYPE_COUNT],
-    pub white_occupancy: Bitboard,
-    pub black_occupancy: Bitboard,
-    pub all_occupancy: Bitboard,
+    pub(crate) bitboards: [Bitboard; PIECE_TYPE_COUNT],
+    pub(crate) white_occupancy: Bitboard,
+    pub(crate) black_occupancy: Bitboard,
+    pub(crate) all_occupancy: Bitboard,
     pub side: Color,
     pub en_passant_option: Option<Square>,
     pub castling_rights: CastlingRights,
-    pub ply: u16,
     pub zobrist_key: ZobristKey,
+    pub(crate) ply: u16,
 
     #[cfg(feature = "unit_tapered_eval")]
-    pub game_phase_score: i16,
+    pub(crate) game_phase_score: i16,
 }
 
 impl Position {
     #[inline(always)]
-    pub fn merge_occupancies(&mut self) {
+    pub(crate) fn merge_occupancies(&mut self) {
         self.all_occupancy = self.white_occupancy | self.black_occupancy;
     }
 
     #[inline(always)]
-    pub fn populate_occupancies(&mut self) {
+    pub(crate) fn populate_occupancies(&mut self) {
         self.white_occupancy = self.bitboards[Piece::WP]
                 | self.bitboards[Piece::WN]
                 | self.bitboards[Piece::WB]
@@ -115,7 +115,7 @@ impl Position {
     }
 
     #[inline(always)]
-    pub fn zobrist_mods(&mut self) {
+    pub(crate) fn zobrist_mods(&mut self) {
         self.zobrist_key.mod_side(self.side);
         self.zobrist_key.mod_castling(self.castling_rights);
         self.zobrist_key.mod_en_passant(self.en_passant_option);
@@ -265,12 +265,12 @@ impl Position {
 
         // Modify the zobrist key after making the move
         self.zobrist_mods();
-        debug_assert_eq!(self.zobrist_key, ZobristKey::generate(self), "{}", self);
+        debug_assert_eq!(self.zobrist_key, ZobristKey::generate(self), "{self}");
     }
 
     #[inline]
     #[cfg(feature = "unit_revert_undo")]
-    pub fn undo_move(&mut self, bit_move: BitMove, old_castling_rights: CastlingRights) {
+    pub(crate) fn undo_move(&mut self, bit_move: BitMove, old_castling_rights: CastlingRights) {
         let (source, target, piece, capture_option, flag_option) = bit_move.decode();
 
         // Switches side first to make it easier to conceptualize
@@ -358,7 +358,7 @@ impl Position {
 
     // NOTE: In this function, self is supposed to be a clone of the current position state.
     #[inline(always)]
-    pub fn apply_pseudo_legal_move(&mut self, bit_move: BitMove) -> bool {
+    pub(crate) fn apply_pseudo_legal_move(&mut self, bit_move: BitMove) -> bool {
         self.make_move(bit_move);
         if !self.in_check(self.side.opposite()) {
             self.ply += 1;
@@ -457,7 +457,7 @@ impl fmt::Display for Position {
             
             match self.get_piece_option(sq) {
                 None => s += ". ",
-                Some(piece) => s += &format!("{} ", piece),
+                Some(piece) => s += &format!("{piece} "),
             }
 
             if sq.file() == File::FH {

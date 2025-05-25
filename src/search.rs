@@ -1,7 +1,7 @@
 use rayon::ThreadPool;
 use std::{cmp::min, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{bit_move::{BitMove, ScoringMove}, history_heuristic::HistoryHeuristic, consts::{MAX_DEPTH, SQUARE_COUNT}, eval_position::EvalPosition, killer_moves::KillerMoves, move_generation::{Legal, MoveGeneration, PseudoLegal}, opening_book::OpeningBook, position::Position, score::Score, syzygy::SyzygyTablebase, timer::Timer, transposition_table::{TTData, TTNodeType, TranspositionTable}, zobrist::ZobristKey};
+use crate::{BitMove, ScoringMove, HistoryHeuristic, MAX_DEPTH, SQUARE_COUNT, EvalPosition, KillerMoves, Legal, MoveGeneration, PseudoLegal, OpeningBook, Position, Score, SyzygyTablebase, Timer, TTData, TTNodeType, TranspositionTable, ZobristKey};
 
 const AVERAGE_AMOUNT_OF_MOVES: usize = 25;
 const NULL_MOVE_DEPTH_REDUCTION: usize = 3;
@@ -22,12 +22,12 @@ const AVERAGE_BRANCHING_FACTOR: usize = 2;
 #[derive(Clone)]
 pub struct Search {
     nodes: u64,
-    pub zobrist_key_history: Vec<ZobristKey>,
+    pub(crate) zobrist_key_history: Vec<ZobristKey>,
     timer: Arc<Timer>,
     stop_time: Arc<Option<u128>>,
     stop_calculating: Arc<AtomicBool>,
     threadpool: Arc<ThreadPool>,
-    pub in_opening: bool,
+    pub(crate) in_opening: bool,
     opening_book: Arc<OpeningBook>,
     tablebase: Arc<Option<SyzygyTablebase>>,
 }
@@ -535,16 +535,16 @@ impl Search {
     }
 
     #[inline(always)]
-    pub fn go_search(&mut self, position: &Position, depth: Option<usize>, stop_time: Option<u128>) {
+    fn go_search(&mut self, position: &Position, depth: Option<usize>, stop_time: Option<u128>) {
         let stop_flag = self.stop_calculating.clone();
         print!("info string searching for best move");
 
         if let Some(stop_time) = stop_time {
-            print!(" within {} milliseconds", stop_time);
+            print!(" within {stop_time} milliseconds");
         }
 
         if let Some(depth) = depth {
-            print!(" with a maximum depth of {}", depth);
+            print!(" with a maximum depth of {depth}");
         }
 
         println!();

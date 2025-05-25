@@ -23,7 +23,7 @@ fn main() {
         .expect("Failed to execute cargo build");
 
     if !status.success() {
-        eprintln!("Build failed for binary: {}", samply_binary_name);
+        eprintln!("Build failed for binary: {samply_binary_name}");
     }
 
     let status = Command::new("samply")
@@ -32,6 +32,6 @@ fn main() {
         .expect("Failed to execute samply record");
 
     if !status.success() {
-        eprintln!("Samply profile failed for binary: {}", samply_binary_name);
+        eprintln!("Samply profile failed for binary: {samply_binary_name}");
     }
 }

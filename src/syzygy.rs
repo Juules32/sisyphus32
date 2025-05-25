@@ -2,26 +2,26 @@ use std::io::Error;
 use shakmaty::{fen::Fen, CastlingMode, Chess};
 use shakmaty_syzygy::Tablebase;
 
-use crate::{bit_move::{BitMove, ScoringMove}, fen::FenString, move_generation::{Legal, MoveGeneration}, position::Position, score::Score, uci::Uci};
+use crate::{BitMove, ScoringMove, FenString, Legal, MoveGeneration, Position, Score, Uci};
 
-pub struct SyzygyTablebase {
+pub(crate) struct SyzygyTablebase {
     shakmaty_tablebase: Tablebase<Chess>
 }
 
 impl SyzygyTablebase {
     #[cfg(feature = "unit_opening_book")]
-    pub fn from_directory(path: &str) -> Result<SyzygyTablebase, Error> {
+    pub(crate) fn from_directory(path: &str) -> Result<SyzygyTablebase, Error> {
         let mut shakmaty_tablebase = Tablebase::new();
         shakmaty_tablebase.add_directory(path)?;
         Ok(SyzygyTablebase { shakmaty_tablebase })
     }
 
     #[cfg(not(feature = "unit_opening_book"))]
-    pub fn from_directory(_path: &str) -> Result<SyzygyTablebase, Error> {
+    pub(crate) fn from_directory(_path: &str) -> Result<SyzygyTablebase, Error> {
         Err(Error::new(std::io::ErrorKind::Other, "Cannot use shakmaty filesystem for wasm"))
     }
 
-    pub fn best_move(&self, position: &Position) -> Option<ScoringMove> {
+    pub(crate) fn best_move(&self, position: &Position) -> Option<ScoringMove> {
         let shakmaty_position = FenString::from(position).to_string()
             .parse::<Fen>().ok()?
             .into_position::<Chess>(CastlingMode::Standard).ok()?;
@@ -42,7 +42,7 @@ impl SyzygyTablebase {
     }
 
     #[inline(always)]
-    pub fn get_max_pieces(&self) -> usize {
+    pub(crate) fn get_max_pieces(&self) -> usize {
         self.shakmaty_tablebase.max_pieces()
     }
 }
