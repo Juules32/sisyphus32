@@ -1,12 +1,6 @@
 use std::time::Duration;
 use serde::Deserialize;
 
-#[cfg(feature = "unit_opening_book")]
-use ureq::{Agent, Error};
-
-#[cfg(feature = "unit_opening_book")]
-use rand::seq::IteratorRandom;
-
 use crate::{BitMove, Color, FenString, Legal, MoveGeneration, Position, Uci};
 
 const NUM_GAMES_THRESHOLD: u32 = 1_000;
@@ -72,12 +66,12 @@ impl LichessOpeningStats {
 
 #[cfg(feature = "unit_opening_book")]
 pub struct OpeningBook {
-    agent: Agent
+    agent: ureq::Agent
 }
 
 #[cfg(feature = "unit_opening_book")]
 impl OpeningBook {
-    fn get_lichess_opening_stats(&self, position: &Position) -> Result<LichessOpeningStats, Error> {
+    fn get_lichess_opening_stats(&self, position: &Position) -> Result<LichessOpeningStats, ureq::Error> {
         let fen_string = FenString::from(position);
         let fen_with_replaced_spaces = fen_string.to_string().replace(" ", "_");
         let uri = &format!("https://explorer.lichess.ovh/masters?fen={fen_with_replaced_spaces}");
@@ -91,7 +85,7 @@ impl OpeningBook {
     pub fn get_move(&self, position: &Position) -> Option<BitMove> {
         let lichess_opening_stats = self.get_lichess_opening_stats(position).ok()?;
         let opening_move_contenders = lichess_opening_stats.get_opening_move_contenders(position);
-        opening_move_contenders.iter().choose(&mut rand::rng()).copied()
+        rand::seq::IteratorRandom::choose(opening_move_contenders.iter(), &mut rand::rng()).copied()
     }
 }
 
@@ -99,7 +93,7 @@ impl OpeningBook {
 impl Default for OpeningBook {
     fn default() -> Self {
         Self {
-            agent: Agent::config_builder()
+            agent: ureq::Agent::config_builder()
                 .timeout_global(Some(Duration::from_millis(OPENING_BOOK_TIMEOUT_MS)))
                 .build()
                 .into()

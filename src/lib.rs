@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 // NOTE: The following combinations of features are not allowed to be used together:
 #[cfg(all(feature = "unit_bb", feature = "unit_bb_array"))]
 compile_error!("feature \"unit_bb\" and feature \"unit_bb_array\" cannot be enabled at the same time!");
@@ -56,24 +58,24 @@ pub use uci::Uci;
 pub use versions::{BASE_VERSIONS, VERSIONS};
 pub use zobrist::ZobristKey;
 
-pub(crate) use color::Color;
-pub(crate) use eval_move::EvalMove;
-pub(crate) use move_flag::MoveFlag;
-pub(crate) use piece::Piece;
-pub(crate) use score::Score;
-pub(crate) use square::Square;
-pub(crate) use eval_position::EvalPosition;
-pub(crate) use move_masks::MoveMasks;
-pub(crate) use transposition_table::{TranspositionTable, TTNodeType, TTData};
-pub(crate) use history_heuristic::HistoryHeuristic;
-pub(crate) use killer_moves::KillerMoves;
-pub(crate) use bitboard::Bitboard;
-pub(crate) use file::File;
-pub(crate) use rank::Rank;
-pub(crate) use castling_rights::CastlingRights;
-pub(crate) use rng::RandomNumberGenerator;
-pub(crate) use bit_move::{Move, ScoringMove};
-pub(crate) use move_list::MoveList;
-pub(crate) use opening_book::OpeningBook;
-pub(crate) use syzygy::SyzygyTablebase;
-pub(crate) use timer::Timer;
+use color::Color;
+use eval_move::EvalMove;
+use move_flag::MoveFlag;
+use piece::Piece;
+use score::Score;
+use square::Square;
+use eval_position::EvalPosition;
+use move_masks::MoveMasks;
+use transposition_table::{TranspositionTable, TTNodeType, TTData};
+use history_heuristic::HistoryHeuristic;
+use killer_moves::KillerMoves;
+use bitboard::Bitboard;
+use file::File;
+use rank::Rank;
+use castling_rights::CastlingRights;
+use rng::RandomNumberGenerator;
+use bit_move::{Move, ScoringMove};
+use move_list::MoveList;
+use opening_book::OpeningBook;
+use syzygy::SyzygyTablebase;
+use timer::Timer;

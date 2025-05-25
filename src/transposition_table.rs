@@ -2,15 +2,12 @@
 
 use std::ops::BitXor;
 
-#[cfg(not(feature = "unit_lockless_hashing"))]
-use std::sync::{Mutex, MutexGuard};
-
 use crate::{ScoringMove, ZobristKey};
 
 const TT_INIT_BYTES_SIZE: usize = 16; // 16MB
 
 #[cfg(not(feature = "unit_lockless_hashing"))]
-static mut TRANSPOSITION_TABLE: Vec<Mutex<TTSlot>> = vec![];
+static mut TRANSPOSITION_TABLE: Vec<std::sync::Mutex<TTSlot>> = vec![];
 
 #[cfg(feature = "unit_lockless_hashing")]
 static mut TRANSPOSITION_TABLE: Vec<TTSlot> = vec![];
@@ -78,7 +75,7 @@ impl TranspositionTable {
     pub fn reset() {
         unsafe { 
             TRANSPOSITION_TABLE = (0..TRANSPOSITION_TABLE.len())
-                .map(|_| Mutex::new(TTSlot::EMPTY))
+                .map(|_| std::sync::Mutex::new(TTSlot::EMPTY))
                 .collect();
         }
     }
@@ -87,13 +84,13 @@ impl TranspositionTable {
     pub fn resize(size_mb: usize) {
         unsafe {
             TRANSPOSITION_TABLE = (0..size_mb * 1_000_000 / size_of::<TTSlot>())
-                .map(|_| Mutex::new(TTSlot::EMPTY))
+                .map(|_| std::sync::Mutex::new(TTSlot::EMPTY))
                 .collect();
         }
     }
 
     #[inline(always)]
-    fn get_slot(zobrist_key: ZobristKey) -> MutexGuard<'static, TTSlot> {
+    fn get_slot(zobrist_key: ZobristKey) -> std::sync::MutexGuard<'static, TTSlot> {
         unsafe {
             let index = (zobrist_key.0 as usize) % TRANSPOSITION_TABLE.len();
             TRANSPOSITION_TABLE[index].lock().unwrap()
