@@ -1,4 +1,4 @@
-use crate::{consts::SQUARE_COUNT, Square};
+use crate::{SQUARE_COUNT, Square};
 use core::fmt;
 
 // Castling right update constants

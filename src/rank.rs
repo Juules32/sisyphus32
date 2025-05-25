@@ -1,7 +1,7 @@
 use core::fmt;
 use std::mem::transmute;
 
-use crate::{consts::RANK_COUNT, error::RankParseError};
+use crate::{RANK_COUNT, RankParseError};
 
 // NOTE: The rank enum can be unintuitive to work with since it starts with the eighth rank.
 // Changing the ordering could impact all places where Rank is used!

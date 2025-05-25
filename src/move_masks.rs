@@ -1,6 +1,6 @@
 use std::mem;
 
-use crate::{Bitboard, Color, consts::{FILE_COUNT, SQUARE_COUNT}, File, Piece, Rank, Square};
+use crate::{Bitboard, Color, FILE_COUNT, SQUARE_COUNT, File, Piece, Rank, Square};
 
 const NUM_ROOK_MOVE_PERMUTATIONS: usize = 4096;
 const NUM_BISHOP_MOVE_PERMUTATIONS: usize = 512;
@@ -172,23 +172,23 @@ const ROOK_MAGIC_NUMBERS: [u64; SQUARE_COUNT] = [
     0x1004081002402,
 ];
 
-pub struct MoveMasks;
+pub(crate) struct MoveMasks;
 
 impl MoveMasks {
     #[inline(always)]
-    pub fn get_bishop_relevant_bits(square: Square) -> u8 {
+    pub(crate) fn get_bishop_relevant_bits(square: Square) -> u8 {
         BISHOP_RELEVANT_BITS[square]
     }
 
     #[inline(always)]
-    pub fn get_rook_relevant_bits(square: Square) -> u8 {
+    pub(crate) fn get_rook_relevant_bits(square: Square) -> u8 {
         ROOK_RELEVANT_BITS[square]
     }
 
     /// # Safety
     ///
     /// This function is safe, as it is called before any other function with ctor.
-    pub unsafe fn init_move_masks() {
+    pub(crate) unsafe fn init_move_masks() {
         for square in Square::ALL_SQUARES {
             WHITE_PAWN_QUIET_MASKS[square] = Self::generate_pawn_quiet_mask(Color::White, square);
             BLACK_PAWN_QUIET_MASKS[square] = Self::generate_pawn_quiet_mask(Color::Black, square);
@@ -400,7 +400,7 @@ impl MoveMasks {
     }
 
 
-    pub fn generate_bishop_moves_on_the_fly(square: Square, occupancy: Bitboard) -> Bitboard {
+    pub(crate) fn generate_bishop_moves_on_the_fly(square: Square, occupancy: Bitboard) -> Bitboard {
         use std::cmp::min;
 
         let mut bb_mask = Bitboard::EMPTY;
@@ -439,7 +439,7 @@ impl MoveMasks {
         bb_mask
     }
 
-    pub fn generate_rook_moves_on_the_fly(square: Square, occupancy: Bitboard) -> Bitboard {
+    pub(crate) fn generate_rook_moves_on_the_fly(square: Square, occupancy: Bitboard) -> Bitboard {
         let mut bb_mask = Bitboard::EMPTY;
         let square_bb = square.to_bb();
         let rank_u8 = square.rank_as_u8();
@@ -478,7 +478,7 @@ impl MoveMasks {
 
     // Generates the relevant occupancy bitboard for a slider piece from an index,
     // the number of relevant bits, and the relevant mask.
-    pub fn generate_occupancy_permutation(occupancy_index: u32, num_bits: u8, mut mask: Bitboard) -> Bitboard {
+    pub(crate) fn generate_occupancy_permutation(occupancy_index: u32, num_bits: u8, mut mask: Bitboard) -> Bitboard {
         let mut occupancy = Bitboard::EMPTY;
         for i in 0..num_bits {
             let square = mask.pop_lsb();
@@ -491,7 +491,7 @@ impl MoveMasks {
     }
 
     #[inline(always)]
-    pub fn get_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
+    pub(crate) fn get_pawn_quiet_mask(color: Color, square: Square) -> Bitboard {
         unsafe {
             match color {
                 Color::White => WHITE_PAWN_QUIET_MASKS[square],
@@ -501,7 +501,7 @@ impl MoveMasks {
     }
 
     #[inline(always)]
-    pub fn get_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
+    pub(crate) fn get_pawn_capture_mask(color: Color, square: Square) -> Bitboard {
         unsafe {
             match color {
                 Color::White => WHITE_PAWN_CAPTURE_MASKS[square],
@@ -511,34 +511,34 @@ impl MoveMasks {
     }
 
     #[inline(always)]
-    pub fn get_knight_mask(square: Square) -> Bitboard {
+    pub(crate) fn get_knight_mask(square: Square) -> Bitboard {
         unsafe { KNIGHT_MASKS[square] }
     }
 
     #[inline(always)]
-    pub fn get_king_mask(square: Square) -> Bitboard {
+    pub(crate) fn get_king_mask(square: Square) -> Bitboard {
         unsafe { KING_MASKS[square] }
     }
 
     #[inline(always)]
-    pub fn get_bishop_base_mask(square: Square) -> Bitboard {
+    pub(crate) fn get_bishop_base_mask(square: Square) -> Bitboard {
         unsafe { BISHOP_BASE_MASKS[square] }
     }
 
     #[inline(always)]
-    pub fn get_rook_base_mask(square: Square) -> Bitboard {
+    pub(crate) fn get_rook_base_mask(square: Square) -> Bitboard {
         unsafe { ROOK_BASE_MASKS[square] }
     }
 
     #[inline(always)]
     #[cfg(not(feature = "unit_magic_bbs"))]
-    pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    pub(crate) fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         MoveMasks::generate_bishop_moves_on_the_fly(square, occupancy)
     }
 
     #[inline(always)]
     #[cfg(feature = "unit_magic_bbs")]
-    pub fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    pub(crate) fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         unsafe {
             let index = (
                 (occupancy.0 & BISHOP_BASE_MASKS[square].0).wrapping_mul(BISHOP_MAGIC_NUMBERS[square]) >> 
@@ -549,7 +549,7 @@ impl MoveMasks {
     }
 
     #[inline(always)]
-    pub fn get_bishop_mask_empty_occupancy(square: Square) -> Bitboard {
+    pub(crate) fn get_bishop_mask_empty_occupancy(square: Square) -> Bitboard {
         unsafe {
             BISHOP_MASKS[square][0]
         }
@@ -557,13 +557,13 @@ impl MoveMasks {
 
     #[inline(always)]
     #[cfg(not(feature = "unit_magic_bbs"))]
-    pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    pub(crate) fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         MoveMasks::generate_rook_moves_on_the_fly(square, occupancy)
     }
 
     #[inline(always)]
     #[cfg(feature = "unit_magic_bbs")]
-    pub fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    pub(crate) fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         unsafe {
             let index = ( 
                 (occupancy.0 & ROOK_BASE_MASKS[square].0).wrapping_mul(ROOK_MAGIC_NUMBERS[square]) >> 
@@ -574,7 +574,7 @@ impl MoveMasks {
     }
 
     #[inline(always)]
-    pub fn get_rook_mask_empty_occupancy(square: Square) -> Bitboard {
+    pub(crate) fn get_rook_mask_empty_occupancy(square: Square) -> Bitboard {
         unsafe {
             ROOK_MASKS[square][0]
         }
@@ -582,23 +582,23 @@ impl MoveMasks {
 
     #[inline(always)]
     #[cfg(not(feature = "unit_magic_bbs"))]
-    pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    pub(crate) fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         MoveMasks::get_bishop_mask(square, occupancy) | MoveMasks::get_rook_mask(square, occupancy)
     }
 
     #[inline(always)]
     #[cfg(feature = "unit_magic_bbs")]
-    pub fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
+    pub(crate) fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         Self::get_bishop_mask(square, occupancy) | Self::get_rook_mask(square, occupancy)
     }
 
     #[inline(always)]
-    pub fn get_queen_mask_empty_occupancy(square: Square) -> Bitboard {
+    pub(crate) fn get_queen_mask_empty_occupancy(square: Square) -> Bitboard {
         Self::get_bishop_mask_empty_occupancy(square) | Self::get_rook_mask_empty_occupancy(square)
     }
 
     #[inline(always)]
-    pub fn get_piece_mask(piece: Piece, square: Square, occupancy: Bitboard) -> Bitboard {
+    pub(crate) fn get_piece_mask(piece: Piece, square: Square, occupancy: Bitboard) -> Bitboard {
         match piece {
             Piece::WP => Self::get_pawn_capture_mask(Color::White, square),
             Piece::BP => Self::get_pawn_capture_mask(Color::Black, square),

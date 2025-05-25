@@ -1,19 +1,19 @@
 use std::{fmt::Display, ops::{Add, Neg, AddAssign, Sub, SubAssign}};
 
-use crate::consts::MAX_DEPTH;
+use crate::MAX_DEPTH;
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash, Debug)]
 pub struct Score(i16);
 
 impl Score {
-    pub const CHECKMATE: Score = Score(10000);
-    pub const DRAW: Score = Score(0);
-    pub const ZERO: Score = Score(0);
-    pub const BLANK: Score = Score(0);
-    pub const STALEMATE: Score = Score(0);
-    pub const REPETITION: Score = Score(0);
-    pub const START_ALPHA: Score = Score(-32001);
-    pub const START_BETA: Score = Score(32001);
+    pub(crate) const CHECKMATE: Score = Score(10000);
+    pub(crate) const DRAW: Score = Score(0);
+    pub(crate) const ZERO: Score = Score(0);
+    pub(crate) const BLANK: Score = Score(0);
+    pub(crate) const STALEMATE: Score = Score(0);
+    pub(crate) const REPETITION: Score = Score(0);
+    pub(crate) const START_ALPHA: Score = Score(-32001);
+    pub(crate) const START_BETA: Score = Score(32001);
     
     #[inline(always)]
     pub fn abs(self) -> Score {
@@ -26,7 +26,7 @@ impl Score {
     }
 
     #[inline(always)]
-    pub fn checkmate_minus_depth(depth: usize) -> Score {
+    pub(crate) fn checkmate_minus_depth(depth: usize) -> Score {
         Score::from(Self::CHECKMATE.0 - depth as i16)
     }
     

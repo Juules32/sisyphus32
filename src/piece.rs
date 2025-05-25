@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{ops::{Index, IndexMut}, mem::transmute};
 
-use crate::{Color, consts::{PIECE_TYPE_COUNT, PLAYER_COUNT}};
+use crate::{Color, PIECE_TYPE_COUNT, PLAYER_COUNT};
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -54,7 +54,7 @@ impl Piece {
         Piece::BK,
     ];
 
-    pub const ALL_PIECES_EXPECT_PAWNS_AND_KINGS: [Piece; PIECE_TYPE_COUNT - PLAYER_COUNT * 2] = [
+    pub(crate) const ALL_PIECES_EXPECT_PAWNS_AND_KINGS: [Piece; PIECE_TYPE_COUNT - PLAYER_COUNT * 2] = [
         Piece::WN,
         Piece::WB,
         Piece::WR,

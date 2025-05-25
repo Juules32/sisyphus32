@@ -65,7 +65,7 @@ impl LichessOpeningStats {
 }
 
 #[cfg(feature = "unit_opening_book")]
-pub struct OpeningBook {
+pub(crate) struct OpeningBook {
     agent: ureq::Agent
 }
 
@@ -82,7 +82,7 @@ impl OpeningBook {
         Ok(lichess_opening_stats)
     }
 
-    pub fn get_move(&self, position: &Position) -> Option<BitMove> {
+    pub(crate) fn get_move(&self, position: &Position) -> Option<BitMove> {
         let lichess_opening_stats = self.get_lichess_opening_stats(position).ok()?;
         let opening_move_contenders = lichess_opening_stats.get_opening_move_contenders(position);
         rand::seq::IteratorRandom::choose(opening_move_contenders.iter(), &mut rand::rng()).copied()
@@ -102,11 +102,11 @@ impl Default for OpeningBook {
 }
 
 #[cfg(not(feature = "unit_opening_book"))]
-pub struct OpeningBook;
+pub(crate) struct OpeningBook;
 
 #[cfg(not(feature = "unit_opening_book"))]
 impl OpeningBook {
-    pub fn get_move(&self, _position: &Position) -> Option<BitMove> {
+    pub(crate) fn get_move(&self, _position: &Position) -> Option<BitMove> {
         None
     }
 }

@@ -49,7 +49,7 @@ impl Perft {
     }
 
     #[inline(always)]
-    pub fn perft_test_single_thread_undo_move(position: &Position, depth: u16, print_result: bool) -> PerftResult {
+    fn perft_test_single_thread_undo_move(position: &Position, depth: u16, print_result: bool) -> PerftResult {
         let mut current_nodes = 0_u64;
         let mut cumulative_nodes = 0_u64;
         let timer = Timer::new();
@@ -92,7 +92,7 @@ impl Perft {
     }
 
     #[inline(always)]
-    pub fn perft_test_single_thread_clone(position: &Position, depth: u16, print_result: bool) -> PerftResult {
+    fn perft_test_single_thread_clone(position: &Position, depth: u16, print_result: bool) -> PerftResult {
         let mut current_nodes = 0_u64;
         let mut cumulative_nodes = 0_u64;
         let timer = Timer::new();
@@ -127,7 +127,7 @@ impl Perft {
     }
 
     #[inline(always)]
-    pub fn perft_test_parallelize(position: &Position, depth: u16, print_result: bool) -> PerftResult {
+    fn perft_test_parallelize(position: &Position, depth: u16, print_result: bool) -> PerftResult {
         let timer = Timer::new();
 
         if print_result {

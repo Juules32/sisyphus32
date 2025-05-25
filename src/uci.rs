@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use crate::{error::{MoveStringParseError, UciParseError}, BitMove, Color, EvalPosition, FenString, HistoryHeuristic, KillerMoves, Legal, MoveFlag, MoveGeneration, MoveList, Perft, Position, Search, Square, TranspositionTable};
+use crate::{MoveStringParseError, UciParseError, BitMove, Color, EvalPosition, FenString, HistoryHeuristic, KillerMoves, Legal, MoveFlag, MoveGeneration, MoveList, Perft, Position, Search, Square, TranspositionTable};
 
 const DEFAULT_TT_SIZE_MB: usize = 16;
 const MIN_TT_SIZE_MB: usize = 1;

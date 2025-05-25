@@ -63,7 +63,7 @@ pub enum UciParseError {
 }
 
 #[derive(Error, Debug)]
-pub(crate) enum MoveStringParseError {
+pub enum MoveStringParseError {
     #[error("Illegal move string length")]
     LengthParseError,
 

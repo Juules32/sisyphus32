@@ -1,10 +1,10 @@
-use crate::{Bitboard, consts::SQUARE_COUNT, MoveMasks, RandomNumberGenerator, Square};
+use crate::{Bitboard, SQUARE_COUNT, MoveMasks, RandomNumberGenerator, Square};
 
 const MAX_SLIDER_MOVE_PERMUTATIONS: usize = 4096;
 const NUM_CANDIDATES: usize = 10_000_000;
 
 #[derive(Default)]
-pub struct MagicNumberGenerator {
+pub(crate) struct MagicNumberGenerator {
     rng: RandomNumberGenerator
 }
 
@@ -13,7 +13,7 @@ impl MagicNumberGenerator {
         self.rng.generate_sparse_u64()
     }
 
-    pub fn generate_magic_number(&mut self, square: Square, num_relevant_bits: u8, is_bishop: bool) -> u64 {
+    pub(crate) fn generate_magic_number(&mut self, square: Square, num_relevant_bits: u8, is_bishop: bool) -> u64 {
         let mut occupancies = [Bitboard::EMPTY; MAX_SLIDER_MOVE_PERMUTATIONS];
         let mut moves = [Bitboard::EMPTY; MAX_SLIDER_MOVE_PERMUTATIONS];
         let mask = if is_bishop { MoveMasks::get_bishop_base_mask(square) } else { MoveMasks::get_rook_base_mask(square) };
@@ -61,7 +61,7 @@ impl MagicNumberGenerator {
     }
 
     // Prints magic numbers which can be copied and used for move generation
-    pub fn print_magic_numbers(&mut self) {
+    pub(crate) fn print_magic_numbers(&mut self) {
         println!("\nBishop magic numbers:");
         for square in Square::ALL_SQUARES {
             println!("0x{:x},", self.generate_magic_number(square, MoveMasks::get_bishop_relevant_bits(square), true));

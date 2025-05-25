@@ -1,4 +1,4 @@
-use crate::{consts::{FILE_COUNT, SQUARE_COUNT}, error::SquareParseError, Bitboard, File, Rank};
+use crate::{FILE_COUNT, SQUARE_COUNT, SquareParseError, Bitboard, File, Rank};
 use core::fmt;
 use std::{ops::{Index, IndexMut}, mem::transmute};
 
@@ -28,7 +28,7 @@ impl Square {
     ];
 
     #[inline(always)]
-    pub fn to_bb(self) -> Bitboard {
+    pub(crate) fn to_bb(self) -> Bitboard {
         Bitboard::from(1 << (self as u64))
     }
 
@@ -43,12 +43,12 @@ impl Square {
     }
 
     #[inline(always)]
-    pub fn rank_as_u8(self) -> u8 {
+    pub(crate) fn rank_as_u8(self) -> u8 {
         self as u8 >> 3 & 0b0000_0111
     }
 
     #[inline(always)]
-    pub fn file_as_u8(self) -> u8 {
+    pub(crate) fn file_as_u8(self) -> u8 {
         self as u8 & 0b0000_0111
     }
 

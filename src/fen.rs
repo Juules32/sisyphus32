@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{consts::FILE_COUNT, error::FenParseError, CastlingRights, Color, EvalPosition, Piece, Position, Square, ZobristKey};
+use crate::{FILE_COUNT, FenParseError, CastlingRights, Color, EvalPosition, Piece, Position, Square, ZobristKey};
 
 pub struct FenString { string: String }
 

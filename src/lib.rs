@@ -19,7 +19,6 @@ mod bitboard;
 mod castling_rights;
 mod color;
 mod consts;
-mod ctor;
 mod error;
 mod eval_move;
 mod eval_position;
@@ -48,34 +47,59 @@ mod uci;
 mod versions;
 mod zobrist;
 
-pub use bit_move::BitMove;
+///*--------------------------------*\\\
+//    PUBLIC LIBRARY FUNCTIONALITY    \\
+//\*--------------------------------*/\\
+pub use bit_move::{Move, BitMove, ScoringMove};
+pub use castling_rights::CastlingRights;
+pub use color::Color;
+pub use error::*;
+pub use eval_move::EvalMove;
+pub use eval_position::EvalPosition;
 pub use fen::FenString;
-pub use move_generation::{Legal, MoveGeneration, PseudoLegal};
+pub use file::File;
+pub use move_flag::MoveFlag;
+pub use move_generation::{Legal, Filter, MoveGeneration, PseudoLegal};
+pub use move_list::MoveList;
 pub use perft::Perft;
+pub use piece::Piece;
 pub use position::Position;
+pub use rank::Rank;
+pub use score::Score;
 pub use search::Search;
+pub use square::Square;
+pub use timer::Timer;
 pub use uci::Uci;
 pub use versions::{BASE_VERSIONS, VERSIONS};
 pub use zobrist::ZobristKey;
+// NOTE: Zobrist and versions are only necessary to make public because of
+// /src/bin and /tests.
 
-use color::Color;
-use eval_move::EvalMove;
-use move_flag::MoveFlag;
-use piece::Piece;
-use score::Score;
-use square::Square;
-use eval_position::EvalPosition;
-use move_masks::MoveMasks;
-use transposition_table::{TranspositionTable, TTNodeType, TTData};
+///*--------------------------------*\\\
+//     SHARED CRATE FUNCTIONALITY     \\
+//\*--------------------------------*/\\
+use bitboard::Bitboard;
+use consts::*;
 use history_heuristic::HistoryHeuristic;
 use killer_moves::KillerMoves;
-use bitboard::Bitboard;
-use file::File;
-use rank::Rank;
-use castling_rights::CastlingRights;
-use rng::RandomNumberGenerator;
-use bit_move::{Move, ScoringMove};
-use move_list::MoveList;
+use move_masks::MoveMasks;
 use opening_book::OpeningBook;
+use rng::RandomNumberGenerator;
 use syzygy::SyzygyTablebase;
-use timer::Timer;
+use transposition_table::{TranspositionTable, TTNodeType, TTData};
+
+///*--------------------------------*\\\
+//      AUTO-INIT FUNCTIONALITY       \\
+//\*--------------------------------*/\\
+pub unsafe fn init() {
+    MoveMasks::init_move_masks();
+    EvalPosition::init_positional_masks();
+    ZobristKey::init_zobrist_keys();
+    TranspositionTable::init();
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[::ctor::ctor]
+unsafe fn ctor() {
+    crate::init();
+}

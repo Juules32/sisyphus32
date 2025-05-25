@@ -1,6 +1,6 @@
 use std::{fmt::Display, mem};
 
-use crate::{CastlingRights, Color, consts::{FILE_COUNT, PIECE_TYPE_COUNT, SQUARE_COUNT}, Piece, Position, RandomNumberGenerator, Square};
+use crate::{CastlingRights, Color, FILE_COUNT, PIECE_TYPE_COUNT, SQUARE_COUNT, Piece, Position, RandomNumberGenerator, Square};
 
 // Constants for Zobrist hashing
 const CASTLING_PERMUTATIONS: usize = 16;

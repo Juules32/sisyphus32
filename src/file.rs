@@ -1,7 +1,7 @@
 use core::fmt;
 use std::mem::transmute;
 
-use crate::error::FileParseError;
+use crate::FileParseError;
 
 #[derive(Clone, Copy, PartialEq)]
 #[repr(u8)]
