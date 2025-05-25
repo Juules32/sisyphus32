@@ -1,4 +1,4 @@
-use crate::{bitboard::Bitboard, consts::SQUARE_COUNT, move_masks::MoveMasks, rng::RandomNumberGenerator, square::Square};
+use crate::{Bitboard, consts::SQUARE_COUNT, MoveMasks, RandomNumberGenerator, Square};
 
 const MAX_SLIDER_MOVE_PERMUTATIONS: usize = 4096;
 const NUM_CANDIDATES: usize = 10_000_000;

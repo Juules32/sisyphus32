@@ -1,6 +1,6 @@
 use std::mem;
 
-use crate::{bitboard::Bitboard, color::Color, consts::{FILE_COUNT, PIECE_TYPE_COUNT, SQUARE_COUNT}, file::File, piece::Piece, position::Position, score::Score, square::Square};
+use crate::{Bitboard, Color, consts::{FILE_COUNT, PIECE_TYPE_COUNT, SQUARE_COUNT}, File, Piece, Position, Score, Square};
 
 #[allow(unused_imports)]
 use crate::move_masks::MoveMasks;

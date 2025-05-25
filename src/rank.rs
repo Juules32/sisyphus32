@@ -3,7 +3,7 @@ use std::mem::transmute;
 
 use thiserror::Error;
 
-use crate::consts::RANK_COUNT;
+use crate::{consts::RANK_COUNT, error::RankParseError};
 
 // NOTE: The rank enum can be unintuitive to work with since it starts with the eighth rank.
 // Changing the ordering could impact all places where Rank is used!
@@ -26,10 +26,6 @@ impl From<u8> for Rank {
         unsafe { transmute::<u8, Self>(number) }
     }
 }
-
-#[derive(Error, Debug)]
-#[error("Couldn't parse rank: {0}")]
-pub struct RankParseError(char);
 
 impl TryFrom<char> for Rank {
     type Error = RankParseError;

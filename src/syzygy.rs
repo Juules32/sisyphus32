@@ -2,7 +2,7 @@ use std::io::Error;
 use shakmaty::{fen::Fen, CastlingMode, Chess};
 use shakmaty_syzygy::Tablebase;
 
-use crate::{bit_move::{BitMove, ScoringMove}, fen::FenString, move_generation::{Legal, MoveGeneration}, position::Position, score::Score, uci::Uci};
+use crate::{BitMove, ScoringMove, FenString, Legal, MoveGeneration, Position, Score, Uci};
 
 pub struct SyzygyTablebase {
     shakmaty_tablebase: Tablebase<Chess>

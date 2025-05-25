@@ -1,1 +1,3 @@
-fn main() { sisyphus32::uci::Uci::default().init(); }
+use sisyphus32::Uci;
+
+fn main() { Uci::default().init(); }

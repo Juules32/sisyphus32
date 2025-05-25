@@ -7,7 +7,7 @@ use ureq::{Agent, Error};
 #[cfg(feature = "unit_opening_book")]
 use rand::seq::IteratorRandom;
 
-use crate::{bit_move::BitMove, color::Color, fen::FenString, move_generation::{Legal, MoveGeneration}, position::Position, uci::Uci};
+use crate::{BitMove, Color, FenString, Legal, MoveGeneration, Position, Uci};
 
 const NUM_GAMES_THRESHOLD: u32 = 1_000;
 const WINRATE_THRESHOLD: f32 = 0.35;
@@ -87,7 +87,7 @@ impl OpeningBook {
         let resp = self.agent.get(uri).call();
         let body = resp?.body_mut().read_to_string()?;
         let lichess_opening_stats: LichessOpeningStats = serde_json::from_str(&body)
-            .map_err(|err| ureq::Error::Json(err))?;
+            .map_err(ureq::Error::Json)?;
         Ok(lichess_opening_stats)
     }
 

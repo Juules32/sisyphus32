@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{ops::{Index, IndexMut}, mem::transmute};
 
-use crate::{color::Color, consts::{PIECE_TYPE_COUNT, PLAYER_COUNT}};
+use crate::{Color, consts::{PIECE_TYPE_COUNT, PLAYER_COUNT}};
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug)]

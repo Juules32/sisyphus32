@@ -2,7 +2,7 @@
 
 use std::{env, process::Command};
 
-use sisyphus32::versions::{BASE_VERSIONS, VERSIONS};
+use sisyphus32::{BASE_VERSIONS, VERSIONS};
 
 fn main() {
     env::set_var("RUSTFLAGS", "-Awarnings");
@@ -16,7 +16,7 @@ fn main() {
             .expect("Failed to execute cargo test");
 
         if !status.success() {
-            eprintln!("Test failed for version: {}", version_name);
+            eprintln!("Test failed for version: {version_name}");
             panic!("Tests failed! Exiting early...");  // Force exit with failure
         }
     }

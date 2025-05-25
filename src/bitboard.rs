@@ -1,4 +1,4 @@
-use crate::{bit_twiddles, consts::{FILE_COUNT, RANK_COUNT}, square::Square};
+use crate::{bit_twiddles, consts::{FILE_COUNT, RANK_COUNT}, Square};
 use core::fmt;
 use std::{mem::{self, transmute}, ops::*};
 

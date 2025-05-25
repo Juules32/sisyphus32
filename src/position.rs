@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{bit_move::BitMove, bitboard::Bitboard, castling_rights::CastlingRights, color::Color, consts::{PIECE_TYPE_COUNT, SQUARE_COUNT}, eval_position::EvalPosition, fen::FenString, file::File, move_flag::MoveFlag, move_masks::MoveMasks, piece::Piece, square::Square, zobrist::ZobristKey};
+use crate::{BitMove, Bitboard, CastlingRights, Color, consts::{PIECE_TYPE_COUNT, SQUARE_COUNT}, EvalPosition, FenString, File, MoveFlag, MoveMasks, Piece, Square, ZobristKey};
 
 #[derive(Clone)]
 pub struct Position {
@@ -265,7 +265,7 @@ impl Position {
 
         // Modify the zobrist key after making the move
         self.zobrist_mods();
-        debug_assert_eq!(self.zobrist_key, ZobristKey::generate(self), "{}", self);
+        debug_assert_eq!(self.zobrist_key, ZobristKey::generate(self), "{self}");
     }
 
     #[inline]
@@ -457,7 +457,7 @@ impl fmt::Display for Position {
             
             match self.get_piece_option(sq) {
                 None => s += ". ",
-                Some(piece) => s += &format!("{} ", piece),
+                Some(piece) => s += &format!("{piece} "),
             }
 
             if sq.file() == File::FH {

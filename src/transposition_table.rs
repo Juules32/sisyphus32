@@ -5,7 +5,7 @@ use std::ops::BitXor;
 #[cfg(not(feature = "unit_lockless_hashing"))]
 use std::sync::{Mutex, MutexGuard};
 
-use crate::{bit_move::ScoringMove, zobrist::ZobristKey};
+use crate::{ScoringMove, ZobristKey};
 
 const TT_INIT_BYTES_SIZE: usize = 16; // 16MB
 

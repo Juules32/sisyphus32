@@ -1,4 +1,4 @@
-use sisyphus32::{fen::FenString, search::Search};
+use sisyphus32::{FenString, Search};
 
 fn main() {
     let mut search = Search::default();

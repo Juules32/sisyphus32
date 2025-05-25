@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::{bitboard::Bitboard, consts::{FILE_COUNT, SQUARE_COUNT}, file::{File, FileParseError}, rank::{Rank, RankParseError}};
+use crate::{consts::{FILE_COUNT, SQUARE_COUNT}, error::{FileParseError, RankParseError, SquareParseError}, Bitboard, File, Rank};
 use core::fmt;
 use std::{ops::{Index, IndexMut}, mem::transmute};
 
@@ -102,24 +102,6 @@ impl From<u8> for Square {
     fn from(number: u8) -> Self {
         unsafe { transmute::<u8, Self>(number) }
     }
-}
-
-#[derive(Error, Debug)]
-pub enum SquareParseError {
-    #[error("Missing file character")]
-    NoFile,
-
-    #[error("Missing rank character")]
-    NoRank,
-
-    #[error("Illegal string length for square: {0}")]
-    StringLength(String),
-
-    #[error("{0}")]
-    RankParseError(#[from] RankParseError),
-
-    #[error("{0}")]
-    FileParseError(#[from] FileParseError),
 }
 
 impl TryFrom<&str> for Square {

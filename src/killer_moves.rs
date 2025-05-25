@@ -1,6 +1,6 @@
 use std::mem;
 
-use crate::{bit_move::BitMove, consts::MAX_DEPTH};
+use crate::{BitMove, consts::MAX_DEPTH};
 
 static mut PRIMARY_KILLER_MOVES: [BitMove; MAX_DEPTH] = unsafe { mem::zeroed() };
 static mut SECONDARY_KILLER_MOVES: [BitMove; MAX_DEPTH] = unsafe { mem::zeroed() };

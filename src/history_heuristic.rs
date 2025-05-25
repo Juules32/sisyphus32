@@ -1,6 +1,6 @@
 use std::mem;
 
-use crate::{bit_move::BitMove, color::Color, consts::{PLAYER_COUNT, SQUARE_COUNT}, square::Square};
+use crate::{Color, consts::{PLAYER_COUNT, SQUARE_COUNT}, Square, BitMove};
 
 const MAX_SCORE: i16 = 1000;
 

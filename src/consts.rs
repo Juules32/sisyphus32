@@ -2,7 +2,6 @@
 
 pub const MAX_MOVES: usize = 255;
 pub const MAX_DEPTH: usize = 64;
-
 pub const PLAYER_COUNT: usize = 2;
 pub const SQUARE_COUNT: usize = 64;
 pub const PIECE_TYPE_COUNT: usize = 12;

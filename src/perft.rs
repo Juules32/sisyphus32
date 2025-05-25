@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{bit_move::BitMove, fen::FenString, move_generation::{MoveGeneration, PseudoLegal}, position::Position, timer::Timer};
+use crate::{BitMove, FenString, MoveGeneration, PseudoLegal, Position, Timer};
 
 use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
 
@@ -267,7 +267,7 @@ impl Perft {
         let score = performances.iter().sum::<f64>() / performances.len() as f64;
 
         println!("  |-----------------------------------------------------------------|");
-        println!("  | Overall score: {:<48.3} |", score);
+        println!("  | Overall score: {score:<48.3} |");
         println!("  |-----------------------------------------------------------------|");
     }
 

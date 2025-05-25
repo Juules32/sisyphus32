@@ -1,7 +1,7 @@
 use core::fmt;
 use std::mem::transmute;
 
-use thiserror::Error;
+use crate::error::FileParseError;
 
 #[derive(Clone, Copy, PartialEq)]
 #[repr(u8)]
@@ -22,10 +22,6 @@ impl From<u8> for File {
         unsafe { transmute::<u8, Self>(number) }
     }
 }
-
-#[derive(Error, Debug)]
-#[error("Couldn't parse file: {0}")]
-pub struct FileParseError(char);
 
 impl TryFrom<char> for File {
     type Error = FileParseError;

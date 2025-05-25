@@ -1,4 +1,4 @@
-use crate::{bit_move::{BitMove, Move, ScoringMove}, consts::MAX_MOVES};
+use crate::{BitMove, Move, ScoringMove, consts::MAX_MOVES};
 use core::fmt;
 use std::{mem, ops::{Index, IndexMut}};
 

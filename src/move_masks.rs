@@ -1,6 +1,6 @@
 use std::mem;
 
-use crate::{bitboard::Bitboard, color::Color, consts::{FILE_COUNT, SQUARE_COUNT}, file::File, piece::Piece, rank::Rank, square::Square};
+use crate::{Bitboard, Color, consts::{FILE_COUNT, SQUARE_COUNT}, File, Piece, Rank, Square};
 
 const NUM_ROOK_MOVE_PERMUTATIONS: usize = 4096;
 const NUM_BISHOP_MOVE_PERMUTATIONS: usize = 512;

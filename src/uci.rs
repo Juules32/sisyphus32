@@ -2,7 +2,7 @@ use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, th
 
 use thiserror::Error;
 
-use crate::{bit_move::BitMove, color::Color, eval_position::EvalPosition, fen::{FenParseError, FenString}, move_flag::MoveFlag, move_generation::{Legal, MoveGeneration}, move_list::MoveList, perft::Perft, position::Position, search::Search, square::{Square, SquareParseError}, transposition_table::TranspositionTable};
+use crate::{error::{FenParseError, MoveStringParseError, SquareParseError, UciParseError}, BitMove, Color, EvalPosition, FenString, Legal, MoveFlag, MoveGeneration, MoveList, Perft, Position, Search, Square, TranspositionTable};
 
 const DEFAULT_TT_SIZE_MB: usize = 16;
 const MIN_TT_SIZE_MB: usize = 1;
@@ -11,45 +11,6 @@ const MAX_TT_SIZE_MB: usize = 10_000;
 const DEFAULT_NUM_THREADS: usize = 1;
 const MIN_NUM_THREADS: usize = 0;
 const MAX_NUM_THREADS: usize = 1024;
-
-#[derive(Error, Debug)]
-enum UciParseError {
-    #[error("Couldn't parse uci keyword")]
-    Keyword,
-
-    #[error("Couldn't parse parameter: {0}")]
-    Param(&'static str),
-
-    #[error("Couldn't parse parameter value: {0}")]
-    ParamValue(&'static str),
-
-    #[error("Parameter out of range for: {0}")]
-    ParamRange(&'static str),
-
-    #[error("Couldn't parse uci option")]
-    Option,
-
-    #[error("{0}")]
-    MoveStringParseError(#[from] MoveStringParseError),
-
-    #[error("{0}")]
-    FenParseError(#[from] FenParseError),
-}
-
-#[derive(Error, Debug)]
-pub enum MoveStringParseError {
-    #[error("Illegal move string length")]
-    LengthParseError,
-
-    #[error("Illegal promotion piece")]
-    PromotionPieceParseError(String),
-    
-    #[error("Couldn't find pseudo-legal move: {0}")]
-    IllegalMove(String),
-
-    #[error("{0}")]
-    SquareParseError(#[from] SquareParseError),
-}
 
 pub struct Uci {
     pub position: Position,
@@ -88,7 +49,7 @@ impl Uci {
 
         for line in uci_command_rx {
             if let Err(error) = self.parse_line(line) {
-                eprintln!("{}!", error);
+                eprintln!("{error}!");
             };
         }
     }
@@ -160,7 +121,7 @@ impl Uci {
             Ok(())
         } else if line.starts_with("setoption name Threads value") {
             let num_threads = words.last().unwrap().parse().map_err(|_| UciParseError::ParamValue("Threads"))?;
-            if num_threads < MIN_NUM_THREADS || num_threads > MAX_NUM_THREADS {
+            if num_threads > MAX_NUM_THREADS {
                 return Err(UciParseError::ParamRange("Threads"));
             }
             
@@ -278,7 +239,7 @@ impl Uci {
     }
     
     #[inline(always)]
-    pub fn parse_move_string(move_list: &MoveList<BitMove>, move_string: &str) -> Result<BitMove, MoveStringParseError> {
+    pub(crate) fn parse_move_string(move_list: &MoveList<BitMove>, move_string: &str) -> Result<BitMove, MoveStringParseError> {
         if move_string.len() == 4 || move_string.len() == 5 {
             let source = Square::try_from(&move_string[0..2])?;
             let target = Square::try_from(&move_string[2..4])?;
