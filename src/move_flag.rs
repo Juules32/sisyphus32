@@ -28,6 +28,16 @@ impl MoveFlag {
     pub fn is_castle(self) -> bool {
         matches!(self, Self::WKCastle | Self::WQCastle | Self::BKCastle | Self::BQCastle)
     }
+    
+    #[inline(always)]
+    pub fn is_en_passant(self) -> bool {
+        matches!(self, Self::WEnPassant | Self::BEnPassant)
+    }
+    
+    #[inline(always)]
+    pub fn is_double_pawn_push(self) -> bool {
+        matches!(self, Self::WDoublePawn | Self::BDoublePawn)
+    }
 }
 
 impl From<u8> for MoveFlag {

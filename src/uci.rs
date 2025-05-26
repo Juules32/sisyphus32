@@ -11,15 +11,18 @@ const MIN_NUM_THREADS: usize = 0;
 const MAX_NUM_THREADS: usize = 1024;
 
 pub struct Uci {
-    pub position: Position,
-    pub search: Search,
+    position: Position,
+    search: Search,
 }
 
 impl Default for Uci {
     fn default() -> Self {
+        let mut search = Search::default();
+        search.show_uci_info();
+
         Self {
             position: Position::starting_position(),
-            search: Search::default(),
+            search,
         }
     }
 }
