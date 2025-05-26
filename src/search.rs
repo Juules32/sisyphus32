@@ -706,3 +706,21 @@ impl Search {
         self.tablebase = Arc::new(result);
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn go_returns_non_empty_move() {
+        assert_ne!(
+            Search::default().go(
+                &Position::starting_position(),
+                Some(2),
+                None
+            ).bit_move,
+            BitMove::EMPTY
+        )
+    }
+}

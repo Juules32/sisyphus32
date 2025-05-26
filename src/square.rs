@@ -53,22 +53,22 @@ impl Square {
     }
 
     #[inline(always)]
-    pub fn above(self) -> Square {
+    pub(crate) fn above(self) -> Square {
         Square::from(self as u8 - FILE_COUNT as u8)
     }
 
     #[inline(always)]
-    pub fn below(self) -> Square {
+    pub(crate) fn below(self) -> Square {
         Square::from(self as u8 + FILE_COUNT as u8)
     }
 
     #[inline(always)]
-    pub fn left(self) -> Square {
+    pub(crate) fn left(self) -> Square {
         Square::from(self as u8 - 1)
     }
 
     #[inline(always)]
-    pub fn right(self) -> Square {
+    pub(crate) fn right(self) -> Square {
         Square::from(self as u8 + 1)
     }
 }
