@@ -38,6 +38,12 @@ pub struct BitMove(u32);
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct BitMove(u16);
 
+impl Default for BitMove {
+    fn default() -> Self {
+        Self::EMPTY
+    }
+}
+
 impl Move for BitMove {
     #[inline(always)]
     fn get_bit_move(self) -> BitMove {
@@ -190,12 +196,6 @@ impl BitMove {
     }
 }
 
-impl Default for BitMove {
-    fn default() -> Self {
-        Self::EMPTY
-    }
-}
-
 #[cfg(feature = "unit_bb")]
 impl Display for BitMove {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -243,6 +243,13 @@ pub struct ScoringMove {
     pub score: Score,
 }
 
+impl Default for ScoringMove {
+    #[inline(always)]
+    fn default() -> Self {
+        Self::EMPTY
+    }
+}
+
 impl Move for ScoringMove {
     #[inline(always)]
     fn get_bit_move(self) -> BitMove {
@@ -281,13 +288,6 @@ impl ScoringMove {
             bit_move,
             score
         }
-    }
-}
-
-impl Default for ScoringMove {
-    #[inline(always)]
-    fn default() -> Self {
-        Self::EMPTY
     }
 }
 

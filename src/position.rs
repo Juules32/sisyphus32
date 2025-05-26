@@ -21,6 +21,28 @@ pub struct Position {
     pub(crate) game_phase_score: i16,
 }
 
+impl Default for Position {
+    fn default() -> Position {
+        Position {
+            #[cfg(feature = "unit_bb_array")]
+            pps: [None; SQUARE_COUNT],
+
+            bitboards: [Bitboard::EMPTY; PIECE_TYPE_COUNT],
+            white_occupancy: Bitboard::EMPTY,
+            black_occupancy: Bitboard::EMPTY,
+            all_occupancy: Bitboard::EMPTY,
+            side: Color::White,
+            en_passant_option: None,
+            castling_rights: CastlingRights::NONE,
+            ply: 0,
+            zobrist_key: ZobristKey(0),
+
+            #[cfg(feature = "unit_tapered_eval")]
+            game_phase_score: 0,
+        }
+    }
+}
+
 impl Position {
     #[inline(always)]
     pub(crate) fn merge_occupancies(&mut self) {
@@ -422,28 +444,6 @@ impl Position {
     #[cfg(feature = "unit_bb_array")]
     pub fn get_piece_option(&self, square: Square) -> Option<Piece> {
         self.pps[square]
-    }
-}
-
-impl Default for Position {
-    fn default() -> Position {
-        Position {
-            #[cfg(feature = "unit_bb_array")]
-            pps: [None; SQUARE_COUNT],
-
-            bitboards: [Bitboard::EMPTY; PIECE_TYPE_COUNT],
-            white_occupancy: Bitboard::EMPTY,
-            black_occupancy: Bitboard::EMPTY,
-            all_occupancy: Bitboard::EMPTY,
-            side: Color::White,
-            en_passant_option: None,
-            castling_rights: CastlingRights::NONE,
-            ply: 0,
-            zobrist_key: ZobristKey(0),
-
-            #[cfg(feature = "unit_tapered_eval")]
-            game_phase_score: 0,
-        }
     }
 }
 

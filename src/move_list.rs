@@ -7,6 +7,12 @@ pub struct MoveList<T> {
     size: usize,
 }
 
+impl<T: Move> Default for MoveList<T> {
+    fn default() -> Self {
+        unsafe { mem::zeroed() }
+    }
+}
+
 impl<T: Move> MoveList<T> {
     #[inline(always)]
     pub fn new() -> Self {
@@ -51,12 +57,6 @@ impl<T: Move> MoveList<T> {
     #[inline(always)]
     pub fn first(&self) -> T {
         self.array[0]
-    }
-}
-
-impl<T: Move> Default for MoveList<T> {
-    fn default() -> Self {
-        unsafe { mem::zeroed() }
     }
 }
 

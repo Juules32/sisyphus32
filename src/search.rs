@@ -33,6 +33,28 @@ pub struct Search {
     uci_visible: bool,
 }
 
+impl Default for Search {
+    fn default() -> Search {
+        Search {
+            timer: Arc::new(Timer::new()),
+            stop_time: Arc::new(None),
+            stop_calculating: Arc::new(AtomicBool::new(false)),
+            nodes: 0,
+            zobrist_key_history: Vec::new(),
+            threadpool: Arc::new(
+                rayon::ThreadPoolBuilder::new()
+                    .num_threads(1)
+                    .build()
+                    .unwrap()
+            ),
+            in_opening: true,
+            opening_book: Arc::new(OpeningBook::default()),
+            tablebase: Arc::new(SyzygyTablebase::from_directory("tables/syzygy").ok()),
+            uci_visible: false,
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! uci_println {
     ($self:expr) => {
@@ -682,27 +704,5 @@ impl Search {
             None => uci_println!(self, "info string error loading tablebase"),
         }
         self.tablebase = Arc::new(result);
-    }
-}
-
-impl Default for Search {
-    fn default() -> Search {
-        Search {
-            timer: Arc::new(Timer::new()),
-            stop_time: Arc::new(None),
-            stop_calculating: Arc::new(AtomicBool::new(false)),
-            nodes: 0,
-            zobrist_key_history: Vec::new(),
-            threadpool: Arc::new(
-                rayon::ThreadPoolBuilder::new()
-                    .num_threads(1)
-                    .build()
-                    .unwrap()
-            ),
-            in_opening: true,
-            opening_book: Arc::new(OpeningBook::default()),
-            tablebase: Arc::new(SyzygyTablebase::from_directory("tables/syzygy").ok()),
-            uci_visible: false,
-        }
     }
 }
