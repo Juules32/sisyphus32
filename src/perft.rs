@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{BitMove, FenString, MoveGeneration, PseudoLegal, Position, Timer};
+use crate::{BitMove, FenString, GlobalThreadPool, MoveGeneration, Position, PseudoLegal, Timer};
 
 use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
 
@@ -45,7 +45,11 @@ impl Perft {
         return Self::perft_test_single_thread_clone(position, depth, print_result);
 
         #[cfg(feature = "unit_parallel_perft")]
-        return Self::perft_test_parallelize(position, depth, print_result);
+        if GlobalThreadPool::should_parallelize() {
+            return Self::perft_test_parallelize(position, depth, print_result);
+        } else {
+            return Self::perft_test_single_thread_clone(position, depth, print_result);
+        }
     }
 
     #[inline(always)]

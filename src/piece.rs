@@ -4,7 +4,7 @@ use std::{ops::{Index, IndexMut}, mem::transmute};
 use crate::{Color, PIECE_TYPE_COUNT, PLAYER_COUNT};
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Piece {
     WP = 0b0,
     WN = 0b1,

@@ -3,7 +3,7 @@ use core::fmt;
 use std::{ops::{Index, IndexMut}, mem::transmute};
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Square {
     A8, B8, C8, D8, E8, F8, G8, H8,
     A7, B7, C7, D7, E7, F7, G7, H7,
@@ -53,22 +53,22 @@ impl Square {
     }
 
     #[inline(always)]
-    pub fn above(self) -> Square {
+    pub(crate) fn above(self) -> Square {
         Square::from(self as u8 - FILE_COUNT as u8)
     }
 
     #[inline(always)]
-    pub fn below(self) -> Square {
+    pub(crate) fn below(self) -> Square {
         Square::from(self as u8 + FILE_COUNT as u8)
     }
 
     #[inline(always)]
-    pub fn left(self) -> Square {
+    pub(crate) fn left(self) -> Square {
         Square::from(self as u8 - 1)
     }
 
     #[inline(always)]
-    pub fn right(self) -> Square {
+    pub(crate) fn right(self) -> Square {
         Square::from(self as u8 + 1)
     }
 }

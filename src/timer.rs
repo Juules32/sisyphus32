@@ -5,6 +5,12 @@ pub struct Timer {
     start_time: Instant,
 }
 
+impl Default for Timer {
+    fn default() -> Self {
+        Self { start_time: Instant::now() }
+    }
+}
+
 impl Timer {
     pub fn new() -> Self {
         Timer::default()
@@ -18,11 +24,5 @@ impl Timer {
     #[inline(always)]
     pub fn get_time_passed_secs(&self) -> f64 {
         Instant::now().duration_since(self.start_time).as_secs_f64()
-    }
-}
-
-impl Default for Timer {
-    fn default() -> Self {
-        Self { start_time: Instant::now() }
     }
 }

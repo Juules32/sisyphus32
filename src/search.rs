@@ -1,11 +1,9 @@
-use rayon::ThreadPool;
 use std::{cmp::min, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{BitMove, ScoringMove, HistoryHeuristic, MAX_DEPTH, SQUARE_COUNT, EvalPosition, KillerMoves, Legal, MoveGeneration, PseudoLegal, OpeningBook, Position, Score, SyzygyTablebase, Timer, TTData, TTNodeType, TranspositionTable, ZobristKey};
+use crate::{BitMove, EvalPosition, GlobalThreadPool, HistoryHeuristic, KillerMoves, Legal, MoveGeneration, OpeningBook, Position, PseudoLegal, Score, ScoringMove, SyzygyTablebase, TTData, TTNodeType, Timer, TranspositionTable, ZobristKey, MAX_DEPTH, SQUARE_COUNT};
 
 const AVERAGE_AMOUNT_OF_MOVES: usize = 25;
 const NULL_MOVE_DEPTH_REDUCTION: usize = 3;
-const LAZY_SMP_THREAD_THRESHOLD: usize = 3;
 const LMR_MOVE_INDEX_THRESHOLD: usize = 3;
 const TABLEBASE_SEARCH_THRESHOLD: u128 = 100;
 const EXTENDED_TABLEBASE_SEARCH_THRESHOLD: u128 = 500;
@@ -26,13 +24,69 @@ pub struct Search {
     timer: Arc<Timer>,
     stop_time: Arc<Option<u128>>,
     stop_calculating: Arc<AtomicBool>,
-    threadpool: Arc<ThreadPool>,
     pub(crate) in_opening: bool,
     opening_book: Arc<OpeningBook>,
     tablebase: Arc<Option<SyzygyTablebase>>,
+    uci_visible: bool,
+}
+
+impl Default for Search {
+    fn default() -> Search {
+        Search {
+            timer: Arc::new(Timer::new()),
+            stop_time: Arc::new(None),
+            stop_calculating: Arc::new(AtomicBool::new(false)),
+            nodes: 0,
+            zobrist_key_history: Vec::new(),
+            in_opening: true,
+            opening_book: Arc::new(OpeningBook::default()),
+            tablebase: Arc::new(SyzygyTablebase::from_directory("tables/syzygy").ok()),
+            uci_visible: false,
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! uci_println {
+    ($self:expr) => {
+        if $self.uci_visible {
+            println!();
+        }
+    };
+
+    ($self:expr, $($arg:tt)*) => {
+        if $self.uci_visible {
+            println!($($arg)*);
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! uci_print {
+    ($self:expr) => {
+        if $self.uci_visible {
+            print!();
+        }
+    };
+
+    ($self:expr, $($arg:tt)*) => {
+        if $self.uci_visible {
+            print!($($arg)*);
+        }
+    };
 }
 
 impl Search {
+    #[inline(always)]
+    pub fn show_uci_info(&mut self) {
+        self.uci_visible = true;
+    }
+
+    #[inline(always)]
+    pub fn hide_uci_info(&mut self) {
+        self.uci_visible = false;
+    }
+
     #[inline(always)]
     pub fn begin_stop_calculating(&self) {
         self.stop_calculating.store(true, Ordering::Relaxed);
@@ -326,10 +380,10 @@ impl Search {
     }
 
     #[inline(always)]
-    fn go_no_iterative_deepening(&mut self, position: &Position, depth: usize) {
-        let best_scoring_move = self.best_move(position, depth);
-        println!("info depth {} score cp {} nodes {} time {} pv {}", depth, best_scoring_move.score, self.nodes, self.timer.get_time_passed_millis(), best_scoring_move.bit_move.to_uci_string());
-        println!("bestmove {}", best_scoring_move.bit_move.to_uci_string());
+    fn go_no_iterative_deepening(&mut self, position: &Position, depth: usize) -> ScoringMove {
+        let best_move = self.best_move(position, depth);
+        uci_println!(self, "info depth {} score cp {} nodes {} time {} pv {}", depth, best_move.score, self.nodes, self.timer.get_time_passed_millis(), best_move.bit_move.to_uci_string());
+        best_move
     }
 
     #[inline(always)]
@@ -340,16 +394,16 @@ impl Search {
         false
     }
 
-    fn modify_best_scoring_move_if_empty(&self, position: &Position, best_scoring_move: &mut ScoringMove) {
-        if best_scoring_move.bit_move == BitMove::EMPTY {
-            println!("info string choosing best move based on move ordering");
-            *best_scoring_move = self.move_ordering_best_move(position);
+    fn modify_best_move_if_empty(&self, position: &Position, best_move: &mut ScoringMove) {
+        if best_move.bit_move == BitMove::EMPTY {
+            uci_println!(self, "info string choosing best move based on move ordering");
+            *best_move = self.move_ordering_best_move(position);
         }
     }
 
     #[inline(always)]
-    fn go_iterative_deepening(&mut self, position: &Position, depth: usize) {
-        let mut best_scoring_move = ScoringMove::blank(Score::BLANK);
+    fn go_iterative_deepening(&mut self, position: &Position, depth: usize) -> ScoringMove {
+        let mut best_move = ScoringMove::blank(Score::BLANK);
 
         for current_depth in 1..=depth {
             self.nodes = 0;
@@ -359,35 +413,35 @@ impl Search {
                 #[cfg(feature = "unit_tt")]
                 TranspositionTable::reset();
 
-                println!("info string ended iterative search and reset transposition table");
+                uci_println!(self, "info string ended iterative search and reset transposition table");
                 break;
             }
 
             // NOTE: This check is necessary to mitigate the effects of a rare
             // bug where an empty bitmove is returned from the search!
             if new_best_move.bit_move == BitMove::EMPTY {
-                println!("info string found empty best move at depth {current_depth}");
+                uci_println!(self, "info string found empty best move at depth {current_depth}");
                 continue;
             }
 
-            best_scoring_move = new_best_move;
+            best_move = new_best_move;
             let found_mate = new_best_move.score.is_checkmate();
 
             self.print_info_depth(position, new_best_move, current_depth, found_mate);
 
             if self.should_end_search_early() {
-                println!("info string ended iterative search early based on time prediction");
+                uci_println!(self, "info string ended iterative search early based on time prediction");
                 break;
             }
         }
 
-        self.modify_best_scoring_move_if_empty(position, &mut best_scoring_move);
-        println!("bestmove {}", best_scoring_move.bit_move.to_uci_string());
+        self.modify_best_move_if_empty(position, &mut best_move);
+        best_move
     }
 
     #[inline(always)]
     fn print_info_depth(&self, position: &Position, scoring_move: ScoringMove, current_depth: usize, found_mate: bool) {
-        println!(
+        uci_println!(self, 
             "info depth {:<2} score {:<10} nodes {:<10} time {:<6} pv {}",
             current_depth,
             Self::score_or_mate_string(scoring_move.score, found_mate),
@@ -398,15 +452,15 @@ impl Search {
     }
 
     #[inline(always)]
-    fn go_lazy_smp(&mut self, position: &Position, depth: usize) {
-        let best_scoring_move = Arc::new(Mutex::new(ScoringMove::blank(Score::BLANK)));
+    fn go_lazy_smp(&mut self, position: &Position, depth: usize) -> ScoringMove {
+        let best_move = Arc::new(Mutex::new(ScoringMove::blank(Score::BLANK)));
         let ended_early = Arc::new(AtomicBool::new(false));
 
-        self.threadpool
+        GlobalThreadPool::get()
             .scope(|s| {
             for current_depth in 1..=depth {
                 let mut self_ref = self.clone();
-                let best_scoring_move = best_scoring_move.clone();
+                let best_move = best_move.clone();
                 let ended_early = ended_early.clone();
 
                 s.spawn(move |_| {
@@ -427,7 +481,7 @@ impl Search {
                     // NOTE: This prevents a bug where concurrent threads overwrite an already
                     // existing mating line and also help return the search early if a mate has
                     // already been found.
-                    if let Ok(mut best_move) = best_scoring_move.lock() {
+                    if let Ok(mut best_move) = best_move.lock() {
                         if !best_move.score.is_checkmate() {
                             *best_move = new_best_move;
                         } else {
@@ -448,17 +502,18 @@ impl Search {
         });
 
         if self.should_stop_calculating() {
-            print!("info string ended iterative search and reset transposition table");
+            uci_print!(self, "info string ended iterative search and reset transposition table");
             if ended_early.load(Ordering::Relaxed) {
-                println!(" based on time prediction");
+                uci_println!(self, " based on time prediction");
             } else {
-                println!();
+                uci_println!(self, );
             }
             TranspositionTable::reset();
         }
 
-        self.modify_best_scoring_move_if_empty(position, &mut best_scoring_move.lock().unwrap());
-        println!("bestmove {}", best_scoring_move.lock().unwrap().bit_move.to_uci_string());
+        self.modify_best_move_if_empty(position, &mut best_move.lock().unwrap());
+        let best_move = best_move.lock().unwrap();
+        *best_move
     }
 
     fn score_or_mate_string(score: Score, found_mate: bool) -> String {
@@ -472,19 +527,19 @@ impl Search {
 
     
     #[inline(always)]
-    pub fn go(&mut self, position: &Position, depth: Option<usize>, stop_time: Option<u128>) {
+    pub fn go(&mut self, position: &Position, depth: Option<usize>, stop_time: Option<u128>) -> ScoringMove {
         self.reset(stop_time);
 
         #[cfg(feature = "unit_opening_book")]
         if self.in_opening && stop_time.is_none_or(|time| time >= OPENING_BOOK_SEARCH_THRESHOLD) {
-            println!("info string searching for opening move");
+            uci_println!(self, "info string searching for opening move");
             if let Some(opening_move) = self.opening_book.get_move(position) {
-                println!("info time {}", self.timer.get_time_passed_millis());
-                println!("bestmove {}", opening_move.to_uci_string());
-                return;
+                uci_println!(self, "info time {}", self.timer.get_time_passed_millis());
+                uci_println!(self, "bestmove {}", opening_move.to_uci_string());
+                return ScoringMove::from(opening_move);
             } else {
-                println!("info string error finding opening move");
-                println!("info string disabling opening book");
+                uci_println!(self, "info string error finding opening move");
+                uci_println!(self, "info string disabling opening book");
                 self.in_opening = false;
             }
         }
@@ -493,7 +548,7 @@ impl Search {
         if let Some(tablebase) = self.tablebase.as_ref() {
             let tablebase_max_pieces_u8 = tablebase.get_max_pieces() as u8;
             if position.all_occupancy.count_bits() <= tablebase_max_pieces_u8 + 1 {
-                println!("info string searching for tablebase move");
+                uci_println!(self, "info string searching for tablebase move");
                 let mut best_move_option = None;
 
                 if position.all_occupancy.count_bits() <= tablebase_max_pieces_u8 && stop_time.is_none_or(|time| time >= TABLEBASE_SEARCH_THRESHOLD) {
@@ -518,42 +573,44 @@ impl Search {
                 }
 
                 if let Some(best_move) = best_move_option {
-                    println!(
+                    uci_println!(self, 
                         "info score {} time {}",
                         Self::score_or_mate_string(best_move.score, true),
                         self.timer.get_time_passed_millis(),
                     );
-                    println!("bestmove {}", best_move.bit_move.to_uci_string());
-                    return;
+                    uci_println!(self, "bestmove {}", best_move.bit_move.to_uci_string());
+                    return best_move;
                 } else {
-                    println!("info string error finding tablebase move");
+                    uci_println!(self, "info string error finding tablebase move");
                 }
             }
         }
 
-        self.go_search(position, depth, stop_time);
+        let best_move = self.go_search(position, depth, stop_time);
+        uci_println!(self, "bestmove {}", best_move.bit_move.to_uci_string());
+        best_move
     }
 
     #[inline(always)]
-    fn go_search(&mut self, position: &Position, depth: Option<usize>, stop_time: Option<u128>) {
+    fn go_search(&mut self, position: &Position, depth: Option<usize>, stop_time: Option<u128>) -> ScoringMove {
         let stop_flag = self.stop_calculating.clone();
-        print!("info string searching for best move");
+        uci_print!(self, "info string searching for best move");
 
         if let Some(stop_time) = stop_time {
-            print!(" within {stop_time} milliseconds");
+            uci_print!(self, " within {stop_time} milliseconds");
         }
 
         if let Some(depth) = depth {
-            print!(" with a maximum depth of {depth}");
+            uci_print!(self, " with a maximum depth of {depth}");
         }
 
-        println!();
+        uci_println!(self);
 
         let depth = depth.unwrap_or(MAX_DEPTH);
 
         // NOTE: Scoping the following thread helps prevent an excess amount of threads being created
         // and future calculations being stopped because of old threads.
-        thread::scope(|s| {
+        let chosen_move = thread::scope(|s| {
             if let Some(time) = stop_time {
                 s.spawn(move || {
                     for _ in 0..time / 10 {
@@ -563,24 +620,30 @@ impl Search {
                         }
                     }
                     stop_flag.store(true, Ordering::Relaxed);
+                    return;
                 });
             }
             
-            #[cfg(not(feature = "unit_iterative_deepening"))]
-            self.go_no_iterative_deepening(position, depth);
+            let chosen_move = {
+                #[cfg(not(feature = "unit_iterative_deepening"))]
+                { return self.go_no_iterative_deepening(position, depth); }
 
-            #[cfg(all(not(feature = "unit_lazy_smp"), feature = "unit_iterative_deepening"))]
-            self.go_iterative_deepening(position, depth);
+                #[cfg(all(not(feature = "unit_lazy_smp"), feature = "unit_iterative_deepening"))]
+                { return self.go_iterative_deepening(position, depth); }
 
-            #[cfg(feature = "unit_lazy_smp")]
-            if self.threadpool.current_num_threads() >= LAZY_SMP_THREAD_THRESHOLD {
-                self.go_lazy_smp(position, depth);
-            } else {
-                self.go_iterative_deepening(position, depth);
-            }
+                #[cfg(feature = "unit_lazy_smp")]
+                if GlobalThreadPool::should_parallelize() {
+                    self.go_lazy_smp(position, depth)
+                } else {
+                    self.go_iterative_deepening(position, depth)
+                }
+            };
 
             self.begin_stop_calculating();
+            return chosen_move;
         });
+
+        chosen_move
     }
 
     #[inline(always)]
@@ -616,42 +679,30 @@ impl Search {
         pv_moves.join(" ")
     }
 
-    pub fn set_threadpool(&mut self, num_threads: usize) {
-        self.threadpool = Arc::new(
-            rayon::ThreadPoolBuilder::new()
-                .num_threads(num_threads)
-                .build()
-                .unwrap()
-        );
-    }
-
     pub fn set_tablebase(&mut self, path: &str) {
         let result = SyzygyTablebase::from_directory(path).ok();
         match result {
-            Some(_) => println!("info string loaded tablebase successfully"),
-            None => println!("info string error loading tablebase"),
+            Some(_) => uci_println!(self, "info string loaded tablebase successfully"),
+            None => uci_println!(self, "info string error loading tablebase"),
         }
         self.tablebase = Arc::new(result);
     }
 }
 
-impl Default for Search {
-    fn default() -> Search {
-        Search {
-            timer: Arc::new(Timer::new()),
-            stop_time: Arc::new(None),
-            stop_calculating: Arc::new(AtomicBool::new(false)),
-            nodes: 0,
-            zobrist_key_history: Vec::new(),
-            threadpool: Arc::new(
-                rayon::ThreadPoolBuilder::new()
-                    .num_threads(1)
-                    .build()
-                    .unwrap()
-            ),
-            in_opening: true,
-            opening_book: Arc::new(OpeningBook::default()),
-            tablebase: Arc::new(SyzygyTablebase::from_directory("tables/syzygy").ok()),
-        }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn go_returns_non_empty_move() {
+        assert_ne!(
+            Search::default().go(
+                &Position::starting_position(),
+                Some(2),
+                None
+            ).bit_move,
+            BitMove::EMPTY
+        )
     }
 }

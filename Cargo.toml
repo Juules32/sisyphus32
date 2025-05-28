@@ -1,6 +1,6 @@
 [package]
 name = "sisyphus32"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 default-run = "sisyphus32"
 license = "MIT"
@@ -12,9 +12,13 @@ exclude = [
     "openings/openings.pgn",
 ]
 
+# Only install the `main.rs` binary
+[[bin]]
+name = "sisyphus32"
+path = "src/main.rs"
+
 [dependencies]
 rayon = "1.10.0"
-ctor = "0.4.0"
 shakmaty-syzygy = "0.25.3"
 shakmaty = "0.27.3"
 thiserror = "2.0.12"
@@ -24,6 +28,7 @@ serde_json = "1.0.140"
 # Features that are optional to comply with wasm:
 ureq = { version = "3.0.11", features = ["json"], optional = true }
 rand = { version = "0.9.1", optional = true }
+ctor = "0.4.2"
 
 [profile.release-with-debug]
 inherits = "release"

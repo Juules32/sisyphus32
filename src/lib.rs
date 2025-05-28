@@ -16,6 +16,7 @@ compile_error!("feature \"unit_revert_undo\" and feature \"unit_bb_array\" canno
 mod bit_move;
 mod bit_twiddles;
 mod bitboard;
+mod bot_game;
 mod castling_rights;
 mod color;
 mod consts;
@@ -46,11 +47,13 @@ mod transposition_table;
 mod uci;
 mod versions;
 mod zobrist;
+mod global_thread_pool;
 
 ///*--------------------------------*\\\
 //    PUBLIC LIBRARY FUNCTIONALITY    \\
 //\*--------------------------------*/\\
 pub use bit_move::{Move, BitMove, ScoringMove};
+pub use bot_game::BotGame;
 pub use castling_rights::CastlingRights;
 pub use color::Color;
 pub use error::*;
@@ -80,6 +83,7 @@ pub use zobrist::ZobristKey;
 //\*--------------------------------*/\\
 use bitboard::Bitboard;
 use consts::*;
+use global_thread_pool::GlobalThreadPool;
 use history_heuristic::HistoryHeuristic;
 use killer_moves::KillerMoves;
 use move_masks::MoveMasks;
@@ -96,6 +100,7 @@ pub unsafe fn init() {
     EvalPosition::init_positional_masks();
     ZobristKey::init_zobrist_keys();
     TranspositionTable::init();
+    GlobalThreadPool::init();
 }
 
 #[cfg(not(target_arch = "wasm32"))]

@@ -2,6 +2,12 @@ pub struct RandomNumberGenerator {
     state: u32
 }
 
+impl Default for RandomNumberGenerator {
+    fn default() -> Self {
+        Self { state: 1804289383 }
+    }
+}
+
 impl RandomNumberGenerator {
     pub fn new(seed: u32) -> RandomNumberGenerator {
         RandomNumberGenerator { state: seed }
@@ -21,11 +27,5 @@ impl RandomNumberGenerator {
 
     pub fn generate_sparse_u64(&mut self) -> u64 {
         self.generate_u64() & self.generate_u64() & self.generate_u64()
-    }
-}
-
-impl Default for RandomNumberGenerator {
-    fn default() -> Self {
-        Self { state: 1804289383 }
     }
 }
