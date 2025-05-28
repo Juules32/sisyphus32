@@ -1,6 +1,6 @@
 # Sisyphus32
 Sisyphus32 is an open-source pruning-based chess engine!
-It can be run as an [executable]((https://github.com/Juules32/sisyphus32/releases)), where it uses UCI for communication.
+It can be run as an [executable](https://github.com/Juules32/sisyphus32/releases), where it uses UCI for communication.
 Alternatively, it can be used as a [crate](https://crates.io/crates/sisyphus32).
 
 # [Lichess Bot](https://lichess.org/@/Sisyphus32)
