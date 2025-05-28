@@ -149,6 +149,7 @@ impl Default for BotGame {
 mod tests {
     use super::*;
 
+    #[cfg(feature = "unit_bb_array")]
     #[test]
     fn making_moves_changes_color() {
         let mut bot_game = BotGame::new(Color::Black, 5000);
