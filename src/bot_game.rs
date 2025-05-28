@@ -149,7 +149,6 @@ impl Default for BotGame {
 mod tests {
     use super::*;
 
-    #[cfg(feature = "unit_bb_array")]
     #[test]
     fn making_moves_changes_color() {
         let mut bot_game = BotGame::new(Color::Black, 5000);
@@ -164,6 +163,7 @@ mod tests {
         assert!(bot_game.player_to_move());
     }
 
+    #[cfg(feature = "unit_bb_array")]
     #[test]
     fn get_2d_board_returns_array_of_tuples() {
         let bot_game = BotGame::new(Color::Black, 5000);
