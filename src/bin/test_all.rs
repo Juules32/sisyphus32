@@ -11,7 +11,7 @@ fn main() {
     for version_name in VERSIONS.iter().chain(BASE_VERSIONS.iter()) {
         // Build feature binary
         let status = Command::new("cargo")
-            .args(["test", "--release", "--no-default-features", "--features", &format!("{version_name},unit_small_tt")])
+            .args(["test", "--release", "--no-default-features", "--features", &format!("{version_name}, unit_small_tt"), "--", "--test-threads=1"])
             .status()
             .expect("Failed to execute cargo test");
 
