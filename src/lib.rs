@@ -16,6 +16,7 @@ compile_error!("feature \"unit_revert_undo\" and feature \"unit_bb_array\" canno
 mod bit_move;
 mod bit_twiddles;
 mod bitboard;
+mod bot_game;
 mod castling_rights;
 mod color;
 mod consts;
@@ -51,6 +52,7 @@ mod zobrist;
 //    PUBLIC LIBRARY FUNCTIONALITY    \\
 //\*--------------------------------*/\\
 pub use bit_move::{Move, BitMove, ScoringMove};
+pub use bot_game::BotGame;
 pub use castling_rights::CastlingRights;
 pub use color::Color;
 pub use error::*;

@@ -94,3 +94,12 @@ pub enum SquareParseError {
     #[error("{0}")]
     FileParseError(#[from] FileParseError),
 }
+
+#[derive(Error, Debug)]
+pub enum BotGameError {
+    #[error("Illegal UCI move")]
+    IllegalUciMoveError,
+
+    #[error("Player performed illegal action")]
+    IllegalActionError,
+}

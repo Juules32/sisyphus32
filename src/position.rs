@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{BitMove, Bitboard, CastlingRights, Color, PIECE_TYPE_COUNT, SQUARE_COUNT, EvalPosition, FenString, File, MoveFlag, MoveMasks, Piece, Square, ZobristKey};
+use crate::{BitMove, Bitboard, CastlingRights, Color, EvalPosition, FenString, File, MoveFlag, MoveMasks, Piece, Square, ZobristKey, PIECE_TYPE_COUNT, SQUARE_COUNT};
 
 #[derive(Clone)]
 pub struct Position {
