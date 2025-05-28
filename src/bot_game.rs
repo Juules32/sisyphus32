@@ -1,9 +1,10 @@
+use std::collections::HashSet;
+
 use crate::{BitMove, BotGameError, Color, HistoryHeuristic, KillerMoves, Legal, MoveGeneration, MoveList, Piece, Position, ScoringMove, Search, Square, TranspositionTable, Uci};
 
 pub struct BotGame {
     thinking_time: u128,
     bot_side: Color,
-    to_move: Color,
     position: Position,
     search: Search,
     move_history: Vec<BitMove>,
@@ -18,8 +19,7 @@ impl BotGame {
         Self {
             thinking_time,
             bot_side,
-            to_move: Color::White,
-            position: Default::default(),
+            position: Position::starting_position(),
             search: Default::default(),
             move_history: Default::default()
         }
@@ -34,7 +34,7 @@ impl BotGame {
     }
     
     pub fn to_move(&self) -> Color {
-        self.to_move
+        self.position.side
     }
 
     pub fn bot_to_move(&self) -> bool {
@@ -124,15 +124,49 @@ impl BotGame {
         self.verify_side_to_move(self.bot_side())
     }
 
-    pub fn get_2d_board(&self) -> [(Option<Piece>, Square); 64] {
+    pub fn get_2d_board(&self) -> [Option<Piece>; 64] {
+        self.position.pps
+    }
+
+    pub fn get_piece_set(&self) -> HashSet<(Piece, Square)> {
         self.position.pps
             .iter()
             .zip(Square::ALL_SQUARES.iter())
-            .map(|(p, s)| (p.clone(), *s))
-            .collect::<Vec<_>>()
-            .try_into()
-            .expect("Should always succeed, both arrays are size 64")
+            .filter_map(|(p, s)| p.clone().map(|piece| (piece, *s)))
+            .collect()
     }
 }
 
-// TEST THIS ^^^^
+impl Default for BotGame {
+    fn default() -> Self {
+        Self::new(Color::Black, 5000)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn making_moves_changes_color() {
+        let mut bot_game = BotGame::new(Color::Black, 5000);
+        assert_eq!(bot_game.to_move(), Color::White);
+        assert!(bot_game.player_to_move());
+        bot_game.player_play_bit_move(bot_game.player_legal_moves().unwrap().first()).unwrap();
+        assert_eq!(bot_game.to_move(), Color::Black);
+        assert!(bot_game.bot_to_move());
+        bot_game.bot_play_move().unwrap();
+        assert_eq!(bot_game.to_move(), Color::White);
+        assert!(bot_game.player_to_move());
+    }
+
+    #[test]
+    fn get_2d_board_returns_array_of_tuples() {
+        let bot_game = BotGame::new(Color::Black, 5000);
+        let piece_positions = bot_game.get_2d_board();
+        let piece_set = bot_game.get_piece_set();
+        assert_eq!(piece_positions[Square::G8], Some(Piece::BN));
+        let piece_set_entry = piece_set.get(&(Piece::WQ, Square::D1));
+        assert!(piece_set_entry.is_some());
+    }
+}

@@ -18,7 +18,6 @@ impl GlobalThreadPool {
     }
 
     pub(crate) fn should_parallelize() -> bool {
-        println!("{}", Self::get().current_num_threads() >= PARALLELIZE_THRESHOLD);
         Self::get().current_num_threads() >= PARALLELIZE_THRESHOLD
     }
 
