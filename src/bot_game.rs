@@ -124,10 +124,12 @@ impl BotGame {
         self.verify_side_to_move(self.bot_side())
     }
 
+    #[cfg(feature = "unit_bb_array")]
     pub fn get_2d_board(&self) -> [Option<Piece>; 64] {
         self.position.pps
     }
 
+    #[cfg(feature = "unit_bb_array")]
     pub fn get_piece_set(&self) -> HashSet<(Piece, Square)> {
         self.position.pps
             .iter()
