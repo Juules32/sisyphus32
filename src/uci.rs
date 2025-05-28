@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use crate::{MoveStringParseError, UciParseError, BitMove, Color, EvalPosition, FenString, HistoryHeuristic, KillerMoves, Legal, MoveFlag, MoveGeneration, MoveList, Perft, Position, Search, Square, TranspositionTable};
+use crate::{GlobalThreadPool, BitMove, Color, EvalPosition, FenString, HistoryHeuristic, KillerMoves, Legal, MoveFlag, MoveGeneration, MoveList, MoveStringParseError, Perft, Position, Search, Square, TranspositionTable, UciParseError};
 
 const DEFAULT_TT_SIZE_MB: usize = 16;
 const MIN_TT_SIZE_MB: usize = 1;
@@ -134,7 +134,7 @@ impl Uci {
                 return Err(UciParseError::ParamRange("Threads"));
             }
             
-            self.search.set_threadpool(num_threads);
+            GlobalThreadPool::set_threadpool(num_threads);
             println!("info string set threads to {num_threads} successfully");
             Ok(())
         } else if line.starts_with("setoption name SyzygyPath value") {

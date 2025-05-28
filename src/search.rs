@@ -1,11 +1,9 @@
-use rayon::ThreadPool;
 use std::{cmp::min, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{BitMove, ScoringMove, HistoryHeuristic, MAX_DEPTH, SQUARE_COUNT, EvalPosition, KillerMoves, Legal, MoveGeneration, PseudoLegal, OpeningBook, Position, Score, SyzygyTablebase, Timer, TTData, TTNodeType, TranspositionTable, ZobristKey};
+use crate::{BitMove, EvalPosition, GlobalThreadPool, HistoryHeuristic, KillerMoves, Legal, MoveGeneration, OpeningBook, Position, PseudoLegal, Score, ScoringMove, SyzygyTablebase, TTData, TTNodeType, Timer, TranspositionTable, ZobristKey, MAX_DEPTH, SQUARE_COUNT};
 
 const AVERAGE_AMOUNT_OF_MOVES: usize = 25;
 const NULL_MOVE_DEPTH_REDUCTION: usize = 3;
-const LAZY_SMP_THREAD_THRESHOLD: usize = 3;
 const LMR_MOVE_INDEX_THRESHOLD: usize = 3;
 const TABLEBASE_SEARCH_THRESHOLD: u128 = 100;
 const EXTENDED_TABLEBASE_SEARCH_THRESHOLD: u128 = 500;
@@ -26,7 +24,6 @@ pub struct Search {
     timer: Arc<Timer>,
     stop_time: Arc<Option<u128>>,
     stop_calculating: Arc<AtomicBool>,
-    threadpool: Arc<ThreadPool>,
     pub(crate) in_opening: bool,
     opening_book: Arc<OpeningBook>,
     tablebase: Arc<Option<SyzygyTablebase>>,
@@ -41,12 +38,6 @@ impl Default for Search {
             stop_calculating: Arc::new(AtomicBool::new(false)),
             nodes: 0,
             zobrist_key_history: Vec::new(),
-            threadpool: Arc::new(
-                rayon::ThreadPoolBuilder::new()
-                    .num_threads(1)
-                    .build()
-                    .unwrap()
-            ),
             in_opening: true,
             opening_book: Arc::new(OpeningBook::default()),
             tablebase: Arc::new(SyzygyTablebase::from_directory("tables/syzygy").ok()),
@@ -465,7 +456,7 @@ impl Search {
         let best_move = Arc::new(Mutex::new(ScoringMove::blank(Score::BLANK)));
         let ended_early = Arc::new(AtomicBool::new(false));
 
-        self.threadpool
+        GlobalThreadPool::get()
             .scope(|s| {
             for current_depth in 1..=depth {
                 let mut self_ref = self.clone();
@@ -641,7 +632,7 @@ impl Search {
                 { return self.go_iterative_deepening(position, depth); }
 
                 #[cfg(feature = "unit_lazy_smp")]
-                if self.threadpool.current_num_threads() >= LAZY_SMP_THREAD_THRESHOLD {
+                if GlobalThreadPool::should_parallelize() {
                     self.go_lazy_smp(position, depth)
                 } else {
                     self.go_iterative_deepening(position, depth)
@@ -686,15 +677,6 @@ impl Search {
             }
         }
         pv_moves.join(" ")
-    }
-
-    pub fn set_threadpool(&mut self, num_threads: usize) {
-        self.threadpool = Arc::new(
-            rayon::ThreadPoolBuilder::new()
-                .num_threads(num_threads)
-                .build()
-                .unwrap()
-        );
     }
 
     pub fn set_tablebase(&mut self, path: &str) {
