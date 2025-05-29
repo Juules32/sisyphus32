@@ -12,136 +12,155 @@ exclude = [
     "openings/openings.pgn",
 ]
 
-# Only install the `main.rs` binary
 [[bin]]
 name = "sisyphus32"
 path = "src/main.rs"
 
 [dependencies]
-rayon = "1.10.0"
-shakmaty-syzygy = "0.25.3"
-shakmaty = "0.27.3"
-thiserror = "2.0.12"
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.140"
 
-# Features that are optional to comply with wasm:
+# Global deps
+ctor = { version = "0.4.2", optional = true }
+thiserror = "2.0.12"
+
+# Parallelize deps
+rayon = { version = "1.10.0", optional = true }
+
+# Opening book deps
+serde = { version = "1.0.219", features = ["derive"], optional = true }
+serde_json = { version = "1.0.140", optional = true }
 ureq = { version = "3.0.11", features = ["json"], optional = true }
 rand = { version = "0.9.1", optional = true }
-ctor = "0.4.2"
 
+# Endgame tablebase deps
+shakmaty-syzygy = { version = "0.25.3", optional = true }
+shakmaty = { version = "0.27.3", optional = true }
+
+# Used by profiler
 [profile.release-with-debug]
 inherits = "release"
 debug = true
 
+# Used by build_all binary
 [profile.release-all]
 inherits = "release"
 
 [features]
-#  /*-------------------------*\ 
-#    WASM-compatible versions
-#  \*-------------------------*/
-wasm = ["lockless_hashing"]
 
-#  /*-------------------------*\ 
-#        Playable versions
-#  \*-------------------------*/
-random =                    ["base_default"]
-minimax =                   ["base_default", "unit_minimax"]
-negamax =                   ["base_default", "unit_negamax"]
-pst =                       ["negamax", "unit_pst"]
-sort_moves =                ["pst", "unit_sort_moves"]
-iterative_deepening =       ["sort_moves", "unit_iterative_deepening"]
-quiescence =                ["iterative_deepening", "unit_quiescence"]
-quiescence_en_passant =     ["quiescence", "unit_quiescence_en_passant"]
-checks_add_depth =          ["quiescence_en_passant", "unit_checks_add_depth"]
-killer_heuristic =          ["checks_add_depth", "unit_killer_heuristic"]
-history_heuristic =         ["killer_heuristic", "unit_history_heuristic"]
-tt =                        ["history_heuristic", "unit_tt"]
-eval_tt =                   ["tt", "unit_eval_tt"]
-tt_two_tier =               ["eval_tt", "unit_tt_two_tier"]
-null_move_pruning =         ["tt_two_tier", "unit_null_move_pruning"]
-late_move_reductions =      ["null_move_pruning", "unit_late_move_reductions"]
-tapered_eval =              ["late_move_reductions", "unit_tapered_eval"]
-positional_eval =           ["tapered_eval", "unit_positional_eval"]
-pseudo_pins =               ["tapered_eval", "unit_pseudo_pins"]
-capture_with_check_eval =   ["tapered_eval", "unit_capture_with_check_eval"]
-move_flag_eval =            ["tapered_eval", "unit_move_flag_eval"]
-lazy_smp =                  ["move_flag_eval", "unit_lazy_smp"]
-lockless_hashing =          ["lazy_smp", "unit_lockless_hashing"]
-opening_book =              ["lockless_hashing", "unit_opening_book"]
-syzygy_tablebase =          ["opening_book", "unit_syzygy_tablebase"]
-default =                   ["syzygy_tablebase"]
+# Used for testing
+small_tt = []
 
-#  /*------------------------------------------------------------*\ 
-#        Base versions (should not be set as default feature)
-#  \*------------------------------------------------------------*/
-base_basic =                ["unit_bb",       "unit_revert_undo"                                           ]
-base_magic_number =         ["unit_bb",       "unit_revert_undo",  "unit_magic_bbs"                        ]
-base_clone =                ["unit_bb",       "unit_revert_clone", "unit_magic_bbs"                        ]
-base_parallel =             ["unit_bb",       "unit_revert_clone", "unit_magic_bbs", "unit_parallel_perft" ]
-base_array =                ["unit_bb_array", "unit_revert_clone", "unit_magic_bbs"                        ]
-base_parallel_array =       ["unit_bb_array", "unit_revert_clone", "unit_magic_bbs", "unit_parallel_perft" ]
-base_default = ["base_parallel_array"] # The feature used for all playable versions
+# Movegen/Board Representation
+base_basic =                ["bb",       "revert_undo"]
+base_magic_number =         ["bb",       "revert_undo",  "magic_bbs"]
+base_clone =                ["bb",       "revert_clone", "magic_bbs"]
+base_clone_parallel =       ["bb",       "revert_clone", "magic_bbs", "parallelize"]
+base_array =                ["bb_array", "revert_clone", "magic_bbs"]
+base_array_parallel =       ["bb_array", "revert_clone", "magic_bbs", "parallelize"]
+base_default =              ["base_array"]
 
-#  /*------------------------------------------------------------*\ 
-#     Individual features (should not be set as default feature)
-#  \*------------------------------------------------------------*/
-unit_bb = []
-unit_bb_array = []
+# Compiles the best movegen version with no additional features by default,
+# except iterative deepening, which enables playing with time controls
+default = ["base_default", "iterative_deepening"]
 
-unit_revert_undo = []
-unit_revert_clone = []
+# All features excluding those wasm can't use
+all_wasm = [
+    "default",
+    "negamax",
+    "pst",
+    "sort_moves",
+    "quiescence",
+    "quiescence_en_passant",
+    "checks_add_depth",
+    "killer_heuristic",
+    "history_heuristic",
+    "tt",
+    "eval_tt",
+    "tt_two_tier",
+    "null_move_pruning",
+    "late_move_reductions",
+    "tapered_eval",
+    "move_flag_eval",
+    "lockless_hashing",
+]
 
-unit_magic_bbs = []
+# Features wasm can't use
+all_non_wasm = [
+    "parallelize",
+    "opening_book",
+    "syzygy_tablebase",
+    "ctor",
+]
 
-unit_parallel_perft = []
+# All features!
+all = [
+    "all_wasm",
+    "all_non_wasm",
+]
 
-unit_minimax = []
-unit_negamax = []
+# Features not included due to inferior performance
+dropped = [
+    "positional_eval",
+    "pseudo_pins",
+    "capture_with_check_eval",
+]
 
-unit_pst = []
+# All individual features included in default
+bb = []
+bb_array = []
+revert_undo = []
+revert_clone = []
+magic_bbs = []
 
-unit_iterative_deepening = []
+# All individual features included in the versions below
+# They are used to enable selective inclusion for compilation
+iterative_deepening = []
+minimax = []
+negamax = []
+pst = []
+sort_moves = []
+quiescence = []
+quiescence_en_passant = []
+checks_add_depth = []
+killer_heuristic = []
+history_heuristic = []
+tt = []
+eval_tt = []
+tt_two_tier = []
+null_move_pruning = []
+late_move_reductions = []
+tapered_eval = []
+positional_eval = []
+pseudo_pins = []
+capture_with_check_eval = []
+move_flag_eval = []
+parallelize = ["rayon"]
+lockless_hashing = []
+opening_book = ["ureq", "rand", "serde", "serde_json"]
+syzygy_tablebase = ["shakmaty", "shakmaty-syzygy"]
 
-unit_quiescence = []
-
-unit_sort_moves = []
-
-unit_quiescence_en_passant = []
-
-unit_tt = []
-
-unit_small_tt = []
-
-unit_eval_tt = []
-
-unit_tt_two_tier = []
-
-unit_killer_heuristic = []
-
-unit_history_heuristic = []
-
-unit_checks_add_depth = []
-
-unit_null_move_pruning = []
-
-unit_late_move_reductions = []
-
-unit_tapered_eval = []
-
-unit_positional_eval = []
-
-unit_pseudo_pins = []
-
-unit_capture_with_check_eval = []
-
-unit_move_flag_eval = []
-
-unit_lazy_smp = []
-
-unit_lockless_hashing = []
-
-unit_opening_book = ["ureq", "rand"]
-
-unit_syzygy_tablebase = []
+# All versions with more and more features included in their approximate order of implementation
+# They are used for testing the relative difference in playing strength of newly developed features
+version_iterative_deepening =       ["default"]
+version_minimax =                   ["version_iterative_deepening", "minimax"]
+version_negamax =                   ["version_iterative_deepening", "negamax"]
+version_pst =                       ["version_negamax", "pst"]
+version_sort_moves =                ["version_pst", "sort_moves"]
+version_quiescence =                ["version_sort_moves", "quiescence"]
+version_quiescence_en_passant =     ["version_quiescence", "quiescence_en_passant"]
+version_checks_add_depth =          ["version_quiescence_en_passant", "checks_add_depth"]
+version_killer_heuristic =          ["version_checks_add_depth", "killer_heuristic"]
+version_history_heuristic =         ["version_killer_heuristic", "history_heuristic"]
+version_tt =                        ["version_history_heuristic", "tt"]
+version_eval_tt =                   ["version_tt", "eval_tt"]
+version_tt_two_tier =               ["version_eval_tt", "tt_two_tier"]
+version_null_move_pruning =         ["version_tt_two_tier", "null_move_pruning"]
+version_late_move_reductions =      ["version_null_move_pruning", "late_move_reductions"]
+version_tapered_eval =              ["version_late_move_reductions", "tapered_eval"]
+version_positional_eval =           ["version_tapered_eval", "positional_eval"]
+version_pseudo_pins =               ["version_tapered_eval", "pseudo_pins"]
+version_capture_with_check_eval =   ["version_tapered_eval", "capture_with_check_eval"]
+version_move_flag_eval =            ["version_tapered_eval", "move_flag_eval"]
+version_parallelize =               ["version_move_flag_eval", "parallelize"]
+version_lockless_hashing =          ["version_parallelize", "lockless_hashing"]
+version_opening_book =              ["version_lockless_hashing", "opening_book"]
+version_syzygy_tablebase =          ["version_opening_book", "syzygy_tablebase"]

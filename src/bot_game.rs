@@ -124,12 +124,12 @@ impl BotGame {
         self.verify_side_to_move(self.bot_side())
     }
 
-    #[cfg(feature = "unit_bb_array")]
+    #[cfg(feature = "bb_array")]
     pub fn get_2d_board(&self) -> [Option<Piece>; 64] {
         self.position.pps
     }
 
-    #[cfg(feature = "unit_bb_array")]
+    #[cfg(feature = "bb_array")]
     pub fn get_piece_set(&self) -> HashSet<(Piece, Square)> {
         self.position.pps
             .iter()
@@ -163,7 +163,7 @@ mod tests {
         assert!(bot_game.player_to_move());
     }
 
-    #[cfg(feature = "unit_bb_array")]
+    #[cfg(feature = "bb_array")]
     #[test]
     fn get_2d_board_returns_array_of_tuples() {
         let bot_game = BotGame::new(Color::Black, 5000);

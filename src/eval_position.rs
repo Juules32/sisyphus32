@@ -417,7 +417,7 @@ impl EvalPosition {
         let mut endgame_score = 0;
         let mut ao_copy = position.all_occupancy;
 
-        #[cfg(feature = "unit_tapered_eval")]
+        #[cfg(feature = "tapered_eval")]
         let game_phase = Self::get_game_phase(position.game_phase_score);
 
         while ao_copy != Bitboard::EMPTY {
@@ -433,26 +433,26 @@ impl EvalPosition {
             #[allow(unused_mut)]
             let mut piece_score = 0;
 
-            #[cfg(not(feature = "unit_tapered_eval"))]
+            #[cfg(not(feature = "tapered_eval"))]
             {
                 piece_score += BASE_PIECE_SCORES[piece];
-                #[cfg(feature = "unit_pst")]
+                #[cfg(feature = "pst")]
                 { piece_score += BASE_PIECE_POSITION_SCORES[piece][positional_index]; }
             }
 
-            #[cfg(feature = "unit_tapered_eval")]
+            #[cfg(feature = "tapered_eval")]
             {
                 opening_score += OPENING_PIECE_SCORES[piece] * piece_color_modifier;
                 endgame_score += ENDGAME_PIECE_SCORES[piece] * piece_color_modifier;
 
-                #[cfg(feature = "unit_pst")]
+                #[cfg(feature = "pst")]
                 {
                     opening_score += OPENING_PIECE_POSITION_SCORES[piece][positional_index] * piece_color_modifier;
                     endgame_score += ENDGAME_PIECE_POSITION_SCORES[piece][positional_index] * piece_color_modifier;
                 }
             }
 
-            #[cfg(feature = "unit_positional_eval")]
+            #[cfg(feature = "positional_eval")]
             if piece == Piece::WP || piece == Piece::BP {
                 if (position.bitboards[piece] & Self::get_file_mask(sq)).count_bits() > 1 {
                     piece_score += DOUBLED_PAWN_SCORE;
@@ -506,10 +506,10 @@ impl EvalPosition {
             score += piece_score * piece_color_modifier;
         }
         
-        #[cfg(feature = "unit_tapered_eval")]
+        #[cfg(feature = "tapered_eval")]
         { score += Self::get_tapered_score(game_phase, position.game_phase_score, opening_score, endgame_score); }
 
-        #[cfg(feature = "unit_pseudo_pins")]
+        #[cfg(feature = "pseudo_pins")]
         {
             let wk_square = Square::from(position.bitboards[Piece::WK]);
             let bk_square = Square::from(position.bitboards[Piece::BK]);

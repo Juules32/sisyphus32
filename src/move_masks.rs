@@ -531,13 +531,13 @@ impl MoveMasks {
     }
 
     #[inline(always)]
-    #[cfg(not(feature = "unit_magic_bbs"))]
+    #[cfg(not(feature = "magic_bbs"))]
     pub(crate) fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         MoveMasks::generate_bishop_moves_on_the_fly(square, occupancy)
     }
 
     #[inline(always)]
-    #[cfg(feature = "unit_magic_bbs")]
+    #[cfg(feature = "magic_bbs")]
     pub(crate) fn get_bishop_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         unsafe {
             let index = (
@@ -556,13 +556,13 @@ impl MoveMasks {
     }
 
     #[inline(always)]
-    #[cfg(not(feature = "unit_magic_bbs"))]
+    #[cfg(not(feature = "magic_bbs"))]
     pub(crate) fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         MoveMasks::generate_rook_moves_on_the_fly(square, occupancy)
     }
 
     #[inline(always)]
-    #[cfg(feature = "unit_magic_bbs")]
+    #[cfg(feature = "magic_bbs")]
     pub(crate) fn get_rook_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         unsafe {
             let index = ( 
@@ -581,13 +581,13 @@ impl MoveMasks {
     }
 
     #[inline(always)]
-    #[cfg(not(feature = "unit_magic_bbs"))]
+    #[cfg(not(feature = "magic_bbs"))]
     pub(crate) fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         MoveMasks::get_bishop_mask(square, occupancy) | MoveMasks::get_rook_mask(square, occupancy)
     }
 
     #[inline(always)]
-    #[cfg(feature = "unit_magic_bbs")]
+    #[cfg(feature = "magic_bbs")]
     pub(crate) fn get_queen_mask(square: Square, occupancy: Bitboard) -> Bitboard {
         Self::get_bishop_mask(square, occupancy) | Self::get_rook_mask(square, occupancy)
     }

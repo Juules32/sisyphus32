@@ -1,8 +1,11 @@
 use std::fmt::Display;
 
-use crate::{BitMove, FenString, GlobalThreadPool, MoveGeneration, Position, PseudoLegal, Timer};
+use crate::{BitMove, FenString, MoveGeneration, Position, PseudoLegal, Timer};
 
-use {std::sync::Arc, rayon::iter::{IntoParallelRefIterator, ParallelIterator}};
+use std::sync::Arc;
+
+#[cfg(feature = "parallelize")]
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 pub struct PerftResult {
     depth: u16,
@@ -38,14 +41,14 @@ pub struct Perft;
 impl Perft {
     #[inline(always)]
     pub fn perft_test(position: &Position, depth: u16, print_result: bool) -> PerftResult {
-        #[cfg(all(not(feature = "unit_parallel_perft"), feature = "unit_revert_undo"))]
+        #[cfg(all(not(feature = "parallelize"), feature = "revert_undo"))]
         return Self::perft_test_single_thread_undo_move(position, depth, print_result);
 
-        #[cfg(all(not(feature = "unit_parallel_perft"), feature = "unit_revert_clone"))]
+        #[cfg(all(not(feature = "parallelize"), feature = "revert_clone"))]
         return Self::perft_test_single_thread_clone(position, depth, print_result);
 
-        #[cfg(feature = "unit_parallel_perft")]
-        if GlobalThreadPool::should_parallelize() {
+        #[cfg(feature = "parallelize")]
+        if crate::GlobalThreadPool::should_parallelize() {
             return Self::perft_test_parallelize(position, depth, print_result);
         } else {
             return Self::perft_test_single_thread_clone(position, depth, print_result);
@@ -62,7 +65,7 @@ impl Perft {
 
         let mut position_copy = position.clone();
 
-        #[cfg(feature = "unit_revert_undo")]
+        #[cfg(feature = "revert_undo")]
         let old_castling_rights = position.castling_rights;
         
         for bit_move in MoveGeneration::generate_moves::<BitMove, PseudoLegal>(position) {
@@ -78,7 +81,7 @@ impl Perft {
                 current_nodes = 0;
             }
 
-            #[cfg(feature = "unit_revert_undo")]
+            #[cfg(feature = "revert_undo")]
             position_copy.undo_move(bit_move, old_castling_rights);
         }
 
@@ -131,7 +134,8 @@ impl Perft {
     }
 
     #[inline(always)]
-    fn perft_test_parallelize(position: &Position, depth: u16, print_result: bool) -> PerftResult {
+    #[cfg(feature = "parallelize")]
+    fn perft_test_parallelize(position: &Position, depth: u16, print_result: bool) -> PerftResult {        
         let timer = Timer::new();
 
         if print_result {
@@ -181,7 +185,7 @@ impl Perft {
             let mut nodes = 0;
             let mut position_copy = position.clone();
 
-            #[cfg(feature = "unit_revert_undo")]
+            #[cfg(feature = "revert_undo")]
             let old_castling_rights = position.castling_rights;
             
             for bit_move in MoveGeneration::generate_moves::<BitMove, PseudoLegal>(position) {
@@ -190,7 +194,7 @@ impl Perft {
                     nodes += Self::perft_driver_single_thread_undo_move(&position_copy, depth - 1);
                 }
 
-                #[cfg(feature = "unit_revert_undo")]
+                #[cfg(feature = "revert_undo")]
                 position_copy.undo_move(bit_move, old_castling_rights);
             }
             nodes
@@ -217,6 +221,7 @@ impl Perft {
     }
 
     #[inline(always)]
+    #[cfg(feature = "parallelize")]
     fn perft_driver_parallelize(position_arc: std::sync::Arc<Position>, depth: u16) -> u64 {
         if depth == 0 {
             1

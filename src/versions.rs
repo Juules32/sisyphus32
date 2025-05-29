@@ -1,5 +1,4 @@
-pub const VERSIONS: &[&str] = &[
-    "random",
+pub const FEATURES: &[&str] = &[
     "minimax",
     "negamax",
     "pst",
@@ -17,20 +16,20 @@ pub const VERSIONS: &[&str] = &[
     "late_move_reductions",
     "tapered_eval",
     "positional_eval",
-    "capture_with_check_eval",
     "pseudo_pins",
+    "capture_with_check_eval",
     "move_flag_eval",
-    "lazy_smp",
+    "parallelize",
     "lockless_hashing",
-    "syzygy_tablebase",
     "opening_book",
+    "syzygy_tablebase",
 ];
 
-pub const BASE_VERSIONS: &[&str] = &[
+pub const BASE_FEATURES: &[&str] = &[
     "base_basic",
     "base_magic_number",
     "base_clone",
-    "base_parallel",
+    "base_clone_parallel",
     "base_array",
-    "base_parallel_array",
+    "base_array_parallel",
 ];

@@ -4,7 +4,7 @@ use crate::{BitMove, Bitboard, CastlingRights, Color, EvalPosition, FenString, F
 
 #[derive(Clone)]
 pub struct Position {
-    #[cfg(feature = "unit_bb_array")]
+    #[cfg(feature = "bb_array")]
     pub(crate) pps: [Option<Piece>; SQUARE_COUNT],
 
     pub(crate) bitboards: [Bitboard; PIECE_TYPE_COUNT],
@@ -17,14 +17,14 @@ pub struct Position {
     pub zobrist_key: ZobristKey,
     pub(crate) ply: u16,
 
-    #[cfg(feature = "unit_tapered_eval")]
+    #[cfg(feature = "tapered_eval")]
     pub(crate) game_phase_score: i16,
 }
 
 impl Default for Position {
     fn default() -> Position {
         Position {
-            #[cfg(feature = "unit_bb_array")]
+            #[cfg(feature = "bb_array")]
             pps: [None; SQUARE_COUNT],
 
             bitboards: [Bitboard::EMPTY; PIECE_TYPE_COUNT],
@@ -37,7 +37,7 @@ impl Default for Position {
             ply: 0,
             zobrist_key: ZobristKey(0),
 
-            #[cfg(feature = "unit_tapered_eval")]
+            #[cfg(feature = "tapered_eval")]
             game_phase_score: 0,
         }
     }
@@ -69,7 +69,7 @@ impl Position {
 
     pub fn starting_position() -> Position {
         let mut position = Position {
-            #[cfg(feature = "unit_bb_array")]
+            #[cfg(feature = "bb_array")]
             pps: [
                 Some(Piece::BR), Some(Piece::BN), Some(Piece::BB), Some(Piece::BQ), Some(Piece::BK), Some(Piece::BB), Some(Piece::BN), Some(Piece::BR),
                 Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP), Some(Piece::BP),
@@ -104,13 +104,13 @@ impl Position {
             ply: 0,
             zobrist_key: ZobristKey(0),
             
-            #[cfg(feature = "unit_tapered_eval")]
+            #[cfg(feature = "tapered_eval")]
             game_phase_score: 0,
         };
 
         position.zobrist_key = ZobristKey::generate(&position);
 
-        #[cfg(feature = "unit_tapered_eval")]
+        #[cfg(feature = "tapered_eval")]
         { position.game_phase_score = EvalPosition::get_game_phase_score(&position); }
 
         position
@@ -120,7 +120,7 @@ impl Position {
     pub fn set_piece(&mut self, piece: Piece, sq: Square) {
         self.bitboards[piece].set_sq(sq);
 
-        #[cfg(feature = "unit_bb_array")]
+        #[cfg(feature = "bb_array")]
         { self.pps[sq] = Some(piece); }
         
         self.zobrist_key.mod_piece(piece, sq);
@@ -130,7 +130,7 @@ impl Position {
     pub fn remove_piece(&mut self, piece: Piece, sq: Square) {
         self.bitboards[piece].pop_sq(sq);
 
-        #[cfg(feature = "unit_bb_array")]
+        #[cfg(feature = "bb_array")]
         { self.pps[sq] = None; }
 
         self.zobrist_key.mod_piece(piece, sq);
@@ -145,16 +145,16 @@ impl Position {
 
     #[inline]
     pub fn make_move(&mut self, bit_move: BitMove) {
-        #[cfg(feature = "unit_bb")]
+        #[cfg(feature = "bb")]
         let (source, target, piece, capture_option, flag_option) = bit_move.decode();
 
-        #[cfg(feature = "unit_bb_array")]
+        #[cfg(feature = "bb_array")]
         let (source, target, flag_option) = bit_move.decode();
 
-        #[cfg(feature = "unit_bb_array")]
+        #[cfg(feature = "bb_array")]
         let piece = self.get_piece(source);
 
-        #[cfg(feature = "unit_bb_array")]
+        #[cfg(feature = "bb_array")]
         let capture_option = self.get_piece_option(target);
 
         debug_assert_eq!(capture_option, self.get_piece_option(target));
@@ -172,7 +172,7 @@ impl Position {
         if let Some(capture) = capture_option {
             self.remove_piece(capture, target);
 
-            #[cfg(feature = "unit_tapered_eval")]
+            #[cfg(feature = "tapered_eval")]
             { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(capture); }
         }
 
@@ -190,13 +190,13 @@ impl Position {
             Some(MoveFlag::WEnPassant) => {
                 self.remove_piece(Piece::BP, target.below());
                 
-                #[cfg(feature = "unit_tapered_eval")]
+                #[cfg(feature = "tapered_eval")]
                 { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(Piece::BP); }
             },
             Some(MoveFlag::BEnPassant) => {
                 self.remove_piece(Piece::WP, target.above());
                 
-                #[cfg(feature = "unit_tapered_eval")]
+                #[cfg(feature = "tapered_eval")]
                 { self.game_phase_score -= EvalPosition::get_game_phase_piece_score(Piece::WP); }
             },
             Some(MoveFlag::WKCastle) => {
@@ -225,7 +225,7 @@ impl Position {
                     target,
                 );
 
-                #[cfg(feature = "unit_tapered_eval")]
+                #[cfg(feature = "tapered_eval")]
                 {
                     self.game_phase_score -= EvalPosition::get_game_phase_piece_score(piece);
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WQ);
@@ -241,7 +241,7 @@ impl Position {
                     target,
                 );
 
-                #[cfg(feature = "unit_tapered_eval")]
+                #[cfg(feature = "tapered_eval")]
                 {
                     self.game_phase_score -= EvalPosition::get_game_phase_piece_score(piece);
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
@@ -257,7 +257,7 @@ impl Position {
                     target,
                 );
 
-                #[cfg(feature = "unit_tapered_eval")]
+                #[cfg(feature = "tapered_eval")]
                 {
                     self.game_phase_score -= EvalPosition::get_game_phase_piece_score(piece);
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
@@ -273,7 +273,7 @@ impl Position {
                     target,
                 );
 
-                #[cfg(feature = "unit_tapered_eval")]
+                #[cfg(feature = "tapered_eval")]
                 {
                     self.game_phase_score -= EvalPosition::get_game_phase_piece_score(piece);
                     self.game_phase_score += EvalPosition::get_game_phase_piece_score(Piece::WR);
@@ -291,7 +291,7 @@ impl Position {
     }
 
     #[inline]
-    #[cfg(feature = "unit_revert_undo")]
+    #[cfg(feature = "revert_undo")]
     pub(crate) fn undo_move(&mut self, bit_move: BitMove, old_castling_rights: CastlingRights) {
         let (source, target, piece, capture_option, flag_option) = bit_move.decode();
 
@@ -413,7 +413,7 @@ impl Position {
     }
 
     #[inline(always)]
-    #[cfg(feature = "unit_bb")]
+    #[cfg(feature = "bb")]
     pub fn get_piece(&self, square: Square) -> Piece {
         for piece in Piece::ALL_PIECES {
             if self.bitboards[piece].is_set_sq(square) {
@@ -424,7 +424,7 @@ impl Position {
     }
 
     #[inline(always)]
-    #[cfg(feature = "unit_bb")]
+    #[cfg(feature = "bb")]
     pub fn get_piece_option(&self, square: Square) -> Option<Piece> {
         for piece in Piece::ALL_PIECES {
             if self.bitboards[piece].is_set_sq(square) {
@@ -435,13 +435,13 @@ impl Position {
     }
 
     #[inline(always)]
-    #[cfg(feature = "unit_bb_array")]
+    #[cfg(feature = "bb_array")]
     pub fn get_piece(&self, square: Square) -> Piece {
         self.pps[square].unwrap()
     }
 
     #[inline(always)]
-    #[cfg(feature = "unit_bb_array")]
+    #[cfg(feature = "bb_array")]
     pub fn get_piece_option(&self, square: Square) -> Option<Piece> {
         self.pps[square]
     }

@@ -41,7 +41,7 @@ impl FenString {
         
         position.zobrist_key = ZobristKey::generate(&position);
 
-        #[cfg(feature = "unit_tapered_eval")]
+        #[cfg(feature = "tapered_eval")]
         { position.game_phase_score = EvalPosition::get_game_phase_score(&position); }
         
         Ok(position)

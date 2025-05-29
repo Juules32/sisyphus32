@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, process::exit, sync::{atomic::Ordering, mpsc}, thread};
 
-use crate::{GlobalThreadPool, BitMove, Color, EvalPosition, FenString, HistoryHeuristic, KillerMoves, Legal, MoveFlag, MoveGeneration, MoveList, MoveStringParseError, Perft, Position, Search, Square, TranspositionTable, UciParseError};
+use crate::{BitMove, Color, EvalPosition, FenString, HistoryHeuristic, KillerMoves, Legal, MoveFlag, MoveGeneration, MoveList, MoveStringParseError, Perft, Position, Search, Square, TranspositionTable, UciParseError};
 
 const DEFAULT_TT_SIZE_MB: usize = 16;
 const MIN_TT_SIZE_MB: usize = 1;
@@ -129,19 +129,33 @@ impl Uci {
             println!("info string transposition table reset successfully");
             Ok(())
         } else if line.starts_with("setoption name Threads value") {
-            let num_threads = words.last().unwrap().parse().map_err(|_| UciParseError::ParamValue("Threads"))?;
-            if num_threads > MAX_NUM_THREADS {
-                return Err(UciParseError::ParamRange("Threads"));
+            #[cfg(feature = "parallelize")]
+            {
+                let num_threads = words.last().unwrap().parse().map_err(|_| UciParseError::ParamValue("Threads"))?;
+                if num_threads > MAX_NUM_THREADS {
+                    return Err(UciParseError::ParamRange("Threads"));
+                }
+                
+                crate::GlobalThreadPool::set_threadpool(num_threads);
+                println!("info string set threads to {num_threads} successfully");
+                Ok(())
             }
-            
-            GlobalThreadPool::set_threadpool(num_threads);
-            println!("info string set threads to {num_threads} successfully");
-            Ok(())
+
+            #[cfg(not(feature = "parallelize"))]
+            Err(UciParseError::DisabledFeatureError("Parallelism"))
+
         } else if line.starts_with("setoption name SyzygyPath value") {
-            let path = words.last().unwrap();
-            self.search.set_tablebase(path);
-            println!("info string set syzygy path to {path} successfully");
-            Ok(())
+            #[cfg(feature = "syzygy_tablebase")]
+            {
+                let path = words.last().unwrap();
+                self.search.set_tablebase(path);
+                println!("info string set syzygy path to {path} successfully");
+                Ok(())
+            }
+
+            #[cfg(not(feature = "syzygy_tablebase"))]
+            Err(UciParseError::DisabledFeatureError("Syzygy Tablebase"))
+
         } else if line.starts_with("setoption name Hash value") {
             let tt_size_mb = words.last().unwrap().parse().map_err(|_| UciParseError::ParamValue("Transposition Table Size (MB)"))?;
             if tt_size_mb < MIN_TT_SIZE_MB || tt_size_mb > MAX_TT_SIZE_MB {
@@ -155,7 +169,7 @@ impl Uci {
             Err(UciParseError::Option)
         }
     }
-    
+
     fn parse_position(&mut self, line: &str) -> Result<(), UciParseError> {
         let fen_index_option = line.find("fen");
         let startpos_index_option = line.find("startpos");
