@@ -9,16 +9,10 @@ pub(crate) struct SyzygyTablebase {
 }
 
 impl SyzygyTablebase {
-    #[cfg(feature = "unit_opening_book")]
     pub(crate) fn from_directory(path: &str) -> Result<SyzygyTablebase, Error> {
         let mut shakmaty_tablebase = Tablebase::new();
         shakmaty_tablebase.add_directory(path)?;
         Ok(SyzygyTablebase { shakmaty_tablebase })
-    }
-
-    #[cfg(not(feature = "unit_opening_book"))]
-    pub(crate) fn from_directory(_path: &str) -> Result<SyzygyTablebase, Error> {
-        Err(Error::new(std::io::ErrorKind::Other, "Cannot use shakmaty filesystem for wasm"))
     }
 
     pub(crate) fn best_move(&self, position: &Position) -> Option<ScoringMove> {

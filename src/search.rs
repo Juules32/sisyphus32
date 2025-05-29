@@ -1,6 +1,6 @@
 use std::{cmp::min, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{BitMove, EvalPosition, GlobalThreadPool, HistoryHeuristic, KillerMoves, Legal, MoveGeneration, OpeningBook, Position, PseudoLegal, Score, ScoringMove, SyzygyTablebase, TTData, TTNodeType, Timer, TranspositionTable, ZobristKey, MAX_DEPTH, SQUARE_COUNT};
+use crate::{BitMove, EvalPosition, HistoryHeuristic, KillerMoves, Legal, MoveGeneration, Position, PseudoLegal, Score, ScoringMove, TTData, TTNodeType, Timer, TranspositionTable, ZobristKey, MAX_DEPTH, SQUARE_COUNT};
 
 const AVERAGE_AMOUNT_OF_MOVES: usize = 25;
 const NULL_MOVE_DEPTH_REDUCTION: usize = 3;
@@ -11,10 +11,10 @@ const OPENING_BOOK_SEARCH_THRESHOLD: u128 = 100;
 const LMR_DEPTH_THRESHOLD: usize = 3;
 const LMR_FACTOR: f32 = 0.75;
 
-#[cfg(not(feature = "unit_late_move_reductions"))]
+#[cfg(not(feature = "late_move_reductions"))]
 const AVERAGE_BRANCHING_FACTOR: usize = 5;
 
-#[cfg(feature = "unit_late_move_reductions")]
+#[cfg(feature = "late_move_reductions")]
 const AVERAGE_BRANCHING_FACTOR: usize = 2;
 
 #[derive(Clone)]
@@ -25,8 +25,13 @@ pub struct Search {
     stop_time: Arc<Option<u128>>,
     stop_calculating: Arc<AtomicBool>,
     pub(crate) in_opening: bool,
-    opening_book: Arc<OpeningBook>,
-    tablebase: Arc<Option<SyzygyTablebase>>,
+    
+    #[cfg(feature = "opening_book")]
+    opening_book: Arc<crate::OpeningBook>,
+
+    #[cfg(feature = "syzygy_tablebase")]
+    tablebase: Arc<Option<crate::SyzygyTablebase>>,
+    
     uci_visible: bool,
 }
 
@@ -39,8 +44,13 @@ impl Default for Search {
             nodes: 0,
             zobrist_key_history: Vec::new(),
             in_opening: true,
-            opening_book: Arc::new(OpeningBook::default()),
-            tablebase: Arc::new(SyzygyTablebase::from_directory("tables/syzygy").ok()),
+            
+            #[cfg(feature = "opening_book")]
+            opening_book: Arc::new(crate::OpeningBook::default()),
+            
+            #[cfg(feature = "syzygy_tablebase")]
+            tablebase: Arc::new(crate::SyzygyTablebase::from_directory("tables/syzygy").ok()),
+
             uci_visible: false,
         }
     }
@@ -156,7 +166,7 @@ impl Search {
         let mut best_move = ScoringMove::blank(alpha);
         let mut moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
 
-        #[cfg(feature = "unit_sort_moves")]
+        #[cfg(feature = "sort_moves")]
         moves.sort_by_score();
 
         for scoring_capture in moves.iter_mut() {
@@ -186,10 +196,10 @@ impl Search {
         }
         
         if depth == 0 {
-            #[cfg(not(feature = "unit_quiescence"))]
+            #[cfg(not(feature = "quiescence"))]
             return ScoringMove::blank(EvalPosition::eval(position));
             
-            #[cfg(feature = "unit_quiescence")]
+            #[cfg(feature = "quiescence")]
             return self.quiescence(position, alpha, beta);
         }
 
@@ -197,7 +207,7 @@ impl Search {
             return ScoringMove::blank(Score::BLANK);
         }
 
-        #[cfg(feature = "unit_tt")]
+        #[cfg(feature = "tt")]
         if let Some(tt_entry) = TranspositionTable::probe(position.zobrist_key) {
             // If the stored depth is at least as deep, use it
             if tt_entry.depth >= depth as u16 {
@@ -225,10 +235,10 @@ impl Search {
 
         let in_check = position.in_check(position.side);
 
-        #[cfg(feature = "unit_checks_add_depth")]
+        #[cfg(feature = "checks_add_depth")]
         if in_check { depth += 1; }
 
-        #[cfg(feature = "unit_null_move_pruning")]
+        #[cfg(feature = "null_move_pruning")]
         if depth > NULL_MOVE_DEPTH_REDUCTION && !in_check && position.ply > 0 {
             let mut position_copy = position.clone();
             position_copy.zobrist_mods();
@@ -243,12 +253,12 @@ impl Search {
 
         let mut moves = MoveGeneration::generate_moves::<ScoringMove, PseudoLegal>(position);
 
-        #[cfg(feature = "unit_sort_moves")]
+        #[cfg(feature = "sort_moves")]
         moves.sort_by_score();
 
-        #[cfg(feature = "unit_history_heuristic")]
+        #[cfg(feature = "history_heuristic")]
         let mut quiets_searched: [BitMove; SQUARE_COUNT] = [BitMove::EMPTY; SQUARE_COUNT];
-        #[cfg(feature = "unit_history_heuristic")]
+        #[cfg(feature = "history_heuristic")]
         let mut quiets_count = 0;
 
         let mut moves_has_legal_move = false;
@@ -261,10 +271,10 @@ impl Search {
                 let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
                 moves_has_legal_move = true;
 
-                #[cfg(feature = "unit_late_move_reductions")]
+                #[cfg(feature = "late_move_reductions")]
                 let mut reduced_depth = depth;
 
-                #[cfg(feature = "unit_late_move_reductions")]
+                #[cfg(feature = "late_move_reductions")]
                 if !is_capture_or_promotion && depth >= LMR_DEPTH_THRESHOLD && move_index >= LMR_MOVE_INDEX_THRESHOLD {
                     // NOTE: If depth was less than zero, the depth would underflow!
                     // NOTE: Usually, we have to check if the new position is part of the PV, but since
@@ -275,7 +285,7 @@ impl Search {
                     scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, depth - 1).score;
                 }
 
-                #[cfg(not(feature = "unit_late_move_reductions"))]
+                #[cfg(not(feature = "late_move_reductions"))]
                 {
                     scoring_move.score = -self.negamax_best_move(&new_position, -beta, -alpha, depth - 1).score;
                 }
@@ -287,7 +297,7 @@ impl Search {
                 if scoring_move.score > alpha {
                     let mut should_update_alpha = true;
 
-                    #[cfg(feature = "unit_late_move_reductions")]
+                    #[cfg(feature = "late_move_reductions")]
                     // If a search reduced in depth by lmr is an alpha-cutoff
                     if reduced_depth != depth && scoring_move.score >= beta {
                         // Search again at full depth
@@ -307,10 +317,10 @@ impl Search {
                         best_move = *scoring_move;
                         if alpha >= beta {
                             if !is_capture_or_promotion {
-                                #[cfg(feature = "unit_killer_heuristic")]
+                                #[cfg(feature = "killer_heuristic")]
                                 KillerMoves::update(scoring_move.bit_move, new_position.ply);
                                 
-                                #[cfg(feature = "unit_history_heuristic")]
+                                #[cfg(feature = "history_heuristic")]
                                 HistoryHeuristic::update(position.side, &quiets_searched[0..quiets_count], scoring_move.bit_move, depth as i16);
                             }
                             break;
@@ -318,7 +328,7 @@ impl Search {
                     }
                 }
 
-                #[cfg(feature = "unit_history_heuristic")]
+                #[cfg(feature = "history_heuristic")]
                 if scoring_move.bit_move != best_move.bit_move && !is_capture_or_promotion && quiets_count < SQUARE_COUNT {
                     quiets_searched[quiets_count] = scoring_move.bit_move;
                     quiets_count += 1;
@@ -337,7 +347,7 @@ impl Search {
             }
         }
 
-        #[cfg(feature = "unit_tt")]
+        #[cfg(feature = "tt")]
         {
             let node_type = if best_move.score >= beta {
                 TTNodeType::LowerBound
@@ -362,13 +372,13 @@ impl Search {
 
     #[inline(always)]
     fn best_move(&mut self, position: &Position, depth: usize) -> ScoringMove {
-        #[cfg(all(not(feature = "unit_minimax"), not(feature = "unit_negamax")))]
+        #[cfg(all(not(feature = "minimax"), not(feature = "negamax")))]
         return self.move_ordering_best_move(position);
 
-        #[cfg(feature = "unit_minimax")]
+        #[cfg(feature = "minimax")]
         return self.minimax_best_move(position, depth);
 
-        #[cfg(feature = "unit_negamax")]
+        #[cfg(feature = "negamax")]
         return self.negamax_best_move(position, Score::START_ALPHA, Score::START_BETA, depth);
     }
 
@@ -410,7 +420,7 @@ impl Search {
             let new_best_move = self.best_move(position, current_depth);
 
             if self.should_stop_calculating() {
-                #[cfg(feature = "unit_tt")]
+                #[cfg(feature = "tt")]
                 TranspositionTable::reset();
 
                 uci_println!(self, "info string ended iterative search and reset transposition table");
@@ -452,11 +462,12 @@ impl Search {
     }
 
     #[inline(always)]
+    #[cfg(feature = "parallelize")]
     fn go_lazy_smp(&mut self, position: &Position, depth: usize) -> ScoringMove {
         let best_move = Arc::new(Mutex::new(ScoringMove::blank(Score::BLANK)));
         let ended_early = Arc::new(AtomicBool::new(false));
 
-        GlobalThreadPool::get()
+        crate::GlobalThreadPool::get()
             .scope(|s| {
             for current_depth in 1..=depth {
                 let mut self_ref = self.clone();
@@ -525,12 +536,11 @@ impl Search {
         }
     }
 
-    
     #[inline(always)]
     pub fn go(&mut self, position: &Position, depth: Option<usize>, stop_time: Option<u128>) -> ScoringMove {
         self.reset(stop_time);
 
-        #[cfg(feature = "unit_opening_book")]
+        #[cfg(feature = "opening_book")]
         if self.in_opening && stop_time.is_none_or(|time| time >= OPENING_BOOK_SEARCH_THRESHOLD) {
             uci_println!(self, "info string searching for opening move");
             if let Some(opening_move) = self.opening_book.get_move(position) {
@@ -544,7 +554,7 @@ impl Search {
             }
         }
 
-        #[cfg(feature = "unit_syzygy_tablebase")]
+        #[cfg(feature = "syzygy_tablebase")]
         if let Some(tablebase) = self.tablebase.as_ref() {
             let tablebase_max_pieces_u8 = tablebase.get_max_pieces() as u8;
             if position.all_occupancy.count_bits() <= tablebase_max_pieces_u8 + 1 {
@@ -625,14 +635,14 @@ impl Search {
             }
             
             let chosen_move = {
-                #[cfg(not(feature = "unit_iterative_deepening"))]
+                #[cfg(not(feature = "iterative_deepening"))]
                 { return self.go_no_iterative_deepening(position, depth); }
 
-                #[cfg(all(not(feature = "unit_lazy_smp"), feature = "unit_iterative_deepening"))]
+                #[cfg(not(feature = "parallelize"))]
                 { return self.go_iterative_deepening(position, depth); }
 
-                #[cfg(feature = "unit_lazy_smp")]
-                if GlobalThreadPool::should_parallelize() {
+                #[cfg(feature = "parallelize")]
+                if crate::GlobalThreadPool::should_parallelize() {
                     self.go_lazy_smp(position, depth)
                 } else {
                     self.go_iterative_deepening(position, depth)
@@ -652,17 +662,17 @@ impl Search {
     }
 
     fn get_pv(&self, position: &Position, depth: usize, _best_move: BitMove) -> String {
-        #[cfg(feature = "unit_tt")]
+        #[cfg(feature = "tt")]
         return self.get_pv_from_tt(position, depth);
 
-        #[cfg(not(feature = "unit_tt"))]
+        #[cfg(not(feature = "tt"))]
         return _best_move.to_uci_string()
     }
 
     // NOTE: There is a notable chance the pv will be ended early in case a different position
     // happens to have the same table index. The probability scales inversely with the
     // size of the transposition table.
-    #[cfg(feature = "unit_tt")]
+    #[cfg(feature = "tt")]
     fn get_pv_from_tt(&self, position: &Position, depth: usize) -> String {
         let mut pv_moves = Vec::new();
         let mut position_copy = position.clone();
@@ -679,8 +689,9 @@ impl Search {
         pv_moves.join(" ")
     }
 
+    #[cfg(feature = "syzygy_tablebase")]
     pub fn set_tablebase(&mut self, path: &str) {
-        let result = SyzygyTablebase::from_directory(path).ok();
+        let result = crate::SyzygyTablebase::from_directory(path).ok();
         match result {
             Some(_) => uci_println!(self, "info string loaded tablebase successfully"),
             None => uci_println!(self, "info string error loading tablebase"),
@@ -688,7 +699,6 @@ impl Search {
         self.tablebase = Arc::new(result);
     }
 }
-
 
 #[cfg(test)]
 mod tests {

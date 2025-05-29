@@ -3,7 +3,7 @@
 
 use std::{env, process::Command};
 
-use sisyphus32::VERSIONS;
+use sisyphus32::FEATURES;
 
 const PROFILE_NAME: &str = "release-all";
 const PACKAGE_NAME: &str = "sisyphus32";
@@ -11,22 +11,22 @@ const PACKAGE_NAME: &str = "sisyphus32";
 fn main() {
     env::set_var("RUSTFLAGS", "-Awarnings");
 
-    for version_name in VERSIONS {
+    for feature_name in FEATURES {
         // Build feature binary
         let status = Command::new("cargo")
-            .args(["build", &format!("--profile={PROFILE_NAME}"), "--no-default-features", "--features", version_name, "--bin", PACKAGE_NAME])
+            .args(["build", &format!("--profile={PROFILE_NAME}"), "--features", &format!("version_{feature_name}"), "--bin", PACKAGE_NAME])
             .status()
             .expect("Failed to execute cargo build");
 
         if !status.success() {
-            eprintln!("Build failed for version: {version_name}");
+            eprintln!("Build failed for version: {feature_name}");
             continue;
         }
 
         // Rename binary
         let target_dir = format!("target/{PROFILE_NAME}");
         let from = format!("{target_dir}/{PACKAGE_NAME}.exe");
-        let to = format!("{target_dir}/{PACKAGE_NAME}_{version_name}.exe");
+        let to = format!("{target_dir}/{PACKAGE_NAME}_{feature_name}.exe");
 
         std::fs::rename(&from, &to).expect("Failed to rename binary");
         println!("Built and renamed: {to}\n");

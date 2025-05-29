@@ -30,7 +30,7 @@ impl EvalMove {
         let piece = position.get_piece(source);
         let capture_option = position.get_piece_option(target);
 
-        #[cfg(feature = "unit_move_flag_eval")]
+        #[cfg(feature = "move_flag_eval")]
         {
             score += match bit_move.flag_option() {
                 None | Some(MoveFlag::WDoublePawn) | Some(MoveFlag::BDoublePawn) => 0,
@@ -48,7 +48,7 @@ impl EvalMove {
         if let Some(capture) = capture_option {
             score += MVV_LVA[piece][capture];
 
-            #[cfg(feature = "unit_capture_with_check_eval")]
+            #[cfg(feature = "capture_with_check_eval")]
             {
                 let enemy_king_bb = match position.side {
                     Color::White => position.bitboards[Piece::BK],
@@ -60,7 +60,7 @@ impl EvalMove {
             }
         };
 
-        #[cfg(feature = "unit_eval_tt")]
+        #[cfg(feature = "eval_tt")]
         {
             if let Some(tt_data) = TranspositionTable::probe(position.zobrist_key) {
                 if tt_data.best_move.bit_move == bit_move {
@@ -73,7 +73,7 @@ impl EvalMove {
             }
         }
 
-        #[cfg(feature = "unit_killer_heuristic")]
+        #[cfg(feature = "killer_heuristic")]
         {
             if KillerMoves::get_primary(position.ply) == Some(bit_move) {
                 score += 2000;
@@ -82,7 +82,7 @@ impl EvalMove {
             }
         }
 
-        #[cfg(feature = "unit_history_heuristic")]
+        #[cfg(feature = "history_heuristic")]
         {
             score += HistoryHeuristic::get(position.side, source, target);
         }

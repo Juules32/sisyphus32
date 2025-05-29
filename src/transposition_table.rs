@@ -6,31 +6,31 @@ use crate::{ScoringMove, ZobristKey};
 
 const TT_INIT_BYTES_SIZE: usize = 16; // 16MB
 
-#[cfg(not(feature = "unit_lockless_hashing"))]
+#[cfg(not(feature = "lockless_hashing"))]
 static mut TRANSPOSITION_TABLE: Vec<std::sync::Mutex<TTSlot>> = vec![];
 
-#[cfg(feature = "unit_lockless_hashing")]
+#[cfg(feature = "lockless_hashing")]
 static mut TRANSPOSITION_TABLE: Vec<TTSlot> = vec![];
 
 pub(crate) struct TranspositionTable;
 
-#[cfg(feature = "unit_tt_two_tier")]
+#[cfg(feature = "tt_two_tier")]
 struct TTSlot {
     main_entry: Option<TTEntry>,
     secondary_entry: Option<TTEntry>,
 }
 
-#[cfg(not(feature = "unit_tt_two_tier"))]
+#[cfg(not(feature = "tt_two_tier"))]
 struct TTSlot {
     entry: Option<TTEntry>,
 }
 
-#[cfg(feature = "unit_tt_two_tier")]
+#[cfg(feature = "tt_two_tier")]
 impl TTSlot {
     const EMPTY: TTSlot = TTSlot { main_entry: None, secondary_entry: None };
 }
 
-#[cfg(not(feature = "unit_tt_two_tier"))]
+#[cfg(not(feature = "tt_two_tier"))]
 impl TTSlot {
     const EMPTY: TTSlot = TTSlot { entry: None };
 }
@@ -69,7 +69,7 @@ impl TranspositionTable {
     }
 }
 
-#[cfg(not(feature = "unit_lockless_hashing"))]
+#[cfg(not(feature = "lockless_hashing"))]
 impl TranspositionTable {
     #[inline(always)]
     pub(crate) fn reset() {
@@ -108,7 +108,7 @@ impl TranspositionTable {
     }
 }
 
-#[cfg(feature = "unit_lockless_hashing")]
+#[cfg(feature = "lockless_hashing")]
 impl TranspositionTable {
     #[inline(always)]
     pub(crate) fn reset() {
@@ -147,7 +147,7 @@ impl TranspositionTable {
     }
 }
 
-#[cfg(feature = "unit_tt_two_tier")]
+#[cfg(feature = "tt_two_tier")]
 impl TranspositionTable {
     // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]
@@ -185,7 +185,7 @@ impl TranspositionTable {
     }
 }
 
-#[cfg(not(feature = "unit_tt_two_tier"))]
+#[cfg(not(feature = "tt_two_tier"))]
 impl TranspositionTable {
     // Store using a two-tier approach: https://www.chessprogramming.org/Transposition_Table#Two-tier_System
     #[inline(always)]
@@ -212,13 +212,13 @@ impl BitXor<TTData> for ZobristKey {
     type Output = ZobristKey;
 
     #[inline(always)]
-    #[cfg(feature = "unit_bb_array")]
+    #[cfg(feature = "bb_array")]
     fn bitxor(self, rhs: TTData) -> Self::Output {
         unsafe { std::mem::transmute::<u64, ZobristKey>(self.0 ^ std::mem::transmute::<TTData, u64>(rhs)) }
     }
 
     #[inline(always)]
-    #[cfg(feature = "unit_bb")]
+    #[cfg(feature = "bb")]
     // NOTE: This should NEVER happen. The function is defined only because of compile time errors
     // that arise when a bit move is not 16 bits in size, which results in TTData being more than
     // 64 bits in size.

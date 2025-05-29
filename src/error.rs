@@ -60,6 +60,9 @@ pub enum UciParseError {
 
     #[error("{0}")]
     FenParseError(#[from] FenParseError),
+
+    #[error("Disabled feature: {0}")]
+    DisabledFeatureError(&'static str),
 }
 
 #[derive(Error, Debug)]
