@@ -19,7 +19,7 @@ path = "src/main.rs"
 [dependencies]
 
 # Global deps
-ctor = { version = "0.4.2", optional = true }
+ctor = "0.4.2"
 thiserror = "2.0.12"
 
 # Parallelize deps
@@ -88,7 +88,6 @@ all_non_wasm = [
     "parallelize",
     "opening_book",
     "syzygy_tablebase",
-    "ctor",
 ]
 
 # All features!
