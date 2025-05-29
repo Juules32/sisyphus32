@@ -111,7 +111,7 @@ pub unsafe fn init() {
     GlobalThreadPool::init();
 }
 
-#[cfg(feature = "ctor")]
+#[cfg(not(target_arch = "wasm32"))]
 #[::ctor::ctor]
 unsafe fn ctor() {
     crate::init();
