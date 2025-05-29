@@ -23,6 +23,7 @@ mod consts;
 mod error;
 mod eval_move;
 mod eval_position;
+mod features;
 mod fen;
 mod file;
 mod history_heuristic;
@@ -47,7 +48,6 @@ mod syzygy;
 mod timer;
 mod transposition_table;
 mod uci;
-mod versions;
 mod zobrist;
 #[cfg(feature = "parallelize")]
 mod global_thread_pool;
@@ -62,6 +62,7 @@ pub use color::Color;
 pub use error::*;
 pub use eval_move::EvalMove;
 pub use eval_position::EvalPosition;
+pub use features::{BASE_FEATURES, FEATURES};
 pub use fen::FenString;
 pub use file::File;
 pub use move_flag::MoveFlag;
@@ -76,7 +77,6 @@ pub use search::Search;
 pub use square::Square;
 pub use timer::Timer;
 pub use uci::Uci;
-pub use versions::{BASE_FEATURES, FEATURES};
 pub use zobrist::ZobristKey;
 // NOTE: Zobrist and versions are only necessary to make public because of
 // /src/bin and /tests.
