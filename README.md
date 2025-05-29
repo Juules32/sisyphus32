@@ -35,9 +35,9 @@ Sisyphus32 is UCI-compliant, implementing the following UCI commands:
 2. (OPTIONAL) download a syzygy tablebase and put it in `tables/syzygy/` for optimal performance.
 
 ## How to use
-1. Run `cargo build --release` to build the executable.
-2. Run `cargo run --release` to build and run the executable.
-3. Run `cargo run --release --no-default-features --features <version>` to build and run a specific version of the engine. Version names can be found in `src/versions.rs`.
+1. Run `cargo build --release --features all` to build the strongest version of the engine.
+2. Run `cargo run --release --features all` to build and run the strongest version of the engine.
+3. Run `cargo run --release --features <version>` to build and run a specific version of the engine. Version names can be found in `src/versions.rs`.
 4. Run `cargo test -- --test-threads=1` to run all unit and integration tests.
 6. Run `cargo run --bin test_all` to run all unit and integration tests for all versions.
 5. (WINDOWS ONLY) Run `cargo run --bin build_all` to build executables for all versions to `target/release_all/`.
