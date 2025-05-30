@@ -35,6 +35,9 @@ rand = { version = "0.9.1", optional = true }
 shakmaty-syzygy = { version = "0.25.3", optional = true }
 shakmaty = { version = "0.27.3", optional = true }
 
+# WASM deps
+js-sys = { version = "0.3.77", optional = true }
+
 # Used by profiler
 [profile.release-with-debug]
 inherits = "release"
@@ -63,7 +66,7 @@ base_default =              ["base_array"]
 default = ["base_default", "iterative_deepening"]
 
 # All features excluding those wasm can't use
-all_wasm = [
+core = [
     "default",
     "negamax",
     "pst",
@@ -84,16 +87,21 @@ all_wasm = [
 ]
 
 # Features wasm can't use
-all_non_wasm = [
+extras = [
     "parallelize",
     "opening_book",
     "syzygy_tablebase",
 ]
 
+all_wasm = [
+    "core",
+    "js-sys"
+]
+
 # All features!
 all = [
-    "all_wasm",
-    "all_non_wasm",
+    "core",
+    "extras",
 ]
 
 # Features not included due to inferior performance

@@ -1,7 +1,8 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use crate::{BitMove, BotGameError, Color, HistoryHeuristic, KillerMoves, Legal, MoveGeneration, MoveList, Piece, Position, ScoringMove, Search, Square, TranspositionTable, Uci};
 
+#[derive(Clone)]
 pub struct BotGame {
     thinking_time: u128,
     bot_side: Color,
@@ -130,12 +131,21 @@ impl BotGame {
     }
 
     #[cfg(feature = "bb_array")]
-    pub fn get_piece_set(&self) -> HashSet<(Piece, Square)> {
-        self.position.pps
-            .iter()
-            .zip(Square::ALL_SQUARES.iter())
-            .filter_map(|(p, s)| p.clone().map(|piece| (piece, *s)))
-            .collect()
+    pub fn get_piece_map(&self) -> HashMap<Square, Piece> {
+        let mut piece_map = HashMap::new();
+
+        for (index, piece) in self.position.pps.iter().enumerate() {
+            if let Some(piece) = piece {
+                let square = Square::from(index as u8);
+                piece_map.insert(square, *piece);
+            }
+        }
+
+        piece_map
+    }
+
+    pub fn get_move_history(&self) -> &[BitMove] {
+        &self.move_history
     }
 }
 
@@ -168,9 +178,9 @@ mod tests {
     fn get_2d_board_returns_array_of_tuples() {
         let bot_game = BotGame::new(Color::Black, 5000);
         let piece_positions = bot_game.get_2d_board();
-        let piece_set = bot_game.get_piece_set();
+        let piece_map = bot_game.get_piece_map();
         assert_eq!(piece_positions[Square::G8], Some(Piece::BN));
-        let piece_set_entry = piece_set.get(&(Piece::WQ, Square::D1));
-        assert!(piece_set_entry.is_some());
+        let piece_set_entry = piece_map.get(&Square::D1);
+        assert!(piece_set_entry.is_some_and(|p| *p == Piece::WQ));
     }
 }
