@@ -279,7 +279,7 @@ impl Search {
         let mut best_move = ScoringMove::blank(alpha);
         self.zobrist_key_history.push(position.zobrist_key);
         let mut move_index = 0;
-        for scoring_move in moves.iter_mut() {
+        for mut scoring_move in moves {
             let mut new_position = position.clone();
             if new_position.apply_pseudo_legal_move(scoring_move.bit_move) {
                 let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
@@ -328,7 +328,7 @@ impl Search {
 
                     if should_update_alpha {
                         alpha = scoring_move.score;
-                        best_move = *scoring_move;
+                        best_move = scoring_move;
                         if alpha >= beta {
                             if !is_capture_or_promotion {
                                 #[cfg(feature = "killer_heuristic")]
@@ -580,8 +580,8 @@ impl Search {
                         best_move_option = Some(tablebase_move);
                     }
                 } else if position.all_occupancy.count_bits() == tablebase_max_pieces_u8 + 1 && stop_time.is_none_or(|time| time >= EXTENDED_TABLEBASE_SEARCH_THRESHOLD) {
-                    let mut moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
-                    for scoring_move in moves.iter_mut() {
+                    let moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
+                    for scoring_move in moves {
                         let mut new_position = position.clone();
                         if new_position.apply_pseudo_legal_move(scoring_move.bit_move) {
                             if let Some(tablebase_move) = tablebase.best_move(&new_position) {

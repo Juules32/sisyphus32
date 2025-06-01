@@ -1,37 +1,44 @@
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
 use crate::{BitMove, BotGameError, Color, HistoryHeuristic, KillerMoves, Legal, MoveGeneration, MoveList, Piece, Position, ScoringMove, Search, Square, TranspositionTable, Uci};
 
-#[derive(Clone)]
 pub struct BotGame {
     thinking_time: u128,
-    bot_side: Color,
+    player_side: Color,
     position: Position,
     search: Search,
     move_history: Vec<BitMove>,
+    legal_moves: MoveList<BitMove>,
+}
+
+impl Default for BotGame {
+    fn default() -> Self {
+        Self::new(Color::Black, 5000)
+    }
 }
 
 impl BotGame {
-    pub fn new(bot_side: Color, thinking_time: u128) -> Self {
+    pub fn new(player_side: Color, thinking_time: u128) -> Self {
         KillerMoves::reset();
         HistoryHeuristic::reset();
         TranspositionTable::reset();
-
+        
         Self {
             thinking_time,
-            bot_side,
+            player_side,
             position: Position::starting_position(),
             search: Default::default(),
-            move_history: Default::default()
+            move_history: Default::default(),
+            legal_moves: MoveGeneration::generate_moves::<BitMove, Legal>(&Position::starting_position())
         }
     }
 
     pub fn bot_side(&self) -> Color {
-        self.bot_side
+        self.player_side.opposite()
     }
     
     pub fn player_side(&self) -> Color {
-        self.bot_side.opposite()
+        self.player_side
     }
     
     pub fn to_move(&self) -> Color {
@@ -61,8 +68,7 @@ impl BotGame {
 
     pub fn player_play_bit_move(&mut self, bit_move: BitMove) -> Result<(), BotGameError> {
         self.verify_player_to_move()?;
-        let move_list = MoveGeneration::generate_moves::<BitMove, Legal>(&self.position);
-        if move_list.contains(&bit_move) {
+        if self.get_legal_moves().contains(&bit_move) {
             self.make_move(bit_move);
             Ok(())
         } else {
@@ -72,8 +78,7 @@ impl BotGame {
 
     pub fn player_play_uci_move(&mut self, uci_move: &str) -> Result<(), BotGameError> {
         self.verify_player_to_move()?;
-        let move_list = MoveGeneration::generate_moves::<BitMove, Legal>(&self.position);
-        let bit_move = Uci::parse_move_string(&move_list, uci_move).map_err(|_| BotGameError::IllegalUciMoveError)?;
+        let bit_move = Uci::parse_move_string(&self.legal_moves, uci_move).map_err(|_| BotGameError::IllegalUciMoveError)?;
         self.make_move(bit_move);
         Ok(())
     }
@@ -81,11 +86,11 @@ impl BotGame {
     fn make_move(&mut self, bit_move: BitMove) {
         self.position.make_move(bit_move);
         self.move_history.push(bit_move);
+        self.legal_moves = MoveGeneration::generate_moves::<BitMove, Legal>(&self.position);
     }
 
     pub fn is_checkmate(&self) -> bool {
-        let move_list = MoveGeneration::generate_moves::<BitMove, Legal>(&self.position);
-        move_list.is_empty()
+        self.get_legal_moves().is_empty()
     }
 
     pub fn bot_won(&self) -> bool {
@@ -104,9 +109,13 @@ impl BotGame {
         self.is_checkmate() && self.to_move() == Color::White
     }
 
-    pub fn player_legal_moves(&self) -> Result<MoveList<BitMove>, BotGameError>  {
+    pub fn player_legal_moves(&self) -> Result<&MoveList<BitMove>, BotGameError>  {
         self.verify_player_to_move()?;
-        Ok(MoveGeneration::generate_moves::<BitMove, Legal>(&self.position))
+        Ok(self.get_legal_moves())
+    }
+
+    pub fn get_legal_moves(&self) -> &MoveList<BitMove> {
+        &self.legal_moves
     }
 
     fn verify_side_to_move(&self, side: Color) -> Result<(), BotGameError> {
@@ -147,11 +156,24 @@ impl BotGame {
     pub fn get_move_history(&self) -> &[BitMove] {
         &self.move_history
     }
-}
 
-impl Default for BotGame {
-    fn default() -> Self {
-        Self::new(Color::Black, 5000)
+    pub fn get_last_move(&self) -> Option<BitMove> {
+        self.get_move_history().last().copied()
+    }
+
+    pub fn get_position(&self) -> &Position {
+        &self.position
+    }
+
+    pub fn in_check(&self) -> bool {
+        self.get_position().in_check(self.to_move())
+    }
+
+    pub fn get_king_square(&self, side: Color) -> Square {
+        match side {
+            Color::White => self.position.bitboards[Piece::WK].into(),
+            Color::Black => self.position.bitboards[Piece::BK].into(),
+        }
     }
 }
 
@@ -171,6 +193,12 @@ mod tests {
         bot_game.bot_play_move().unwrap();
         assert_eq!(bot_game.to_move(), Color::White);
         assert!(bot_game.player_to_move());
+    }
+
+    #[test]
+    fn initial_bot_game_has_moves() {
+        let bot_game = BotGame::new(Color::White, 1000);
+        assert!(bot_game.get_legal_moves().len() > 0);
     }
 
     #[cfg(feature = "bb_array")]
