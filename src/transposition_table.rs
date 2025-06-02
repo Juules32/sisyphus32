@@ -6,11 +6,7 @@ use crate::{ScoringMove, ZobristKey};
 
 const TT_INIT_BYTES_SIZE: usize = 16; // 16MB
 
-#[cfg(not(feature = "lockless_hashing"))]
 static mut TRANSPOSITION_TABLE: Vec<std::sync::Mutex<TTSlot>> = vec![];
-
-#[cfg(feature = "lockless_hashing")]
-static mut TRANSPOSITION_TABLE: Vec<TTSlot> = vec![];
 
 pub(crate) struct TranspositionTable;
 
@@ -69,7 +65,6 @@ impl TranspositionTable {
     }
 }
 
-#[cfg(not(feature = "lockless_hashing"))]
 impl TranspositionTable {
     #[inline(always)]
     pub(crate) fn reset() {
@@ -105,45 +100,6 @@ impl TranspositionTable {
     #[inline(always)]
     fn store_entry(entry: &mut Option<TTEntry>, zobrist_key: ZobristKey, data: TTData) {
         *entry = Some(TTEntry::new(zobrist_key, data));
-    }
-}
-
-#[cfg(feature = "lockless_hashing")]
-impl TranspositionTable {
-    #[inline(always)]
-    pub(crate) fn reset() {
-        unsafe {
-            TRANSPOSITION_TABLE = (0..TRANSPOSITION_TABLE.len())
-                .map(|_| TTSlot::EMPTY)
-                .collect();
-        }
-    }
-
-    #[inline(always)]
-    pub(crate) fn resize(size_mb: usize) {
-        unsafe {
-            TRANSPOSITION_TABLE = (0..size_mb * 1_000_000 / size_of::<TTSlot>())
-                .map(|_| TTSlot::EMPTY)
-                .collect();
-        }
-    }
-
-    #[inline(always)]
-    fn get_slot(zobrist_key: ZobristKey) -> &'static mut TTSlot {
-        unsafe {
-            let index = (zobrist_key.0 as usize) % TRANSPOSITION_TABLE.len();
-            &mut TRANSPOSITION_TABLE[index]
-        }
-    }
-
-    #[inline(always)]
-    fn verify_key(zobrist_key: ZobristKey, entry: &TTEntry) -> bool {
-        entry.zobrist_key ^ entry.data == zobrist_key
-    }
-
-    #[inline(always)]
-    fn store_entry(entry: &mut Option<TTEntry>, zobrist_key: ZobristKey, data: TTData) {
-        *entry = Some(TTEntry::new(zobrist_key ^ data, data));
     }
 }
 

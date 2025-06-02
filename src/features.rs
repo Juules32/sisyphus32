@@ -20,7 +20,6 @@ pub const FEATURES: &[&str] = &[
     "capture_with_check_eval",
     "move_flag_eval",
     "parallelize",
-    "lockless_hashing",
     "opening_book",
     "syzygy_tablebase",
 ];
