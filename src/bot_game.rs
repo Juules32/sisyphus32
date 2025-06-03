@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn making_moves_changes_color() {
-        let mut bot_game = BotGame::new(Color::Black, 5000);
+        let mut bot_game = BotGame::new(Color::White, 5000);
         bot_game.set_thinking_time(100).unwrap();
         assert_eq!(bot_game.to_move(), Color::White);
         assert!(bot_game.player_to_move());
