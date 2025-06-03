@@ -28,6 +28,7 @@ impl Default for Uci {
 }
 
 impl Uci {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn init(&mut self) {
         println!("info string listening on stdin for uci commands");
 
@@ -39,7 +40,6 @@ impl Uci {
             let mut lines = io::stdin().lock().lines();
             while let Some(Ok(line)) = lines.next() {
                 match line.as_str() {
-                    "quit" | "exit" | "q" | "e" => exit(0),
                     "stop" | "s" => stop_calculating.store(true, Ordering::Relaxed),
                     _ => if uci_command_tx.send(line).is_err() {
                         break;
@@ -52,6 +52,17 @@ impl Uci {
             if let Err(error) = self.parse_line(line) {
                 eprintln!("{error}!");
             };
+        }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn init(&mut self) {
+        println!("info string listening on stdin for uci commands");
+        let mut lines = io::stdin().lock().lines();
+        while let Some(Ok(line)) = lines.next() {
+            if let Err(error) = self.parse_line(line) {
+                eprintln!("{error}!");
+            }
         }
     }
 
@@ -107,7 +118,8 @@ impl Uci {
                     },
                     "setoption" => {
                         self.parse_setoption(&line, &words)
-                    }
+                    },
+                    "quit" | "exit" | "q" | "e" => exit(0),
                     _ => Err(UciParseError::Keyword),
                 }
             }

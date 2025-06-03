@@ -1,9 +1,9 @@
 pub const FEATURES: &[&str] = &[
+    "iterative_deepening",
     "minimax",
     "negamax",
     "pst",
     "sort_moves",
-    "iterative_deepening",
     "quiescence",
     "quiescence_en_passant",
     "checks_add_depth",
@@ -20,7 +20,6 @@ pub const FEATURES: &[&str] = &[
     "capture_with_check_eval",
     "move_flag_eval",
     "parallelize",
-    "lockless_hashing",
     "opening_book",
     "syzygy_tablebase",
 ];

@@ -28,6 +28,11 @@ impl Square {
     ];
 
     #[inline(always)]
+    pub fn is_white(self) -> bool {
+        (self as u8 / 8 + self as u8) % 2 == 0
+    }
+
+    #[inline(always)]
     pub(crate) fn to_bb(self) -> Bitboard {
         Bitboard::from(1 << (self as u64))
     }

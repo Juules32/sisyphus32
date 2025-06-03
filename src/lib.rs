@@ -112,7 +112,7 @@ pub unsafe fn init() {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[::ctor::ctor]
+#[ctor::ctor]
 unsafe fn ctor() {
     crate::init();
 }

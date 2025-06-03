@@ -1,4 +1,4 @@
-use std::{cmp::min, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread, time::Duration};
+use std::{cmp::min, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}};
 
 use crate::{BitMove, EvalPosition, HistoryHeuristic, KillerMoves, Legal, MoveGeneration, Position, PseudoLegal, Score, ScoringMove, TTData, TTNodeType, Timer, TranspositionTable, ZobristKey, MAX_DEPTH, SQUARE_COUNT};
 
@@ -10,6 +10,7 @@ const EXTENDED_TABLEBASE_SEARCH_THRESHOLD: u128 = 500;
 const OPENING_BOOK_SEARCH_THRESHOLD: u128 = 100;
 const LMR_DEPTH_THRESHOLD: usize = 3;
 const LMR_FACTOR: f32 = 0.75;
+const NUM_NODE_CHECK: u64 = 10000;
 
 #[cfg(not(feature = "late_move_reductions"))]
 const AVERAGE_BRANCHING_FACTOR: usize = 5;
@@ -150,7 +151,19 @@ impl Search {
     }
 
     #[inline(always)]
+    fn perform_stop_calculating_check(&self) {
+        if let Some(stop_time) = *self.stop_time {
+            if self.nodes % NUM_NODE_CHECK == 0 {
+                if self.timer.get_time_passed_millis() >= stop_time {
+                    self.begin_stop_calculating();
+                }
+            }
+        }
+    }
+
+    #[inline(always)]
     fn quiescence(&mut self, position: &Position, mut alpha: Score, beta: Score) -> ScoringMove {
+        self.perform_stop_calculating_check();
         if self.should_stop_calculating() {
             return ScoringMove::blank(Score::BLANK);
         }
@@ -203,6 +216,7 @@ impl Search {
             return self.quiescence(position, alpha, beta);
         }
 
+        self.perform_stop_calculating_check();
         if self.should_stop_calculating() {
             return ScoringMove::blank(Score::BLANK);
         }
@@ -265,7 +279,7 @@ impl Search {
         let mut best_move = ScoringMove::blank(alpha);
         self.zobrist_key_history.push(position.zobrist_key);
         let mut move_index = 0;
-        for scoring_move in moves.iter_mut() {
+        for mut scoring_move in moves {
             let mut new_position = position.clone();
             if new_position.apply_pseudo_legal_move(scoring_move.bit_move) {
                 let is_capture_or_promotion = scoring_move.bit_move.is_capture_or_promotion(position);
@@ -314,7 +328,7 @@ impl Search {
 
                     if should_update_alpha {
                         alpha = scoring_move.score;
-                        best_move = *scoring_move;
+                        best_move = scoring_move;
                         if alpha >= beta {
                             if !is_capture_or_promotion {
                                 #[cfg(feature = "killer_heuristic")]
@@ -566,8 +580,8 @@ impl Search {
                         best_move_option = Some(tablebase_move);
                     }
                 } else if position.all_occupancy.count_bits() == tablebase_max_pieces_u8 + 1 && stop_time.is_none_or(|time| time >= EXTENDED_TABLEBASE_SEARCH_THRESHOLD) {
-                    let mut moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
-                    for scoring_move in moves.iter_mut() {
+                    let moves = MoveGeneration::generate_captures::<ScoringMove, PseudoLegal>(position);
+                    for scoring_move in moves {
                         let mut new_position = position.clone();
                         if new_position.apply_pseudo_legal_move(scoring_move.bit_move) {
                             if let Some(tablebase_move) = tablebase.best_move(&new_position) {
@@ -603,7 +617,6 @@ impl Search {
 
     #[inline(always)]
     fn go_search(&mut self, position: &Position, depth: Option<usize>, stop_time: Option<u128>) -> ScoringMove {
-        let stop_flag = self.stop_calculating.clone();
         uci_print!(self, "info string searching for best move");
 
         if let Some(stop_time) = stop_time {
@@ -618,42 +631,18 @@ impl Search {
 
         let depth = depth.unwrap_or(MAX_DEPTH);
 
-        // NOTE: Scoping the following thread helps prevent an excess amount of threads being created
-        // and future calculations being stopped because of old threads.
-        let chosen_move = thread::scope(|s| {
-            if let Some(time) = stop_time {
-                s.spawn(move || {
-                    for _ in 0..time / 10 {
-                        thread::sleep(Duration::from_millis(10));
-                        if stop_flag.load(Ordering::Relaxed) {
-                            return; // Stop the thread early
-                        }
-                    }
-                    stop_flag.store(true, Ordering::Relaxed);
-                    return;
-                });
-            }
-            
-            let chosen_move = {
-                #[cfg(not(feature = "iterative_deepening"))]
-                { return self.go_no_iterative_deepening(position, depth); }
+        #[cfg(not(feature = "iterative_deepening"))]
+        { return self.go_no_iterative_deepening(position, depth); }
 
-                #[cfg(not(feature = "parallelize"))]
-                { return self.go_iterative_deepening(position, depth); }
+        #[cfg(not(feature = "parallelize"))]
+        { return self.go_iterative_deepening(position, depth); }
 
-                #[cfg(feature = "parallelize")]
-                if crate::GlobalThreadPool::should_parallelize() {
-                    self.go_lazy_smp(position, depth)
-                } else {
-                    self.go_iterative_deepening(position, depth)
-                }
-            };
-
-            self.begin_stop_calculating();
-            return chosen_move;
-        });
-
-        chosen_move
+        #[cfg(feature = "parallelize")]
+        if crate::GlobalThreadPool::should_parallelize() {
+            self.go_lazy_smp(position, depth)
+        } else {
+            self.go_iterative_deepening(position, depth)
+        }
     }
 
     #[inline(always)]

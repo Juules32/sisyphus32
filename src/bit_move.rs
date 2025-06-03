@@ -166,8 +166,13 @@ impl BitMove {
     }
 
     #[inline(always)]
+    pub fn is_capture(self, position: &Position) -> bool {
+        position.get_piece_option(self.target()).is_some()
+    }
+
+    #[inline(always)]
     pub(crate) fn is_capture_or_promotion(self, position: &Position) -> bool {
-        position.get_piece_option(self.target()).is_some() || self.flag_option().is_some_and(|f| f.is_promotion())
+        self.is_capture(position) || self.flag_option().is_some_and(|f| f.is_promotion())
     }
 
     #[inline(always)]

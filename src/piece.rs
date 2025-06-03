@@ -139,18 +139,18 @@ impl From<Piece> for char {
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s = match self {
-            Piece::WP => "♟",
-            Piece::WN => "♞",
-            Piece::WB => "♝",
-            Piece::WR => "♜",
-            Piece::WQ => "♛",
-            Piece::WK => "♚",
-            Piece::BP => "♙",
-            Piece::BN => "♘",
-            Piece::BB => "♗",
-            Piece::BR => "♖",
-            Piece::BQ => "♕",
-            Piece::BK => "♔",
+            Piece::WP => "♙",
+            Piece::WN => "♘",
+            Piece::WB => "♗",
+            Piece::WR => "♖",
+            Piece::WQ => "♕",
+            Piece::WK => "♔",
+            Piece::BP => "♟",
+            Piece::BN => "♞",
+            Piece::BB => "♝",
+            Piece::BR => "♜",
+            Piece::BQ => "♛",
+            Piece::BK => "♚",
         };
         f.pad(s)
     }

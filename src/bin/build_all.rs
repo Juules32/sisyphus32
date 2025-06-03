@@ -14,7 +14,7 @@ fn main() {
     for feature_name in FEATURES {
         // Build feature binary
         let status = Command::new("cargo")
-            .args(["build", &format!("--profile={PROFILE_NAME}"), "--features", &format!("version_{feature_name}"), "--bin", PACKAGE_NAME])
+            .args(["build", &format!("--profile={PROFILE_NAME}"), "--no-default-features", "--features", &format!("version_{feature_name}"), "--bin", PACKAGE_NAME])
             .status()
             .expect("Failed to execute cargo build");
 
