@@ -1,9 +1,9 @@
 pub const FEATURES: &[&str] = &[
+    "iterative_deepening",
     "minimax",
     "negamax",
     "pst",
     "sort_moves",
-    "iterative_deepening",
     "quiescence",
     "quiescence_en_passant",
     "checks_add_depth",
