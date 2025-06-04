@@ -111,7 +111,7 @@ impl<'a, T: Move> IntoIterator for &'a MoveList<T> {
     }
 }
 
-#[cfg(feature = "parallelize")]
+#[cfg(any(feature = "parallel_perft", feature = "lazy_smp"))]
 impl<'a, T: Move + Sync + 'a> rayon::iter::IntoParallelRefIterator<'a> for MoveList<T> {
     type Item = &'a T;
     type Iter = rayon::slice::Iter<'a, T>;

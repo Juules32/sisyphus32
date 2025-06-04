@@ -476,7 +476,7 @@ impl Search {
     }
 
     #[inline(always)]
-    #[cfg(feature = "parallelize")]
+    #[cfg(feature = "lazy_smp")]
     fn go_lazy_smp(&mut self, position: &Position, depth: usize) -> ScoringMove {
         let best_move = Arc::new(Mutex::new(ScoringMove::blank(Score::BLANK)));
         let ended_early = Arc::new(AtomicBool::new(false));
@@ -634,10 +634,10 @@ impl Search {
         #[cfg(not(feature = "iterative_deepening"))]
         { return self.go_no_iterative_deepening(position, depth); }
 
-        #[cfg(not(feature = "parallelize"))]
+        #[cfg(not(feature = "lazy_smp"))]
         { return self.go_iterative_deepening(position, depth); }
 
-        #[cfg(feature = "parallelize")]
+        #[cfg(feature = "lazy_smp")]
         if crate::GlobalThreadPool::should_parallelize() {
             self.go_lazy_smp(position, depth)
         } else {

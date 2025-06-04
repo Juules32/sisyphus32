@@ -16,6 +16,7 @@ compile_error!("feature \"revert_undo\" and feature \"bb_array\" cannot be enabl
 mod bit_move;
 mod bit_twiddles;
 mod bitboard;
+#[cfg(feature = "bot_game")]
 mod bot_game;
 mod castling_rights;
 mod color;
@@ -49,20 +50,21 @@ mod timer;
 mod transposition_table;
 mod uci;
 mod zobrist;
-#[cfg(feature = "parallelize")]
+#[cfg(any(feature = "parallel_perft", feature = "lazy_smp"))]
 mod global_thread_pool;
 
 ///*--------------------------------*\\\
 //    PUBLIC LIBRARY FUNCTIONALITY    \\
 //\*--------------------------------*/\\
 pub use bit_move::{Move, BitMove, ScoringMove};
+#[cfg(feature = "bot_game")]
 pub use bot_game::BotGame;
 pub use castling_rights::CastlingRights;
 pub use color::Color;
 pub use error::*;
 pub use eval_move::EvalMove;
 pub use eval_position::EvalPosition;
-pub use features::{BASE_FEATURES, FEATURES};
+pub use features::{BASE_FEATURES, FEATURES, OTHER_FEATURES};
 pub use fen::FenString;
 pub use file::File;
 pub use move_flag::MoveFlag;
@@ -86,7 +88,7 @@ pub use zobrist::ZobristKey;
 //\*--------------------------------*/\\
 use bitboard::Bitboard;
 use consts::*;
-#[cfg(feature = "parallelize")]
+#[cfg(any(feature = "parallel_perft", feature = "lazy_smp"))]
 use global_thread_pool::GlobalThreadPool;
 use history_heuristic::HistoryHeuristic;
 use killer_moves::KillerMoves;
@@ -107,7 +109,7 @@ pub unsafe fn init() {
     ZobristKey::init_zobrist_keys();
     TranspositionTable::init();
 
-    #[cfg(feature = "parallelize")]
+    #[cfg(any(feature = "parallel_perft", feature = "lazy_smp"))]
     GlobalThreadPool::init();
 }
 
