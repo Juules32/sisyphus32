@@ -19,7 +19,7 @@ pub const FEATURES: &[&str] = &[
     "pseudo_pins",
     "capture_with_check_eval",
     "move_flag_eval",
-    "parallelize",
+    "lazy_smp",
     "opening_book",
     "syzygy_tablebase",
 ];
@@ -31,4 +31,8 @@ pub const BASE_FEATURES: &[&str] = &[
     "base_clone_parallel",
     "base_array",
     "base_array_parallel",
+];
+
+pub const OTHER_FEATURES: &[&str] = &[
+    "bot_game",
 ];

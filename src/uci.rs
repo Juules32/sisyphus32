@@ -141,7 +141,7 @@ impl Uci {
             println!("info string transposition table reset successfully");
             Ok(())
         } else if line.starts_with("setoption name Threads value") {
-            #[cfg(feature = "parallelize")]
+            #[cfg(any(feature = "parallel_perft", feature = "lazy_smp"))]
             {
                 let num_threads = words.last().unwrap().parse().map_err(|_| UciParseError::ParamValue("Threads"))?;
                 if num_threads > MAX_NUM_THREADS {
@@ -153,7 +153,7 @@ impl Uci {
                 Ok(())
             }
 
-            #[cfg(not(feature = "parallelize"))]
+            #[cfg(not(any(feature = "parallel_perft", feature = "lazy_smp")))]
             Err(UciParseError::DisabledFeatureError("Parallelism"))
 
         } else if line.starts_with("setoption name SyzygyPath value") {

@@ -4,7 +4,7 @@ use crate::{BitMove, FenString, MoveGeneration, Position, PseudoLegal, Timer};
 
 use std::sync::Arc;
 
-#[cfg(feature = "parallelize")]
+#[cfg(feature = "parallel_perft")]
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 pub struct PerftResult {
@@ -41,13 +41,13 @@ pub struct Perft;
 impl Perft {
     #[inline(always)]
     pub fn perft_test(position: &Position, depth: u16, print_result: bool) -> PerftResult {
-        #[cfg(all(not(feature = "parallelize"), feature = "revert_undo"))]
+        #[cfg(all(not(feature = "parallel_perft"), feature = "revert_undo"))]
         return Self::perft_test_single_thread_undo_move(position, depth, print_result);
 
-        #[cfg(all(not(feature = "parallelize"), feature = "revert_clone"))]
+        #[cfg(all(not(feature = "parallel_perft"), feature = "revert_clone"))]
         return Self::perft_test_single_thread_clone(position, depth, print_result);
 
-        #[cfg(feature = "parallelize")]
+        #[cfg(feature = "parallel_perft")]
         if crate::GlobalThreadPool::should_parallelize() {
             return Self::perft_test_parallelize(position, depth, print_result);
         } else {
@@ -134,7 +134,7 @@ impl Perft {
     }
 
     #[inline(always)]
-    #[cfg(feature = "parallelize")]
+    #[cfg(feature = "parallel_perft")]
     fn perft_test_parallelize(position: &Position, depth: u16, print_result: bool) -> PerftResult {        
         let timer = Timer::new();
 
@@ -221,7 +221,7 @@ impl Perft {
     }
 
     #[inline(always)]
-    #[cfg(feature = "parallelize")]
+    #[cfg(feature = "parallel_perft")]
     fn perft_driver_parallelize(position_arc: std::sync::Arc<Position>, depth: u16) -> u64 {
         if depth == 0 {
             1
