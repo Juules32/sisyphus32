@@ -80,8 +80,7 @@ pub use square::Square;
 pub use timer::Timer;
 pub use uci::Uci;
 pub use zobrist::ZobristKey;
-// NOTE: Zobrist and versions are only necessary to make public because of
-// /src/bin and /tests.
+// NOTE: Zobrist and versions are only necessary to make public because of /src/bin and /tests.
 
 ///*--------------------------------*\\\
 //     SHARED CRATE FUNCTIONALITY     \\
@@ -104,6 +103,10 @@ use transposition_table::{TranspositionTable, TTNodeType, TTData};
 //      AUTO-INIT FUNCTIONALITY       \\
 //\*--------------------------------*/\\
 pub unsafe fn init() {
+    // Populates LICHESS_TOKEN from a .env file, if one exists *before* spawning any threads
+    #[cfg(feature = "opening_book")]
+    { dotenvy::dotenv().ok(); }
+
     MoveMasks::init_move_masks();
     EvalPosition::init_positional_masks();
     ZobristKey::init_zobrist_keys();

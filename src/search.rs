@@ -568,15 +568,20 @@ impl Search {
 
         #[cfg(feature = "opening_book")]
         if self.in_opening && stop_time.is_none_or(|time| time >= OPENING_BOOK_SEARCH_THRESHOLD) {
-            uci_println!(self, "info string searching for opening move");
-            if let Some(opening_move) = self.opening_book.get_move(position) {
-                uci_println!(self, "info time {}", self.timer.get_time_passed_millis());
-                uci_println!(self, "bestmove {}", opening_move.to_uci_string());
-                return ScoringMove::from(opening_move);
-            } else {
-                uci_println!(self, "info string error finding opening move");
-                uci_println!(self, "info string disabling opening book");
+            if !self.opening_book.has_token() {
+                uci_println!(self, "info string no lichess token set, disabling opening book");
                 self.in_opening = false;
+            } else {
+                uci_println!(self, "info string searching for opening move");
+                if let Some(opening_move) = self.opening_book.get_move(position) {
+                    uci_println!(self, "info time {}", self.timer.get_time_passed_millis());
+                    uci_println!(self, "bestmove {}", opening_move.to_uci_string());
+                    return ScoringMove::from(opening_move);
+                } else {
+                    uci_println!(self, "info string error finding opening move");
+                    uci_println!(self, "info string disabling opening book");
+                    self.in_opening = false;
+                }
             }
         }
 
@@ -688,6 +693,11 @@ impl Search {
             }
         }
         pv_moves.join(" ")
+    }
+
+    #[cfg(feature = "opening_book")]
+    pub fn set_lichess_token(&mut self, token: &str) {
+        self.opening_book = Arc::new(crate::OpeningBook::new(Some(token.to_string())));
     }
 
     #[cfg(feature = "syzygy_tablebase")]

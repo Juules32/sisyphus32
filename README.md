@@ -26,13 +26,16 @@ Sisyphus32 is UCI-compliant, implementing the following UCI commands:
 - `setoption name Clear Hash`
 - `setoption name Threads value <n>`
 - `setoption name SyzygyPath value <path>`
+- `setoption name LichessToken value <token>`
 - `setoption name Hash value <size_mb>`
 
 # Local Development
 
 ## Setup
 1. Install Rust.
-2. (OPTIONAL) download a syzygy tablebase and put it in `tables/syzygy/` for optimal performance.
+2. (OPTIONAL) Download a syzygy tablebase and put it in `tables/syzygy/` for optimal endgame performance.
+3. (OPTIONAL) Create a personal access token at https://lichess.org/account/oauth/token/create (no scopes
+need to be selected), copy and rename `.env.example` to `.env`, then fill in the value to enable the opening book.
 
 ## How to use
 1. Run `cargo build --release` to build the strongest version of the engine.

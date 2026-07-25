@@ -6,6 +6,7 @@ use crate::{BitMove, Color, FenString, Legal, MoveGeneration, Position, Uci};
 const NUM_GAMES_THRESHOLD: u32 = 1_000;
 const WINRATE_THRESHOLD: f32 = 0.35;
 const OPENING_BOOK_TIMEOUT_MS: u64 = 500;
+const LICHESS_TOKEN_ENV_VAR: &str = "LICHESS_TOKEN";
 
 #[derive(Deserialize)]
 struct LichessOpeningStats {
@@ -25,7 +26,7 @@ impl LichessMoveStats {
     fn has_enough_games(&self) -> bool {
         self.white + self.draws + self.black >= NUM_GAMES_THRESHOLD
     }
-    
+
     #[inline(always)]
     fn has_acceptable_winrate(&self, side: Color) -> bool {
         let (playing_side, opposing_side) = match side {
@@ -65,26 +66,41 @@ impl LichessOpeningStats {
 }
 
 pub(crate) struct OpeningBook {
-    agent: ureq::Agent
+    agent: ureq::Agent,
+    token: Option<String>,
 }
 
 impl Default for OpeningBook {
     fn default() -> Self {
-        Self {
-            agent: ureq::Agent::config_builder()
-                .timeout_global(Some(Duration::from_millis(OPENING_BOOK_TIMEOUT_MS)))
-                .build()
-                .into()
-        }
+        Self::new(std::env::var(LICHESS_TOKEN_ENV_VAR).ok())
     }
 }
 
 impl OpeningBook {
+    pub(crate) fn new(token: Option<String>) -> Self {
+        Self {
+            agent: ureq::Agent::config_builder()
+                .timeout_global(Some(Duration::from_millis(OPENING_BOOK_TIMEOUT_MS)))
+                .build()
+                .into(),
+            token,
+        }
+    }
+
+    #[inline(always)]
+    pub(crate) fn has_token(&self) -> bool {
+        self.token.is_some()
+    }
+
     fn get_lichess_opening_stats(&self, position: &Position) -> Result<LichessOpeningStats, ureq::Error> {
         let fen_string = FenString::from(position);
         let fen_with_replaced_spaces = fen_string.to_string().replace(" ", "_");
         let uri = &format!("https://explorer.lichess.ovh/masters?fen={fen_with_replaced_spaces}");
-        let resp = self.agent.get(uri).call();
+        let mut request = self.agent.get(uri);
+        if let Some(token) = &self.token {
+            request = request.header("Authorization", &format!("Bearer {token}"));
+        }
+        let resp = request.call();
         let body = resp?.body_mut().read_to_string()?;
         let lichess_opening_stats: LichessOpeningStats = serde_json::from_str(&body)
             .map_err(ureq::Error::Json)?;
