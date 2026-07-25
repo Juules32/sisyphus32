@@ -74,6 +74,7 @@ impl Uci {
         println!("option name Hash type spin default {DEFAULT_TT_SIZE_MB} min {MIN_TT_SIZE_MB} max {MAX_TT_SIZE_MB}");
         println!("option name Clear Hash type button");
         println!("option name SyzygyPath type string default tables/syzygy");
+        println!("option name LichessToken type string default <empty>");
         println!("uciok");
     }
     
@@ -167,6 +168,18 @@ impl Uci {
 
             #[cfg(not(feature = "syzygy_tablebase"))]
             Err(UciParseError::DisabledFeatureError("Syzygy Tablebase"))
+
+        } else if line.starts_with("setoption name LichessToken value") {
+            #[cfg(feature = "opening_book")]
+            {
+                let token = words.last().unwrap();
+                self.search.set_lichess_token(token);
+                println!("info string set lichess token successfully");
+                Ok(())
+            }
+
+            #[cfg(not(feature = "opening_book"))]
+            Err(UciParseError::DisabledFeatureError("Opening Book"))
 
         } else if line.starts_with("setoption name Hash value") {
             let tt_size_mb = words.last().unwrap().parse().map_err(|_| UciParseError::ParamValue("Transposition Table Size (MB)"))?;
