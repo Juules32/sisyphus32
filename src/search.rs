@@ -221,6 +221,12 @@ impl Search {
             return ScoringMove::blank(Score::BLANK);
         }
 
+        // NOTE: When a lower bound entry raises alpha, its move is kept as the initial
+        // best move. Otherwise, if no move beats the raised alpha, the search would
+        // return an empty best move!
+        #[cfg(feature = "tt")]
+        let mut tt_alpha_move: Option<ScoringMove> = None;
+
         #[cfg(feature = "tt")]
         if let Some(tt_entry) = TranspositionTable::probe(position.zobrist_key) {
             // If the stored depth is at least as deep, use it
@@ -233,6 +239,7 @@ impl Search {
                             if alpha >= beta {
                                 return tt_entry.best_move;
                             }
+                            tt_alpha_move = Some(tt_entry.best_move);
                         }
                     },
                     TTNodeType::UpperBound => {
@@ -277,6 +284,11 @@ impl Search {
 
         let mut moves_has_legal_move = false;
         let mut best_move = ScoringMove::blank(alpha);
+
+        #[cfg(feature = "tt")]
+        if let Some(tt_move) = tt_alpha_move {
+            best_move = tt_move;
+        }
         self.zobrist_key_history.push(position.zobrist_key);
         let mut move_index = 0;
         for mut scoring_move in moves {
@@ -692,6 +704,30 @@ impl Search {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Regression test: a lower bound TT entry raising alpha above any score
+    // reachable by the search must not result in an empty best move.
+    #[test]
+    #[cfg(feature = "tt")]
+    fn negamax_returns_non_empty_move_when_tt_lower_bound_raises_alpha() {
+        use crate::FenString;
+
+        let position = FenString::kiwipete().parse().unwrap();
+        let tt_move = MoveGeneration::generate_moves::<ScoringMove, Legal>(&position).first();
+        TranspositionTable::store(
+            position.zobrist_key,
+            TTData {
+                best_move: ScoringMove::new(tt_move.bit_move, Score::from(9000)),
+                depth: MAX_DEPTH as u16,
+                node_type: TTNodeType::LowerBound,
+            },
+        );
+
+        assert_ne!(
+            Search::default().negamax_best_move(&position, Score::START_ALPHA, Score::START_BETA, 2).bit_move,
+            BitMove::EMPTY
+        );
+    }
 
     #[test]
     fn go_returns_non_empty_move() {
